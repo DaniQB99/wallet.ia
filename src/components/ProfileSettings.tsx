@@ -1,0 +1,171 @@
+import { useState } from 'react';
+import { X, User, Lock, Save, Camera } from 'lucide-react';
+import { useAuthContext } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+
+export default function ProfileSettings({ onClose }: { onClose: () => void }) {
+  const { user, updateProfile } = useAuthContext();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+
+  // Profile state
+  const [displayName, setDisplayName] = useState(user?.display_name || '');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  // Security state
+  const [newPassword, setNewPassword] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [securityMessage, setSecurityMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  const handleUpdateProfile = async () => {
+    if (!displayName.trim()) return;
+    setIsSavingName(true);
+    setProfileMessage(null);
+
+    const success = await updateProfile(displayName);
+    if (success) {
+      setProfileMessage({ text: 'Perfil actualizado con éxito', type: 'success' });
+    } else {
+      setProfileMessage({ text: 'Error al actualizar el perfil', type: 'error' });
+    }
+    setIsSavingName(false);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setSecurityMessage({ text: 'La contraseña debe tener al menos 6 caracteres', type: 'error' });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    setSecurityMessage(null);
+
+    try {
+      // In a real app we might verify currentPassword first via a re-authentication,
+      // but supabase.auth.updateUser only needs the active session.
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+      setSecurityMessage({ text: 'Contraseña actualizada con éxito', type: 'success' });
+      setNewPassword('');
+    } catch (err: any) {
+      setSecurityMessage({ text: err.message || 'Error al actualizar contraseña', type: 'error' });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-content profile-modal animate-in" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Gestión de Perfil</h2>
+          <button onClick={onClose} className="btn-icon">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+          <button
+            className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'profile' ? '2px solid var(--accent-primary)' : '2px solid transparent', color: activeTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'profile' ? 600 : 400, cursor: 'pointer' }}
+          >
+            <User size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> Perfil
+          </button>
+          <button
+            className={`tab ${activeTab === 'security' ? 'active' : ''}`}
+            onClick={() => setActiveTab('security')}
+            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'security' ? '2px solid var(--accent-primary)' : '2px solid transparent', color: activeTab === 'security' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'security' ? 600 : 400, cursor: 'pointer' }}
+          >
+            <Lock size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> Seguridad
+          </button>
+        </div>
+
+        <div style={{ padding: '24px' }}>
+          {activeTab === 'profile' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ position: 'relative' }}>
+                  <div className="avatar" style={{ width: '80px', height: '80px', fontSize: '2rem' }}>
+                    {displayName.charAt(0) || user?.display_name?.charAt(0) || '?'}
+                  </div>
+                  <button className="btn-icon" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '6px' }}>
+                    <Camera size={14} color="var(--text-secondary)" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Dirección de Email</label>
+                <input
+                  type="text"
+                  value={user?.email || ''}
+                  disabled
+                  className="input"
+                  style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Nombre a mostrar</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="input"
+                />
+              </div>
+
+              {profileMessage && (
+                <div className={`alert ${profileMessage.type === 'error' ? 'alert-error' : 'alert-success'}`}>
+                  {profileMessage.text}
+                </div>
+              )}
+
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '8px' }}
+                onClick={handleUpdateProfile}
+                disabled={isSavingName || displayName === user?.display_name || !displayName.trim()}
+              >
+                {isSavingName ? 'Guardando...' : (<><Save size={18} /> Guardar cambios</>)}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label>Nueva contraseña</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="input"
+                />
+              </div>
+
+              {securityMessage && (
+                <div className={`alert ${securityMessage.type === 'error' ? 'alert-error' : 'alert-success'}`}>
+                  {securityMessage.text}
+                </div>
+              )}
+
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '8px' }}
+                onClick={handleUpdatePassword}
+                disabled={isSavingPassword || !newPassword || newPassword.length < 6}
+              >
+                {isSavingPassword ? 'Actualizando...' : (<><Lock size={18} /> Actualizar contraseña</>)}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
