@@ -118,20 +118,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: "github" | "google") => {
-    setLoading(true);
-    setError(null);
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+  setLoading(true);
+  setError(null);
 
-    if (oauthError) {
-      setError(oauthError.message);
-      setLoading(false);
-    }
-  }, []);
+  const { error: oauthError } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin,
+      queryParams: {
+        prompt: 'select_account',
+      },
+    },
+  });
+
+  if (oauthError) {
+    setError(oauthError.message);
+    setLoading(false);
+  }
+}, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
