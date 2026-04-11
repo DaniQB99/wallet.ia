@@ -1809,7 +1809,7 @@ input::placeholder {
 }
 
 .auth-toast::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1869,8 +1869,12 @@ input::placeholder {
 }
 
 @keyframes toastProgress {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 /* ==========================================
@@ -1972,13 +1976,13 @@ input::placeholder {
 
 /* Header */
 .kebo-header {
-  padding: 16px 20px 12px;
+  padding: max(48px, env(safe-area-inset-top)) 20px 12px;
   position: relative;
 }
 
 .kebo-close {
   position: absolute;
-  top: 16px;
+  top: max(48px, env(safe-area-inset-top));
   left: 16px;
   background: none;
   border: none;
@@ -2012,7 +2016,7 @@ input::placeholder {
 }
 
 .kebo-tab.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -2184,7 +2188,9 @@ input::placeholder {
   font-size: 1.3rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition:
+    background 0.15s,
+    transform 0.1s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2210,7 +2216,9 @@ input::placeholder {
   font-size: 1.5rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  transition:
+    opacity 0.15s,
+    transform 0.1s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2429,7 +2437,9 @@ input::placeholder {
   border-radius: var(--radius-full);
   border: 2px solid transparent;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
 }
 
 .kebo-color-dot.selected {
@@ -2537,12 +2547,17 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-  padding-bottom: 4px;
+  flex-wrap: nowrap;
+  padding-bottom: 8px;
   position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
 }
 
-
+.tx-filter-bar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 
 .tx-filter-chip {
   display: flex;
@@ -2597,7 +2612,6 @@ input::placeholder {
   text-transform: capitalize;
   padding: 16px 16px 8px;
 }
-
 
 /* Filter dropdowns */
 .kebo-filter-dropdown {
@@ -2658,3 +2672,159 @@ input::placeholder {
   background: var(--accent-primary-glow);
 }
 
+/* OAuth Login Styles */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-divider span {
+  padding: 0 12px;
+}
+
+.auth-oauth-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.auth-oauth-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border);
+}
+
+.auth-oauth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-oauth-btn-github {
+  background: #24292e;
+  border-color: #24292e;
+  color: white;
+}
+
+.auth-oauth-btn-github:hover:not(:disabled) {
+  background: #1b1f23;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.auth-oauth-btn-google {
+  background: white;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+.auth-oauth-btn-google:hover:not(:disabled) {
+  background: #f9fafb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Transaction List Mobile Fixes */
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s;
+  min-width: 0;
+}
+
+.transaction-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.transaction-desc {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 140px; /* Limit width to prevent pushing amount out */
+}
+
+.transaction-meta {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transaction-amount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* On very small screens, reduce gap and paddings to prevent overflow */
+@media (max-width: 480px) {
+  .transaction-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+}
+/* Shake Animation for Validation */
+@keyframes validateShake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.shake {
+  animation: validateShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.kebo-amount-display.shake {
+  color: var(--danger) !important;
+}
+
+.kebo-capsule.shake {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 1px var(--danger);
+}

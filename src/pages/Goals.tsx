@@ -13,8 +13,7 @@ export default function Goals() {
   const [detailedGoal, setDetailedGoal] = useState<Goal | null>(null);
   const navigate = useNavigate();
 
-  // Hooks
-  const { goals, addGoal, updateGoal, deleteGoal, loading } = useGoals(tab);
+    const { goals, addGoal, updateGoal, deleteGoal, loading } = useGoals(tab);
   const { transactions } = useTransactions('all');
 
   // Categorías para auto-vincular
@@ -22,8 +21,7 @@ export default function Goals() {
   const categoryScope = tab === 'personal' ? 'personal' : 'shared';
   const { categories } = useCategories(categoryScope);
 
-  // Form state
-  const [formName, setFormName] = useState('');
+    const [formName, setFormName] = useState('');
   const [formTarget, setFormTarget] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formDeadline, setFormDeadline] = useState('');
@@ -50,7 +48,7 @@ export default function Goals() {
     setFormTarget(goal.target_amount.toString());
     setFormCategory(goal.category_id || '');
 
-    // Safely parse deadline
+    // Parseo seguro de fecha límite
     if (goal.deadline) {
       try {
         setFormDeadline(new Date(goal.deadline).toISOString().split('T')[0]);
@@ -61,7 +59,7 @@ export default function Goals() {
       setFormDeadline('');
     }
 
-    // Safely parse start_date
+    // Parseo seguro de fecha de inicio
     if (goal.start_date) {
       try {
         setFormStartDate(new Date(goal.start_date).toISOString().split('T')[0]);

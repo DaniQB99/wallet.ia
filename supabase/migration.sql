@@ -212,3 +212,59 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.goals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.accounts;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.couple_links;
+
+-- ==========================================
+-- 11. Triggers y Funciones de Balance
+-- ==========================================
+
+-- Función para actualizar el balance de la cuenta
+CREATE OR REPLACE FUNCTION public.handle_transaction_change()
+RETURNS TRIGGER AS $$
+DECLARE
+    affected_account_id UUID;
+BEGIN
+    -- Determinar qué ID de cuenta requiere actualización
+    IF (TG_OP = 'DELETE') THEN
+        affected_account_id := OLD.account_id;
+    ELSE
+        affected_account_id := NEW.account_id;
+    END IF;
+
+    -- Actualizar el balance sumando todas las transacciones de esta cuenta
+    UPDATE public.accounts
+    SET balance = (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM public.transactions
+        WHERE account_id = affected_account_id
+    )
+    WHERE id = affected_account_id;
+
+    -- Si es un UPDATE y el account_id cambió, actualizar la cuenta anterior también
+    IF (TG_OP = 'UPDATE' AND OLD.account_id IS DISTINCT FROM NEW.account_id) THEN
+        UPDATE public.accounts
+        SET balance = (
+            SELECT COALESCE(SUM(amount), 0)
+            FROM public.transactions
+            WHERE account_id = OLD.account_id
+        )
+        WHERE id = OLD.account_id;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Crear el trigger
+DROP TRIGGER IF EXISTS on_transaction_change ON public.transactions;
+CREATE TRIGGER on_transaction_change
+AFTER INSERT OR UPDATE OR DELETE ON public.transactions
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_transaction_change();
+
+-- Sincronización inicial: Actualizar todos los balances para los datos existentes
+UPDATE public.accounts a
+SET balance = (
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM public.transactions t
+    WHERE t.account_id = a.id
+);

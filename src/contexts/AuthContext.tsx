@@ -19,6 +19,7 @@ interface AuthContextType {
     displayName: string,
   ) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithOAuth: (provider: "github" | "google") => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
   updateProfile: (displayName: string) => Promise<boolean>;
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, email?: string) => {
     const { data, error: fetchError } = await supabase
       .from("profiles")
       .select("*")
@@ -42,13 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Error fetching profile:", fetchError);
       setUser(null);
     } else {
-      // Get email from auth session
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
       setUser({
         ...data,
-        email: session?.user?.email || "",
+        email: email || "",
       } as UserProfile);
     }
     setLoading(false);
@@ -64,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Listen for auth changes
+    // Escuchar cambios de autenticación
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -120,6 +117,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If successful, onAuthStateChange will handle the rest
   }, []);
 
+  const signInWithOAuth = useCallback(async (provider: "github" | "google") => {
+    setLoading(true);
+    setError(null);
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setLoading(false);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -162,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, signUp, signIn, signOut, clearError, updateProfile }}
+      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, clearError, updateProfile }}
     >
       {children}
     </AuthContext.Provider>

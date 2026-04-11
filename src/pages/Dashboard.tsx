@@ -7,11 +7,22 @@ import { useNotifications } from '../hooks/useNotifications';
 import NotificationsModal from '../components/NotificationsModal';
 import { useState } from 'react';
 
+/**
+ * Dashboard.tsx
+ * Página principal de la aplicación que ofrece una vista panorámica del estado financiero.
+ * Muestra métricas clave (balance compartido, contribuciones, balance personal) y
+ * una lista de las transacciones más recientes.
+ */
+
 export default function Dashboard() {
+  // Estado y autenticación
   const { user } = useAuthContext();
   const navigate = useNavigate();
 
+  // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
+
+  // Hook para calcular estadísticas derivadas de las transacciones en tiempo real
   const {
     totalShared,
     myContribution,
@@ -19,9 +30,11 @@ export default function Dashboard() {
     personalTotal
   } = useDashboardStats(transactions);
 
+  // Gestión de notificaciones (alertas de presupuesto, sugerencias de ahorro, etc.)
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
   const recentTransactions = transactions.slice(0, 5);
 
   return (

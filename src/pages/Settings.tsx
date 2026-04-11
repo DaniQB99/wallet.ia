@@ -73,7 +73,7 @@ export default function Settings() {
     setAccentColor(colors[(currentIndex + 1) % colors.length]);
   };
 
-  // PWA Install Prompt
+  // Prompt de instalación PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {

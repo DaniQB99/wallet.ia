@@ -1,12 +1,24 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+/**
+ * Contexto de Apariencia de Wallet.ia.
+ *
+ * Gestiona el tema visual (Claro/Oscuro) y la paleta de colores de acento.
+ * Los cambios se persisten en local storage y se aplican mediante variables CSS nativas
+ * para garantizar un alto rendimiento sin parpadeos visuales innecesarios.
+ */
+
 type Theme = 'dark' | 'light';
 type AccentColor = 'indigo' | 'emerald' | 'rose' | 'amber';
 
 interface AppearanceContextType {
+  /** Tema actual de la interfaz: 'dark' (predeterminado) o 'light' */
   theme: Theme;
+  /** Actualiza el tema visual y lo persiste en localStorage */
   setTheme: (theme: Theme) => void;
+  /** Color principal de la marca aplicado a botones, bordes y acentos dinámicos */
   accentColor: AccentColor;
+  /** Actualiza el color de acento y sus variables CSS derivadas (--accent-primary, etc.) */
   setAccentColor: (color: AccentColor) => void;
 }
 
@@ -15,7 +27,10 @@ const AppearanceContext = createContext<AppearanceContextType | undefined>(undef
 const THEME_KEY = 'wallet_ia_theme';
 const ACCENT_KEY = 'wallet_ia_accent';
 
-// Definir variables CSS por color de acento
+/**
+ * Variables de diseño dinámicas según el color de acento seleccionado.
+ * Estas variables se inyectan en el elemento root (:root) para ser consumidas por los componentes.
+ */
 const accentVariables: Record<AccentColor, { primary: string, primaryHover: string, gradient: string }> = {
   indigo: {
     primary: '#6366F1',
@@ -39,11 +54,14 @@ const accentVariables: Record<AccentColor, { primary: string, primaryHover: stri
   }
 };
 
+/**
+ * Proveedor que inyecta la lógica de diseño en el árbol de componentes.
+ */
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
   const [accentColor, setAccentColorState] = useState<AccentColor>('indigo');
 
-  // Cargar estado inicial
+  // Inicialización: Recuperar preferencias guardadas del usuario
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) as Theme;
     const savedAccent = localStorage.getItem(ACCENT_KEY) as AccentColor;
@@ -62,24 +80,32 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     localStorage.setItem(ACCENT_KEY, newColor);
   };
 
-  // Aplicar variables CSS al root
+  /**
+   * Efecto reactivo para inyectar variables CSS en el DOM.
+   * Esto permite que los estilos Vanilla CSS reaccionen instantáneamente
+   * a los cambios de estado del contexto sin necesidad de re-renderizar todo el árbol.
+   */
   useEffect(() => {
     const root = document.documentElement;
 
-    // Aplicar tema (para futuras implementaciones del modo claro, de momento forzamos la estructura)
+    // Gestión del tema mediante el atributo data-theme
     if (theme === 'light') {
       root.setAttribute('data-theme', 'light');
     } else {
       root.removeAttribute('data-theme'); // default es dark
     }
 
-    // Aplicar variables de color de acento
+    // Inyección de variables CSS de acento
     const vars = accentVariables[accentColor];
     if (vars) {
       root.style.setProperty('--accent-primary', vars.primary);
       root.style.setProperty('--accent-primary-hover', vars.primaryHover);
       root.style.setProperty('--accent-gradient', vars.gradient);
-      // Para generar el glow con opacidad
+
+      /**
+       * Genera una versión con opacidad para efectos de resplandor (glow)
+       * manteniendo la consistencia con el color principal.
+       */
       const hex2rgba = (hex: string, alpha = 1) => {
         const [r, g, b] = hex.match(/\w\w/g)!.map(x => parseInt(x, 16));
         return `rgba(${r},${g},${b},${alpha})`;
@@ -95,6 +121,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   );
 }
 
+/** Hook personalizado para acceder a la configuración de apariencia de forma segura */
 export const useAppearance = () => {
   const context = useContext(AppearanceContext);
   if (context === undefined) {
@@ -102,3 +129,4 @@ export const useAppearance = () => {
   }
   return context;
 };
+

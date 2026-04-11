@@ -16,8 +16,7 @@ export default function Transactions() {
   const [showModal, setShowModal] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
-  // Filters
-  const [filterAccount, setFilterAccount] = useState<string>('');
+    const [filterAccount, setFilterAccount] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterMonth, setFilterMonth] = useState<string>('');
   const [filterFlow, setFilterFlow] = useState<'all' | 'expense' | 'income'>('all');
@@ -26,8 +25,7 @@ export default function Transactions() {
   const [showFilterMonth, setShowFilterMonth] = useState(false);
   const [showFilterFlow, setShowFilterFlow] = useState(false);
 
-  // Hooks
-  const { transactions, loading: txLoading } = useTransactions(tab === 'all' ? 'all' : tab);
+    const { transactions, loading: txLoading } = useTransactions(tab === 'all' ? 'all' : tab);
   const { accounts } = useAccounts();
   const { categories: personalCats } = useCategories('personal');
   const { categories: sharedCats } = useCategories('shared');
@@ -80,8 +78,7 @@ export default function Transactions() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, search, filterAccount, filterCategory, filterMonth, filterFlow]);
 
-  // Group by month
-  const grouped = useMemo(() => {
+    const grouped = useMemo(() => {
     const groups: Record<string, Transaction[]> = {};
     filtered.forEach(tx => {
       const key = new Date(tx.date).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -91,7 +88,7 @@ export default function Transactions() {
     return groups;
   }, [filtered]);
 
-  // Get available months
+  // Obtener meses disponibles
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
     transactions.forEach(tx => {
@@ -132,16 +129,14 @@ export default function Transactions() {
       </div>
 
       <div className="page-content">
-        {/* Filter Chips */}
-        <div className="tx-filter-bar" style={{ marginBottom: '16px' }}>
+                <div className="tx-filter-bar" style={{ marginBottom: '16px' }}>
           {hasFilters && (
             <button className="tx-filter-chip-clear" onClick={clearFilters}>
               <X size={14} />
             </button>
           )}
 
-          {/* Account filter */}
-          <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterAccount ? 'active' : ''}`}
               onClick={() => setShowFilterAccount(!showFilterAccount)}
@@ -167,8 +162,7 @@ export default function Transactions() {
             )}
           </div>
 
-          {/* Month filter */}
-          <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterMonth ? 'active' : ''}`}
               onClick={() => setShowFilterMonth(!showFilterMonth)}
@@ -191,8 +185,7 @@ export default function Transactions() {
             )}
           </div>
 
-          {/* Category filter */}
-          <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterCategory ? 'active' : ''}`}
               onClick={() => setShowFilterCategory(!showFilterCategory)}
@@ -215,8 +208,7 @@ export default function Transactions() {
             )}
           </div>
 
-          {/* Flow filter */}
-          <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterFlow !== 'all' ? 'active' : ''}`}
               onClick={() => setShowFilterFlow(!showFilterFlow)}
@@ -243,9 +235,8 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Context tabs */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-          <div className="toggle-group">
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <div className="toggle-group" style={{ flex: '1 1 auto' }}>
             {(['all', 'personal', 'shared'] as const).map(t => (
               <button key={t} className={`toggle-item ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
                 {t === 'all' ? 'Todo' : t === 'personal' ? 'Personal' : 'Compartido'}
@@ -264,8 +255,7 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Transaction list grouped by month */}
-        <div className="card">
+                <div className="card">
           {txLoading ? (
             <div className="empty-state">
               <div className="loading-spinner" />
@@ -321,8 +311,7 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Kebo-style Transaction Modal */}
-      <TransactionModal
+            <TransactionModal
         open={showModal}
         onClose={handleCloseModal}
         editTransaction={editTx}

@@ -1,12 +1,29 @@
-// ==========================================
-// wallet.ia — Database Types
-// ==========================================
+/**
+ * ==========================================
+ * Wallet.ia — Tipos de Datos y Esquema
+ * ==========================================
+ *
+ * Este archivo define la estructura de datos para toda la aplicación.
+ * Las interfaces aquí definidas reflejan fielmente el esquema de la base de datos Supabase,
+ * garantizando seguridad de tipos en toda la lógica de negocio.
+ */
 
+/** Estados posibles de la vinculación de pareja */
 export type CoupleStatus = "pending" | "active" | "rejected";
+
+/** Estados de las invitaciones para compartir cuentas */
 export type InvitationStatus = "pending" | "used" | "expired";
+
+/** Ámbito de la transacción: personal o compartido con la pareja */
 export type TransactionType = "personal" | "shared";
+
+/** Tipo de meta de ahorro */
 export type GoalType = "personal" | "shared";
+
+/** Ámbito de visibilidad de una categoría */
 export type CategoryScope = "personal" | "shared";
+
+/** Tipos de notificaciones del sistema */
 export type NotificationType =
   | "shared_transaction"
   | "goal_contribution"
@@ -14,6 +31,7 @@ export type NotificationType =
   | "couple_linked"
   | "couple_unlinked";
 
+/** Perfil extendido del usuario basado en auth.users */
 export interface UserProfile {
   id: string;
   email: string;
@@ -22,6 +40,7 @@ export interface UserProfile {
   created_at: string;
 }
 
+/** Representación de una cuenta bancaria o billetera */
 export interface Account {
   id: string;
   user_id: string;
@@ -29,12 +48,15 @@ export interface Account {
   balance: number;
   icon: string;
   color: string;
+  /** Indica si la cuenta es para uso personal o compartida con la pareja */
   scope?: "personal" | "shared";
+  /** Referencia a la relación de pareja si es una cuenta compartida */
   couple_id?: string;
   created_at: string;
   updated_at: string;
 }
 
+/** Relación de vinculación entre dos usuarios */
 export interface CoupleLink {
   id: string;
   user_a_id: string;
@@ -44,6 +66,7 @@ export interface CoupleLink {
   linked_at?: string;
 }
 
+/** Invitación enviada de un usuario a otro para vincularse */
 export interface CoupleInvitation {
   id: string;
   inviter_id: string;
@@ -53,6 +76,7 @@ export interface CoupleInvitation {
   created_at: string;
 }
 
+/** Registro de un movimiento financiero */
 export interface Transaction {
   id: string;
   user_id: string;
@@ -63,16 +87,22 @@ export interface Transaction {
   goal_id?: string;
   amount: number;
   description: string;
+  /** Fecha del movimiento (ISO format) */
   date: string;
   created_at: string;
   updated_at: string;
-  // Joined fields
+
+  /**
+   * Campos virtuales inyectados mediante JOINs de base de datos
+   * para evitar múltiples peticiones y mejorar el rendimiento.
+   */
   category?: Category;
   user?: UserProfile;
   account?: Account;
   goal?: Goal;
 }
 
+/** Categorías de gastos e ingresos */
 export interface Category {
   id: string;
   user_id?: string;
@@ -83,6 +113,7 @@ export interface Category {
   is_active: boolean;
 }
 
+/** Objetivos de ahorro personalizados o compartidos */
 export interface Goal {
   id: string;
   user_id?: string;
@@ -101,6 +132,7 @@ export interface Goal {
   updated_at: string;
 }
 
+/** Sistema de alertas y avisos al usuario */
 export interface Notification {
   id: string;
   user_id: string;
@@ -112,7 +144,10 @@ export interface Notification {
   created_at: string;
 }
 
-// Shared categories seed data
+/**
+ * Semillas de datos para categorías compartidas predeterminadas.
+ * Se utilizan para inicializar nuevos vínculos de pareja.
+ */
 export const SHARED_CATEGORIES: Omit<Category, "id" | "user_id">[] = [
   {
     name: "Hogar",

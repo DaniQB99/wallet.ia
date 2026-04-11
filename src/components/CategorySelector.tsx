@@ -14,6 +14,13 @@ interface CategorySelectorProps {
 
 const EMOJI_PRESETS = ['🍕', '🚗', '🏠', '💡', '🎮', '👕', '📱', '📚', '🏥', '✈️', '🎁', '🛒', '💸', '🐾', '🎬', '⛽', '🏦', '🎵', '💪', '🧹'];
 
+/**
+ * Selector de categorías con capacidad de creación rápida.
+ *
+ * Permite al usuario elegir una categoría existente o crear una nueva
+ * sin salir del flujo de transacción mediante un panel expansible.
+ * Incluye un grid de emojis predefinidos y paleta de colores.
+ */
 export default function CategorySelector({
   open, onClose, categories, selected, onSelect, onAddCategory
 }: CategorySelectorProps) {

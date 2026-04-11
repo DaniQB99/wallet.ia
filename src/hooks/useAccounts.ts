@@ -2,19 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import type { Account } from "../types/database";
 
+/**
+ * Hook para la gestión de cuentas bancarias y saldos.
+ *
+ * Centraliza la lógica de visualización y manipulación de cuentas del usuario.
+ * Utiliza Supabase Realtime para reflejar cambios en los saldos de forma instantánea
+ * cuando se registran nuevas transacciones (gestado por triggers en base de datos).
+ */
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  /** Obtiene todas las cuentas accesibles por el usuario */
+  const fetch = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
 
     const { data, error } = await supabase
       .from("accounts")
@@ -30,8 +31,10 @@ export function useAccounts() {
   useEffect(() => {
     fetch();
 
+    // Configuración de canal de escucha para cambios en la tabla 'accounts'
+    const channelName = `accounts-${Math.random()}`;
     const channel = supabase
-      .channel("user-accounts")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -39,7 +42,7 @@ export function useAccounts() {
           schema: "public",
           table: "accounts",
         },
-        () => fetch(),
+        () => fetch(true),
       )
       .subscribe();
 
@@ -48,6 +51,7 @@ export function useAccounts() {
     };
   }, [fetch]);
 
+  /** Crea una nueva cuenta bancaria o billetera */
   const addAccount = useCallback(
     async (account: Partial<Account>) => {
       const {
@@ -60,24 +64,26 @@ export function useAccounts() {
         user_id: user.id,
       });
 
-      if (!error) fetch();
+      if (!error) fetch(true);
       return error;
     },
     [fetch],
   );
 
+  /** Modifica los parámetros de una cuenta existente */
   const updateAccount = useCallback(
     async (id: string, updates: Partial<Account>) => {
       const { error } = await supabase
         .from("accounts")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id);
-      if (!error) fetch();
+      if (!error) fetch(true);
       return error;
     },
     [fetch],
   );
 
+  /** Elimina una cuenta y toda su información relacionada */
   const deleteAccount = useCallback(
     async (id: string) => {
       try {
@@ -86,7 +92,7 @@ export function useAccounts() {
           console.error("Error deleting account:", error);
           return error;
         }
-        fetch();
+        fetch(true);
         return null;
       } catch (err) {
         console.error("Unexpected error deleting account:", err);

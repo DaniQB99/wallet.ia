@@ -3,6 +3,16 @@ import { supabase } from "../lib/supabase";
 import { useAuthContext } from "../contexts/AuthContext";
 import type { Goal, GoalType } from "../types/database";
 
+/**
+ * Hook para la gestión de metas financieras (ahorro o gastos).
+ *
+ * Este hook maneja una lógica compleja de agregación:
+ * 1. Recupera las metas activas del usuario (personales o compartidas).
+ * 2. Calcula en tiempo real el `current_amount` sumando las transacciones que:
+ *    - Están vinculadas explícitamente a la meta via `goal_id`.
+ *    - O pertenecen a la misma categoría y tipo de la meta desde su fecha de inicio.
+ * 3. Se suscribe a cambios tanto en metas como en transacciones para mantener los saldos actualizados.
+ */
 export function useGoals(type: GoalType) {
   const { user } = useAuthContext();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -76,7 +86,7 @@ export function useGoals(type: GoalType) {
 
     fetchGoals();
 
-    // Subscribe to changes
+    // Suscripción a cambios en la tabla de metas
     const goalsSubscription = supabase
       .channel("goals_changes")
       .on(
@@ -86,12 +96,13 @@ export function useGoals(type: GoalType) {
       )
       .subscribe();
 
+    // Suscripción a transacciones para recalcular progresos de metas automáticamente
     const txSubscription = supabase
       .channel("transactions_goals_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions" },
-        () => fetchGoals(), // Refresh to update amounts
+        () => fetchGoals(), // Refetch para actualizar los montos acumulados
       )
       .subscribe();
 

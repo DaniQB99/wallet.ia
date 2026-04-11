@@ -10,6 +10,13 @@ interface AccountSelectorProps {
   onSelect: (acc: Account) => void;
 }
 
+/**
+ * Selector de cuentas bancarias/carteras en formato "Sheet".
+ *
+ * Este componente proporciona una lista visual de cuentas disponibles
+ * filtradas por el contexto (personal/compartido), mostrando saldos
+ * y estados de selección. Utiliza Framer Motion para animaciones nativas.
+ */
 export default function AccountSelector({ open, onClose, accounts, selected, onSelect }: AccountSelectorProps) {
   if (!open) return null;
 
