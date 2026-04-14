@@ -3,30 +3,26 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   Target,
-  Bell,
+  BarChart3,
   Settings,
   LogOut,
+  type LucideIcon,
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { useNotifications } from '../../hooks/useNotifications';
+import { useLocaleCurrency } from '../../contexts/LocaleCurrencyContext';
 
 export default function Sidebar() {
-  const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuthContext();
+  const { t } = useLocaleCurrency();
 
-  const navItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/transactions', icon: ArrowLeftRight, label: 'Transacciones' },
-    { path: '/goals', icon: Target, label: 'Metas' },
-    {
-      path: '/notifications',
-      icon: Bell,
-      label: 'Notificaciones',
-      badge: unreadCount,
-    },
-    { path: '/settings', icon: Settings, label: 'Ajustes' },
+  const navItems: { path: string; icon: LucideIcon; label: string; badge?: number }[] = [
+    { path: '/', icon: LayoutDashboard, label: t('dashboard') },
+    { path: '/analytics', icon: BarChart3, label: t('analytics') },
+    { path: '/transactions', icon: ArrowLeftRight, label: t('transactions') },
+    { path: '/goals', icon: Target, label: t('goals') },
+    { path: '/settings', icon: Settings, label: t('settings') },
   ];
 
   const handleLogout = async () => {
@@ -42,7 +38,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        <div className="sidebar-section-label">Menú principal</div>
+        <div className="sidebar-section-label">{t('mainMenu')}</div>
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive =
@@ -70,12 +66,12 @@ export default function Sidebar() {
             {user?.display_name?.charAt(0).toUpperCase() || '?'}
           </div>
           <div className="sidebar-profile-info">
-            <div className="sidebar-profile-name">{user?.display_name || 'Usuario'}</div>
+            <div className="sidebar-profile-name">{user?.display_name || 'User'}</div>
             <div className="sidebar-profile-email">{user?.email || ''}</div>
           </div>
           <button
             onClick={handleLogout}
-            title="Cerrar sesión"
+            title={t('logout')}
             style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }}
           >
             <LogOut size={18} />

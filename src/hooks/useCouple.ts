@@ -138,6 +138,20 @@ export function useCouple() {
     setPartner(null);
   }, [couple]);
 
+  /** Alterna el permiso de edición compartida entre read_only y read_write */
+  const togglePermission = useCallback(async () => {
+    if (!couple) return;
+    const newPerm =
+      couple.shared_permission === "read_write" ? "read_only" : "read_write";
+    const { error } = await supabase
+      .from("couple_links")
+      .update({ shared_permission: newPerm })
+      .eq("id", couple.id);
+    if (!error) {
+      setCouple({ ...couple, shared_permission: newPerm });
+    }
+  }, [couple]);
+
   return {
     couple,
     partner,
@@ -145,5 +159,6 @@ export function useCouple() {
     generateInvite,
     acceptInvite,
     unlinkCouple,
+    togglePermission,
   };
 }

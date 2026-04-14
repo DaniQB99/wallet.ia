@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "memory:search": "engram search",
+    "memory:context": "engram context wallet.ia",
+    "memory:stats": "engram stats",
+    "memory:tui": "engram tui"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

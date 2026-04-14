@@ -1,6 +1,7 @@
 import { X, Check, CheckCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '../hooks/useNotifications';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 interface NotificationsModalProps {
   onClose: () => void;
@@ -22,7 +23,7 @@ const typeColors: Record<string, string> = {
   couple_unlinked: 'var(--danger-bg)',
 };
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, locale: string) {
   const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
@@ -30,14 +31,15 @@ function timeAgo(dateStr: string) {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 60) return `hace ${diffMins} min`;
-  if (diffHours < 24) return `hace ${diffHours}h`;
-  if (diffDays < 7) return `hace ${diffDays}d`;
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 export default function NotificationsModal({ onClose }: NotificationsModalProps) {
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
+  const { locale, t } = useLocaleCurrency();
 
   return (
     <AnimatePresence>
@@ -55,11 +57,11 @@ export default function NotificationsModal({ onClose }: NotificationsModalProps)
               <button className="btn-icon" onClick={onClose}>
                 <X size={24} />
               </button>
-              <h2 className="modal-title">Bandeja de entrada</h2>
+              <h2 className="modal-title">{t('inbox')}</h2>
             </div>
             {unreadCount > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={markAllAsRead}>
-                <CheckCheck size={16} /> Marcar todo leído
+                <CheckCheck size={16} /> {t('markAllRead')}
               </button>
             )}
           </div>
@@ -68,14 +70,14 @@ export default function NotificationsModal({ onClose }: NotificationsModalProps)
             {loading ? (
               <div className="empty-state">
                 <div className="loading-spinner" />
-                <div className="empty-state-title">Cargando...</div>
+                <div className="empty-state-title">{t('loadingModule')}</div>
               </div>
             ) : notifications.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">🔔</div>
-                <div className="empty-state-title">Sin notificaciones</div>
+                <div className="empty-state-title">{t('noNotifications')}</div>
                 <div className="empty-state-desc">
-                  Aquí verás las alertas de transacciones compartidas y metas.
+                  {t('notificationsDesc')}
                 </div>
               </div>
             ) : (
@@ -96,7 +98,7 @@ export default function NotificationsModal({ onClose }: NotificationsModalProps)
                     <div className="notification-content">
                       <div className="notification-title">{notif.title}</div>
                       <div className="notification-message">{notif.message}</div>
-                      <div className="notification-time">{timeAgo(notif.created_at)}</div>
+                      <div className="notification-time">{timeAgo(notif.created_at, locale)}</div>
                     </div>
                     {!notif.is_read && (
                       <button

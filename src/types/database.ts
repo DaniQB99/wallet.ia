@@ -62,6 +62,7 @@ export interface CoupleLink {
   user_a_id: string;
   user_b_id: string;
   status: CoupleStatus;
+  shared_permission: "read_only" | "read_write";
   created_at: string;
   linked_at?: string;
 }

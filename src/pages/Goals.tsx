@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGoals } from '../hooks/useGoals';
 import { useCategories } from '../hooks/useCategories';
 import { useTransactions } from '../hooks/useTransactions';
 import { useNavigate } from 'react-router-dom';
 import { Target, Plus, Trash2, ChevronRight, Calendar, Info } from 'lucide-react';
 import type { Goal, GoalType } from '../types/database';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 export default function Goals() {
   const [tab, setTab] = useState<GoalType>('personal');
@@ -12,9 +13,13 @@ export default function Goals() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [detailedGoal, setDetailedGoal] = useState<Goal | null>(null);
   const navigate = useNavigate();
+  const { currency, formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
 
     const { goals, addGoal, updateGoal, deleteGoal, loading } = useGoals(tab);
   const { transactions } = useTransactions('all');
+  useEffect(() => {
+    void prefetchRates(transactions.map((tx) => tx.date));
+  }, [transactions, prefetchRates]);
 
   // Categorías para auto-vincular
   // Utilizamos el tab actual ('personal' -> personal, 'shared' -> shared)
@@ -125,12 +130,12 @@ export default function Goals() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h1>Metas</h1>
-          <p>Los movimientos se vinculan automáticamente por la <strong>categoría</strong> asignada.</p>
+          <h1>{t('goals')}</h1>
+          <p>{t('goalsLinkedByCategory')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
           <Plus size={18} />
-          Nueva Meta
+          {t('newGoal')}
         </button>
       </div>
 
@@ -142,13 +147,13 @@ export default function Goals() {
               className={`toggle-item ${tab === 'personal' ? 'active' : ''}`}
               onClick={() => setTab('personal')}
             >
-              Personales
+              {t('personal')}
             </button>
             <button
               className={`toggle-item ${tab === 'shared' ? 'active' : ''}`}
               onClick={() => setTab('shared')}
             >
-              Compartidas
+              {t('shared')}
             </button>
           </div>
         </div>
@@ -156,12 +161,12 @@ export default function Goals() {
         {/* List of Goals */}
         <div className="goals-grid" style={{ display: 'grid', gap: '16px' }}>
           {loading ? (
-            <div className="loading-state">Cargando metas...</div>
+            <div className="loading-state">{t('loadingGoals')}</div>
           ) : goals.length === 0 ? (
             <div className="empty-state">
               <Target size={48} color="var(--text-tertiary)" />
-              <h3>Sin metas</h3>
-              <p>Crea tu primer objetivo de ahorro para empezar a progresar.</p>
+              <h3>{t('noGoals')}</h3>
+              <p>{t('createFirstGoal')}</p>
             </div>
           ) : (
             goals.map(goal => {
@@ -179,18 +184,18 @@ export default function Goals() {
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                             <Calendar size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} />
-                            Desde: {(() => {
+                            {t('since')}: {(() => {
                               try {
-                                return goal.start_date ? new Date(goal.start_date).toLocaleDateString('es-ES') : 'N/A';
+                                return goal.start_date ? new Date(goal.start_date).toLocaleDateString(locale) : 'N/A';
                               } catch(e) { return 'Fecha inválida'; }
                             })()}
                           </span>
                           {goal.deadline && (
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                               <Target size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} />
-                              Límite: {(() => {
+                              {t('deadline')}: {(() => {
                                 try {
-                                  return new Date(goal.deadline).toLocaleDateString('es-ES');
+                                  return new Date(goal.deadline).toLocaleDateString(locale);
                                 } catch(e) { return 'Fecha inválida'; }
                               })()}
                             </span>
@@ -199,10 +204,10 @@ export default function Goals() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          €{goal.current_amount.toFixed(2)}
+                          {formatMoney(goal.current_amount)}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                          de €{goal.target_amount.toFixed(2)}
+                          de {formatMoney(goal.target_amount)}
                         </div>
                       </div>
                     </div>
@@ -220,7 +225,7 @@ export default function Goals() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' }}>
                         <Info size={12} style={{ marginRight: '4px' }} />
-                        Pulsa para ver movimientos
+                        {t('tapToViewMovements')}
                       </span>
                       <span style={{ fontSize: '0.75rem', color: goal.color, fontWeight: 600 }}>
                         {progressPercentage.toFixed(1)}%
@@ -253,7 +258,7 @@ export default function Goals() {
                         background: 'var(--primary)10'
                       }}
                     >
-                      Editar meta
+                      {t('editGoal')}
                     </button>
                   </div>
                 </div>
@@ -285,7 +290,7 @@ export default function Goals() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Cantidad Objetivo (€)</label>
+                  <label className="form-label">Cantidad Objetivo ({currency})</label>
                   <input
                     type="number"
                     className="form-input"
@@ -413,7 +418,7 @@ export default function Goals() {
               <div style={{ flex: 1 }}>
                 <div className="modal-title" style={{ marginBottom: '4px' }}>{detailedGoal.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                  Movimientos desde el {new Date(detailedGoal.start_date).toLocaleDateString('es-ES')}
+                  {t('movements')} {t('since').toLowerCase()} {new Date(detailedGoal.start_date).toLocaleDateString(locale)}
                 </div>
               </div>
               <button className="btn-icon" onClick={() => setDetailedGoal(null)}>×</button>
@@ -461,14 +466,14 @@ export default function Goals() {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{tx.description || tx.category?.name}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                            {new Date(tx.date).toLocaleDateString('es-ES')}
+                            {new Date(tx.date).toLocaleDateString(locale)}
                           </div>
                         </div>
                         <div style={{
                           fontWeight: 700,
                           color: tx.amount >= 0 ? 'var(--success)' : 'var(--text-primary)'
                         }}>
-                          {tx.amount >= 0 ? '+' : ''}{tx.amount.toFixed(2)}€
+                          {tx.amount >= 0 ? '+' : ''}{formatMoney(tx.amount, tx.date)}
                         </div>
                         <ChevronRight size={16} style={{ marginLeft: '8px', color: 'var(--text-tertiary)' }} />
                       </div>
@@ -483,7 +488,7 @@ export default function Goals() {
               style={{ width: '100%' }}
               onClick={() => setDetailedGoal(null)}
             >
-              Cerrar
+              {t('close')}
             </button>
           </div>
         </div>

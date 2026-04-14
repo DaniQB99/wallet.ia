@@ -5,6 +5,7 @@ import { useCouple } from '../hooks/useCouple';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 const COLOR_PRESETS = [
   '#6366F1', '#EC4899', '#10B981', '#F59E0B',
@@ -14,6 +15,7 @@ const COLOR_PRESETS = [
 
 export default function AccountsSettings({ onClose }: { onClose: () => void }) {
   const { accounts, addAccount, updateAccount, deleteAccount, loading } = useAccounts();
+  const { currency, formatMoney, t } = useLocaleCurrency();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -69,7 +71,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
     setDeleting(false);
 
     if (error) {
-      alert('Error al eliminar la cuenta: ' + (error as any).message);
+      alert(`${t('delete')} - ${String((error as any).message || '')}`);
     }
     setAccountToDelete(null);
   };
@@ -93,7 +95,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 className="modal-title">Cuentas y Tarjetas</h2>
+          <h2 className="modal-title">{t('accountsAndCards')}</h2>
           <button className="btn-icon" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)' }}>
             <X size={20} />
           </button>
@@ -102,7 +104,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div style={{ position: 'relative' }}>
-              <label className="form-label">Icono</label>
+              <label className="form-label">{t('icon')}</label>
               <button
                 type="button"
                 className="btn-icon"
@@ -135,19 +137,19 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
             </div>
 
             <div style={{ flex: 1 }}>
-              <label className="form-label">Nombre de la cuenta</label>
+              <label className="form-label">{t('accountName')}</label>
               <input
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Ej: Cuenta Principal"
+                placeholder={t('accountPlaceholder')}
                 className="form-input"
                 style={{ width: '100%' }}
               />
             </div>
 
             <div>
-              <label className="form-label">Color</label>
+              <label className="form-label">{t('color')}</label>
               <button
                 type="button"
                 className="btn-icon"
@@ -181,7 +183,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label className="form-label">Saldo inicial / actual</label>
+            <label className="form-label">{t('currentBalance')}</label>
             <div style={{ position: 'relative' }}>
               <input
                 type="number"
@@ -192,13 +194,15 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                 className="form-input"
                 style={{ width: '100%', paddingLeft: '32px' }}
               />
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}>€</span>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}>
+                {currency}
+              </span>
             </div>
           </div>
 
           {couple?.status === 'active' && (
             <div style={{ marginBottom: '20px' }}>
-              <label className="form-label">Tipo de cuenta</label>
+              <label className="form-label">{t('accountType')}</label>
               <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-secondary)', padding: '4px', borderRadius: 'var(--radius-lg)' }}>
                 <button
                   type="button"
@@ -207,7 +211,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                   style={{ flex: 1, background: scope === 'personal' ? 'var(--primary)' : 'transparent', color: scope === 'personal' ? 'white' : 'var(--text-secondary)' }}
                 >
                   <User size={18} style={{ marginRight: '8px' }} />
-                  Personal
+                  {t('personalLabel')}
                 </button>
                 <button
                   type="button"
@@ -216,7 +220,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                   style={{ flex: 1, background: scope === 'shared' ? 'var(--primary)' : 'transparent', color: scope === 'shared' ? 'white' : 'var(--text-secondary)' }}
                 >
                   <Users size={18} style={{ marginRight: '8px' }} />
-                  Conjunta
+                  {t('joint')}
                 </button>
               </div>
             </div>
@@ -224,10 +228,10 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
 
           <div style={{ display: 'flex', gap: '12px' }}>
             {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>Cancelar</button>
+              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>{t('cancel')}</button>
             )}
             <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
-              {editingId ? 'Actualizar cuenta' : 'Crear cuenta'}
+              {editingId ? t('updateAccount') : t('createAccountAction')}
             </button>
           </div>
         </form>
@@ -239,7 +243,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
             </div>
           ) : accounts.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-              No has añadido ninguna cuenta aún.
+              {t('noAccountsYet')}
             </div>
           ) : (
             accounts.map(acc => (
@@ -253,7 +257,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                     {acc.scope === 'shared' && <Users size={14} color="var(--primary)" />}
                   </div>
                   <div className="transaction-amount" style={{ color: acc.balance >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: '0.9rem', fontWeight: 600 }}>
-                    {acc.balance.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    {formatMoney(acc.balance)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
@@ -284,13 +288,13 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                 <div style={{ color: 'var(--danger)', marginBottom: '16px' }}>
                   <Trash2 size={48} style={{ margin: '0 auto' }} />
                 </div>
-                <h3 style={{ marginBottom: '12px' }}>¿Eliminar cuenta?</h3>
+                <h3 style={{ marginBottom: '12px' }}>{t('deleteAccountTitle')}</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
-                  Se perderá el rastro de las transacciones asociadas a esta cuenta. Esta acción no se puede deshacer.
+                  {t('deleteAccountDesc')}
                 </p>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="btn btn-secondary" onClick={() => setAccountToDelete(null)} style={{ flex: 1 }}>
-                    Cancelar
+                    {t('cancel')}
                   </button>
                   <button
                     className={`btn btn-danger ${deleting ? 'disabled' : ''}`}
@@ -298,7 +302,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                     style={{ flex: 1 }}
                     disabled={deleting}
                   >
-                    {deleting ? 'Borrando...' : 'Eliminar'}
+                    {deleting ? t('deleting') : t('delete')}
                   </button>
                 </div>
               </motion.div>

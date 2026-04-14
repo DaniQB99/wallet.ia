@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { X, Heart, Copy, Check, UserPlus, Unlink, Loader2 } from 'lucide-react';
 import { useCouple } from '../hooks/useCouple';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 interface PartnerSettingsProps {
   onClose: () => void;
 }
 
 export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
-  const { couple, partner, loading, generateInvite, acceptInvite, unlinkCouple } = useCouple();
+  const { t } = useLocaleCurrency();
+  const { couple, partner, loading, generateInvite, acceptInvite, unlinkCouple, togglePermission } = useCouple();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -18,6 +20,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
   const [acceptError, setAcceptError] = useState('');
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [togglingPerm, setTogglingPerm] = useState(false);
 
   const handleGenerateCode = async () => {
     setGeneratingCode(true);
@@ -59,7 +62,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
   const handleAcceptInvite = async () => {
     const fullCode = acceptCode.join('');
     if (fullCode.length !== 6) {
-      setAcceptError('Introduce los 6 caracteres del código');
+      setAcceptError(t('enterCodeDesc'));
       return;
     }
     setAcceptLoading(true);
@@ -89,7 +92,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
       >
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="modal-title" style={{ margin: 0 }}>Estado de pareja</h2>
+          <h2 className="modal-title" style={{ margin: 0 }}>{t('partnerStatus')}</h2>
           <button onClick={onClose} className="btn-icon" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
@@ -101,36 +104,74 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
           </div>
         ) : couple && partner ? (
           /* ─── LINKED STATE ─── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="partner-card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div className="partner-card" style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)' }}>
               <div className="avatar avatar-lg" style={{ background: 'var(--accent-gradient)', color: 'white' }}>
                 {partner.display_name?.charAt(0) || '?'}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '2px' }}>
-                  {partner.display_name || 'Tu pareja'}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-                  {partner.email}
+                  {partner.display_name || t('partner')}
                 </div>
                 <div className="partner-status">
                   <span className="partner-status-dot" />
-                  Vinculado/a
+                  {t('linked')}
                 </div>
               </div>
             </div>
 
-            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
-              <h4 style={{ color: 'var(--danger)', fontSize: '0.9rem', fontWeight: 700, marginBottom: '8px' }}>Zona de peligro</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                Si desvinculas a tu pareja, dejaréis de compartir transacciones en tiempo real.
+            {/* ─── Permission Toggle ─── */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>{t('sharedPermission')}</h4>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                {t('permissionDesc')}
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className={`btn ${couple.shared_permission === 'read_only' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px', gap: '4px' }}
+                  onClick={async () => {
+                    if (couple.shared_permission !== 'read_only') {
+                      setTogglingPerm(true);
+                      await togglePermission();
+                      setTogglingPerm(false);
+                    }
+                  }}
+                  disabled={togglingPerm}
+                >
+                  🔒 {t('readOnly')}
+                </button>
+                <button
+                  className={`btn ${couple.shared_permission === 'read_write' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, fontSize: '0.8rem', padding: '8px 12px', gap: '4px' }}
+                  onClick={async () => {
+                    if (couple.shared_permission !== 'read_write') {
+                      setTogglingPerm(true);
+                      await togglePermission();
+                      setTogglingPerm(false);
+                    }
+                  }}
+                  disabled={togglingPerm}
+                >
+                  ✏️ {t('readWrite')}
+                </button>
+              </div>
+            </div>
+
+            {/* ─── Danger Zone ─── */}
+            <div style={{ padding: '16px 20px', background: 'rgba(239, 68, 68, 0.04)' }}>
+              <h4 style={{ color: 'var(--danger)', fontSize: '0.85rem', fontWeight: 700, marginBottom: '6px' }}>{t('dangerZone')}</h4>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                {t('unlinkWarning')}
               </p>
               <button
                 className="btn btn-danger"
-                style={{ width: '100%' }}
+                style={{ width: '100%', fontSize: '0.85rem' }}
                 onClick={() => setShowUnlinkConfirm(true)}
               >
-                <Unlink size={16} /> Desvincular pareja
+                <Unlink size={16} /> {t('unlinkPartner')}
               </button>
             </div>
           </div>
@@ -138,7 +179,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
           /* ─── UNLINKED STATE ─── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center', marginBottom: '8px' }}>
-              Vincula tu cuenta con tu pareja para gestionar vuestro dinero juntos.
+              {t('invitePartnerDesc')}
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -150,8 +191,8 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
               >
                 {generatingCode ? <Loader2 size={24} className="loading-spinner" /> : <UserPlus size={24} />}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>Invitar</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 400 }}>Dar mi código</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{t('invite')}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: 400 }}>{t('giveMyCode')}</span>
                 </div>
               </button>
 
@@ -162,8 +203,8 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
               >
                 <Heart size={24} color="#EC4899" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>Unirse</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>Tengo un código</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{t('join')}</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>{t('iHaveCode')}</span>
                 </div>
               </button>
             </div>
@@ -189,8 +230,8 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
-                <div className="modal-title" style={{ textAlign: 'center' }}>Tu código de invitación</div>
-                <p className="modal-subtitle" style={{ textAlign: 'center' }}>Comparte este código con tu pareja. Expira en 24h.</p>
+                <div className="modal-title" style={{ textAlign: 'center' }}>{t('invitationCodeTitle')}</div>
+                <p className="modal-subtitle" style={{ textAlign: 'center' }}>{t('invitationCodeDesc')}</p>
 
                 <div className="invite-code-display">
                   {inviteCode.split('').map((char, i) => (
@@ -200,7 +241,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
 
                 <button className="btn btn-primary" onClick={handleCopyCode} style={{ width: '100%' }}>
                   {copiedCode ? <Check size={18} /> : <Copy size={18} />}
-                  {copiedCode ? '¡Copiado!' : 'Copiar código'}
+                  {copiedCode ? t('copied') : t('copyCode')}
                 </button>
               </motion.div>
             </motion.div>
@@ -223,8 +264,8 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
-                <div className="modal-title" style={{ textAlign: 'center' }}>Ingresar código</div>
-                <p className="modal-subtitle" style={{ textAlign: 'center' }}>Ingresa los 6 caracteres del código de tu pareja.</p>
+                <div className="modal-title" style={{ textAlign: 'center' }}>{t('enterCode')}</div>
+                <p className="modal-subtitle" style={{ textAlign: 'center' }}>{t('enterCodeDesc')}</p>
 
                 <div className="invite-code-input-group">
                   {acceptCode.map((char, i) => (
@@ -255,7 +296,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                   disabled={acceptLoading}
                 >
                   {acceptLoading ? <Loader2 size={18} className="loading-spinner" /> : null}
-                  {acceptLoading ? 'Vinculando...' : 'Vincular ahora'}
+                  {acceptLoading ? t('linking') : t('linkNow')}
                 </button>
               </motion.div>
             </motion.div>
@@ -279,15 +320,15 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 exit={{ scale: 0.9, opacity: 0 }}
               >
                 <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚠️</div>
-                <div className="modal-title">¿Desvincular pareja?</div>
-                <p className="modal-subtitle" style={{ marginBottom: '24px' }}>Esta acción es inmediata. No podrás ver las transacciones compartidas nuevas de tu pareja.</p>
+                <div className="modal-title">{t('unlinkConfirmTitle')}</div>
+                <p className="modal-subtitle" style={{ marginBottom: '24px' }}>{t('unlinkConfirmDesc')}</p>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowUnlinkConfirm(false)}>
-                    Cancelar
+                    {t('cancel')}
                   </button>
                   <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleUnlink}>
-                    Confirmar
+                    {t('confirm')}
                   </button>
                 </div>
               </motion.div>

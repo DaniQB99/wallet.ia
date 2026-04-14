@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 import type { Account } from '../types/database';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 interface AccountSelectorProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface AccountSelectorProps {
  * y estados de selección. Utiliza Framer Motion para animaciones nativas.
  */
 export default function AccountSelector({ open, onClose, accounts, selected, onSelect }: AccountSelectorProps) {
+  const { formatMoney } = useLocaleCurrency();
   if (!open) return null;
 
   return (
@@ -63,7 +65,7 @@ export default function AccountSelector({ open, onClose, accounts, selected, onS
                   </div>
                   <div className="kebo-acc-right">
                     <span className="kebo-acc-balance" style={{ color: 'var(--accent-primary-hover)' }}>
-                      € {acc.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                      {formatMoney(acc.balance)}
                     </span>
                     {selected?.id === acc.id && <Check size={16} className="kebo-acc-check" />}
                   </div>

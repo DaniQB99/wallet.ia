@@ -7,8 +7,10 @@ import { useCategories } from '../hooks/useCategories';
 import { useAccounts } from '../hooks/useAccounts';
 import type { Transaction, TransactionType } from '../types/database';
 import TransactionModal from '../components/TransactionModal';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 export default function Transactions() {
+  const { formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<TransactionType | 'all'>('all');
@@ -78,15 +80,19 @@ export default function Transactions() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, search, filterAccount, filterCategory, filterMonth, filterFlow]);
 
+  useEffect(() => {
+    void prefetchRates(filtered.map((tx) => tx.date));
+  }, [filtered, prefetchRates]);
+
     const grouped = useMemo(() => {
     const groups: Record<string, Transaction[]> = {};
     filtered.forEach(tx => {
-      const key = new Date(tx.date).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const key = new Date(tx.date).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
       if (!groups[key]) groups[key] = [];
       groups[key].push(tx);
     });
     return groups;
-  }, [filtered]);
+  }, [filtered, locale]);
 
   // Obtener meses disponibles
   const availableMonths = useMemo(() => {
@@ -99,7 +105,7 @@ export default function Transactions() {
 
   const formatMonthLabel = (m: string) => {
     const d = new Date(m + '-01');
-    return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   };
 
   const handleEdit = (tx: Transaction) => {
@@ -119,12 +125,12 @@ export default function Transactions() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h1>Mis transacciones</h1>
-          <p>Gestiona tus movimientos</p>
+          <h1>{t('transactions')}</h1>
+          <p>{t('manageMovements')}</p>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditTx(null); setShowModal(true); }}>
           <Plus size={18} />
-          Nueva
+          {t('new')}
         </button>
       </div>
 
@@ -142,7 +148,7 @@ export default function Transactions() {
               onClick={() => setShowFilterAccount(!showFilterAccount)}
             >
               <Wallet size={14} />
-              {selectedAccount ? selectedAccount.name : 'Cuenta'}
+              {selectedAccount ? selectedAccount.name : t('account')}
             </button>
             {showFilterAccount && (
               <div className="kebo-filter-dropdown">
@@ -154,7 +160,7 @@ export default function Transactions() {
                     onClick={() => { setFilterAccount(acc.id); setShowFilterAccount(false); }}>
                     {acc.icon} {acc.name}
                     <span style={{ marginLeft: 'auto', color: 'var(--accent-primary-hover)', fontSize: '0.8rem' }}>
-                      €{acc.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                      {formatMoney(acc.balance)}
                     </span>
                   </button>
                 ))}
@@ -168,7 +174,7 @@ export default function Transactions() {
               onClick={() => setShowFilterMonth(!showFilterMonth)}
             >
               <CalendarDays size={14} />
-              {filterMonth ? formatMonthLabel(filterMonth) : 'Mes'}
+              {filterMonth ? formatMonthLabel(filterMonth) : t('month')}
             </button>
             {showFilterMonth && (
               <div className="kebo-filter-dropdown">
@@ -191,7 +197,7 @@ export default function Transactions() {
               onClick={() => setShowFilterCategory(!showFilterCategory)}
             >
               <Tag size={14} />
-              {selectedCatFilter ? `${selectedCatFilter.icon} ${selectedCatFilter.name}` : 'Categoría'}
+              {selectedCatFilter ? `${selectedCatFilter.icon} ${selectedCatFilter.name}` : t('category')}
             </button>
             {showFilterCategory && (
               <div className="kebo-filter-dropdown">
@@ -214,21 +220,21 @@ export default function Transactions() {
               onClick={() => setShowFilterFlow(!showFilterFlow)}
             >
               <ArrowUpDown size={14} />
-              {filterFlow === 'expense' ? 'Gastos' : filterFlow === 'income' ? 'Ingresos' : 'Tipo'}
+              {filterFlow === 'expense' ? t('expense') : filterFlow === 'income' ? t('income') : t('type')}
             </button>
             {showFilterFlow && (
               <div className="kebo-filter-dropdown">
                 <button className={`kebo-filter-option ${filterFlow === 'all' ? 'active' : ''}`}
                   onClick={() => { setFilterFlow('all'); setShowFilterFlow(false); }}>
-                  Todos
+                  {t('all')}
                 </button>
                 <button className={`kebo-filter-option ${filterFlow === 'expense' ? 'active' : ''}`}
                   onClick={() => { setFilterFlow('expense'); setShowFilterFlow(false); }}>
-                  Gastos
+                  {t('expense')}
                 </button>
                 <button className={`kebo-filter-option ${filterFlow === 'income' ? 'active' : ''}`}
                   onClick={() => { setFilterFlow('income'); setShowFilterFlow(false); }}>
-                  Ingresos
+                  {t('income')}
                 </button>
               </div>
             )}
@@ -249,7 +255,7 @@ export default function Transactions() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar..."
+              placeholder={t('search')}
               style={{ paddingLeft: '40px' }}
             />
           </div>
@@ -264,8 +270,8 @@ export default function Transactions() {
           ) : filtered.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📭</div>
-              <div className="empty-state-title">Sin transacciones</div>
-              <div className="empty-state-desc">No hay transacciones que coincidan con tus filtros.</div>
+              <div className="empty-state-title">{t('noTransactions')}</div>
+              <div className="empty-state-desc">{t('noTransactionsMatching')}</div>
             </div>
           ) : (
             Object.entries(grouped).map(([month, txs]) => (
@@ -295,10 +301,10 @@ export default function Transactions() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div className={tx.amount > 0 ? 'transaction-amount income' : 'transaction-amount expense'}>
-                          {tx.amount > 0 ? '' : '- '}€ {Math.abs(tx.amount).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                          {tx.amount > 0 ? '' : '- '}{formatMoney(Math.abs(tx.amount), tx.date)}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                          {new Date(tx.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+                          {new Date(tx.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
                         </div>
                       </div>
                       <ChevronRight size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />

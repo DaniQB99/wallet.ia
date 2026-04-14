@@ -5,6 +5,7 @@ import type { TransactionType } from '../types/database';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 const COLOR_PRESETS = [
   '#6366F1', '#EC4899', '#10B981', '#F59E0B',
@@ -13,6 +14,7 @@ const COLOR_PRESETS = [
 ];
 
 export default function CategoriesSettings({ onClose }: { onClose: () => void }) {
+  const { t } = useLocaleCurrency();
   const [tab, setTab] = useState<TransactionType>('shared');
   const { categories, addCategory, updateCategory, deleteCategory, loading } = useCategories(tab);
 
@@ -42,7 +44,7 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Seguro que quieres eliminar esta categoría?')) {
+    if (confirm(`${t('delete')}?`)) {
       await deleteCategory(id);
     }
   };
@@ -64,7 +66,7 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 className="modal-title">Gestión de Categorías</h2>
+          <h2 className="modal-title">{t('categoriesManagement')}</h2>
           <button className="btn-icon" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)' }}>
             <X size={20} />
           </button>
@@ -76,21 +78,21 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
             onClick={() => { setTab('personal'); resetForm(); }}
             style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'personal' ? 'var(--bg-primary)' : 'transparent', color: tab === 'personal' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
           >
-            Personales
+            {t('personal')}
           </button>
           <button
             className={`toggle-item ${tab === 'shared' ? 'active' : ''}`}
             onClick={() => { setTab('shared'); resetForm(); }}
             style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'shared' ? 'var(--bg-primary)' : 'transparent', color: tab === 'shared' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
           >
-            Compartidas
+            {t('shared')}
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div style={{ position: 'relative' }}>
-              <label className="form-label">Icono</label>
+              <label className="form-label">{t('icon')}</label>
               <button
                 type="button"
                 className="btn-icon"
@@ -123,19 +125,19 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
             </div>
 
             <div style={{ flex: 1 }}>
-              <label className="form-label">Nombre de categoría</label>
+              <label className="form-label">{t('categoryName')}</label>
               <input
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Ej: Supermercado"
+                placeholder={t('categoryPlaceholder')}
                 className="form-input"
                 style={{ width: '100%' }}
               />
             </div>
 
             <div>
-              <label className="form-label">Color</label>
+              <label className="form-label">{t('color')}</label>
               <button
                 type="button"
                 className="btn-icon"
@@ -170,10 +172,10 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
 
           <div style={{ display: 'flex', gap: '12px' }}>
             {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>Sustituir</button>
+              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>{t('replace')}</button>
             )}
             <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
-              {editingId ? 'Actualizar categoría' : 'Crear categoría'}
+              {editingId ? t('updateCategory') : t('createCategory')}
             </button>
           </div>
         </form>
@@ -185,7 +187,7 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
             </div>
           ) : categories.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-              No hay categorías definidas aún.
+              {t('noCategoriesYet')}
             </div>
           ) : (
             categories.map(cat => (
@@ -196,7 +198,7 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
                 <div className="transaction-details">
                   <div className="transaction-title" style={{ fontWeight: 600 }}>{cat.name}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    {cat.scope === 'shared' ? 'Compartida' : 'Personal'}
+                    {cat.scope === 'shared' ? t('sharedLabel') : t('personalLabel')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>

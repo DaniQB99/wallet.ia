@@ -1,11 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Users, Wallet, Lightbulb } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Wallet, BarChart3 } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { useNotifications } from '../hooks/useNotifications';
-import NotificationsModal from '../components/NotificationsModal';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * Dashboard.tsx
@@ -18,9 +17,25 @@ export default function Dashboard() {
   // Estado y autenticación
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const { formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
 
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
+
+  // Filtro mensual por defecto en mes actual
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => new Date(tx.date).toISOString().slice(0, 7) === selectedMonth);
+  }, [transactions, selectedMonth]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    transactions.forEach((tx) => months.add(new Date(tx.date).toISOString().slice(0, 7)));
+    if (months.size === 0) {
+      months.add(new Date().toISOString().slice(0, 7));
+    }
+    return Array.from(months).sort().reverse();
+  }, [transactions]);
 
   // Hook para calcular estadísticas derivadas de las transacciones en tiempo real
   const {
@@ -28,34 +43,53 @@ export default function Dashboard() {
     myContribution,
     partnerContribution,
     personalTotal
-  } = useDashboardStats(transactions);
-
-  // Gestión de notificaciones (alertas de presupuesto, sugerencias de ahorro, etc.)
-  const { unreadCount } = useNotifications();
-  const [showNotifications, setShowNotifications] = useState(false);
+  } = useDashboardStats(filteredTransactions);
 
   // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
-  const recentTransactions = transactions.slice(0, 5);
+  const recentTransactions = filteredTransactions.slice(0, 5);
+  useEffect(() => {
+    void prefetchRates(recentTransactions.map((tx) => tx.date));
+  }, [recentTransactions, prefetchRates]);
+
+  const selectedMonthDate = new Date(`${selectedMonth}-01T00:00:00`);
+  const selectedMonthLabel = selectedMonthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   return (
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h1>Dashboard</h1>
-          <p>Resumen de tus finanzas — Marzo 2026</p>
+          <h1>{t('dashboard')}</h1>
+          <p>
+            {t('financialSummary')} —
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              style={{
+                marginLeft: '8px',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '3px 8px',
+                textTransform: 'capitalize',
+              }}
+            >
+              {availableMonths.map((monthKey) => (
+                <option key={monthKey} value={monthKey} style={{ textTransform: 'capitalize' }}>
+                  {new Date(`${monthKey}-01T00:00:00`).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
+                </option>
+              ))}
+            </select>
+          </p>
         </div>
         <div className="page-header-right">
           <button
             className="notification-shortcut-btn"
-            onClick={() => setShowNotifications(true)}
-            aria-label="Ver notificaciones"
+            onClick={() => navigate('/analytics')}
+            aria-label="Ver analítica"
+            title={`Ver analítica de ${selectedMonthLabel}`}
           >
-            <Lightbulb size={24} />
-            {unreadCount > 0 && (
-              <span className="notification-badge-ios">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            <BarChart3 size={24} />
           </button>
         </div>
       </div>
@@ -67,8 +101,8 @@ export default function Dashboard() {
             <div className="stat-card-icon" style={{ background: 'var(--accent-primary-glow)' }}>
               <Wallet size={22} color="var(--accent-primary-hover)" />
             </div>
-            <div className="stat-card-value">€{totalShared.toFixed(2)}</div>
-            <div className="stat-card-label">Balance compartido</div>
+            <div className="stat-card-value">{formatMoney(totalShared)}</div>
+            <div className="stat-card-label">{t('sharedBalance')}</div>
             <div className="stat-card-change positive">
               <TrendingDown size={12} /> 12% vs mes anterior
             </div>
@@ -78,24 +112,24 @@ export default function Dashboard() {
             <div className="stat-card-icon" style={{ background: 'var(--success-bg)' }}>
               <TrendingUp size={22} color="var(--success)" />
             </div>
-            <div className="stat-card-value">€{myContribution.toFixed(2)}</div>
-            <div className="stat-card-label">Mi contribución</div>
+            <div className="stat-card-value">{formatMoney(myContribution)}</div>
+            <div className="stat-card-label">{t('myContribution')}</div>
           </div>
 
           <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #EC4899, #F472B6)' } as React.CSSProperties}>
             <div className="stat-card-icon" style={{ background: 'rgba(236, 72, 153, 0.12)' }}>
               <Users size={22} color="#EC4899" />
             </div>
-            <div className="stat-card-value">€{partnerContribution.toFixed(2)}</div>
-            <div className="stat-card-label">Contribución pareja</div>
+            <div className="stat-card-value">{formatMoney(partnerContribution)}</div>
+            <div className="stat-card-label">{t('partnerContribution')}</div>
           </div>
 
           <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #F59E0B, #FBBF24)' } as React.CSSProperties}>
             <div className="stat-card-icon" style={{ background: 'var(--warning-bg)' }}>
               <Wallet size={22} color="var(--warning)" />
             </div>
-            <div className="stat-card-value">€{personalTotal.toFixed(2)}</div>
-            <div className="stat-card-label">Balance personal</div>
+            <div className="stat-card-value">{formatMoney(personalTotal)}</div>
+            <div className="stat-card-label">{t('personalBalance')}</div>
           </div>
         </div>
 
@@ -104,10 +138,10 @@ export default function Dashboard() {
           <div className="card animate-in">
             <div className="card-header">
               <div>
-                <div className="card-title">Transacciones recientes</div>
-                <div className="card-subtitle">Últimos movimientos</div>
+                <div className="card-title">{t('recentTransactions')}</div>
+                <div className="card-subtitle">{t('latestMovements')}</div>
               </div>
-              <span className="tx-ver-mas" onClick={() => navigate('/transactions')}>Ver más</span>
+              <span className="tx-ver-mas" onClick={() => navigate('/transactions')}>{t('viewMore')}</span>
             </div>
 
             <div className="transaction-list">
@@ -119,9 +153,9 @@ export default function Dashboard() {
               ) : recentTransactions.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">📭</div>
-                  <div className="empty-state-title">Sin transacciones</div>
+                  <div className="empty-state-title">{t('noTransactions')}</div>
                   <div className="empty-state-desc">
-                    Aún no hay movimientos recientes.
+                    {t('noRecentMovements')}
                   </div>
                 </div>
               ) : (
@@ -138,14 +172,14 @@ export default function Dashboard() {
                         )}
                       </div>
                       <div className="transaction-meta">
-                        {new Date(tx.date).toLocaleDateString('es-ES', {
+                        {new Date(tx.date).toLocaleDateString(locale, {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric'
                         })}
                         {tx.type === 'shared' && tx.user_id !== user?.id && (
                           <span style={{ color: 'var(--accent-primary-hover)' }}>
-                            — añadido por Pareja
+                            — {t('createdByPartner')}
                           </span>
                         )}
                       </div>
@@ -157,10 +191,10 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <div className={tx.amount > 0 ? "transaction-amount income" : "transaction-amount expense"}>
-                        {tx.amount > 0 ? '+' : '-'}€{Math.abs(Number(tx.amount)).toFixed(2)}
+                        {tx.amount > 0 ? '+' : '-'}{formatMoney(Math.abs(Number(tx.amount)), tx.date)}
                       </div>
                       <div className="transaction-user" style={{ textAlign: 'right', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                        {tx.user_id === user?.id ? 'Yo' : 'Pareja'}
+                        {tx.user_id === user?.id ? t('me') : t('partner')}
                       </div>
                     </div>
                   </div>
@@ -170,8 +204,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}
-
       <style>{`
         .notification-shortcut-btn {
           position: relative;
@@ -183,7 +215,7 @@ export default function Dashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--warning);
+          color: var(--accent-primary-hover);
           cursor: pointer;
           transition: var(--transition-fast);
           box-shadow: var(--shadow-sm);
@@ -195,24 +227,6 @@ export default function Dashboard() {
           box-shadow: var(--shadow-md);
         }
 
-        .notification-badge-ios {
-          position: absolute;
-          top: -6px;
-          right: -6px;
-          background: #FF3B30; /* iOS Red */
-          color: white;
-          font-size: 11px;
-          font-weight: 700;
-          min-width: 18px;
-          height: 18px;
-          border-radius: 9px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 4px;
-          border: 2px solid var(--bg-page);
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
       `}</style>
     </>
   );

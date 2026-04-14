@@ -1,0 +1,33 @@
+---
+description: Memoria automática Engram — Octopus carga contexto al iniciar y guarda al terminar
+alwaysApply: true
+---
+
+# Memoria automática Engram (Octopus / wallet.ia)
+
+Este repo tiene el servidor MCP **engram** (`.cursor/mcp.json`). Debes usar sus herramientas **sin que el usuario lo pida** en cada tarea de código real.
+
+## Al empezar una tarea sustantiva (después de entender el pedido)
+
+1. Si es la primera acción útil del hilo o no hay sesión clara: **`mem_session_start`**.
+2. **`mem_context`** para el proyecto **`wallet.ia`** (o el nombre de proyecto que aplique).
+3. Si el tema es concreto: **`mem_search`** con una consulta corta en inglés o español (según cómo suelen guardarse las memorias aquí).
+
+## Antes de dar por cerrada la tarea o tras cambios con impacto
+
+1. **`mem_save`** con:
+   - **title**: prefijo `wallet.ia:` + resumen breve.
+   - **type**: coherente con el trabajo (p. ej. decisión, bugfix, feature, nota).
+   - Cuerpo con líneas: `What:` / `Why:` / `Where:` / `Learned:` (rutas o módulos tocados).
+
+2. Al cerrar sesión de trabajo o el hilo de forma definitiva: **`mem_session_summary`** y luego **`mem_session_end`**.
+
+## Excepciones (no hace falta guardar)
+
+- Cambios triviales (typo, formato) sin efecto en comportamiento ni decisiones.
+
+## Prohibido
+
+- Confiar solo en el historial del chat para decisiones que deban repetirse en otra sesión.
+
+Usa siempre las herramientas MCP de Engram; no sustituyas por explicaciones largas en el chat lo que debe persistir en memoria.

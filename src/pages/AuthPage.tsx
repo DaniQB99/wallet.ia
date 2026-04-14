@@ -2,15 +2,18 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, X } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 type AuthMode = 'login' | 'register';
 
 export default function AuthPage() {
-  const { user, loading, error, signIn, signUp, signInWithOAuth, clearError } = useAuthContext();
+  const { user, loading, error, signIn, signUp, signInWithOAuth, resetPassword, clearError } = useAuthContext();
+  const { t } = useLocaleCurrency();
   const [mode, setMode] = useState<AuthMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
     const [email, setEmail] = useState('');
@@ -48,6 +51,7 @@ export default function AuthPage() {
     clearError();
     setLocalError(null);
     setRegistrationSuccess(false);
+    setResetSent(false);
 
     if (mode === 'register' && !validateEmail(email)) {
       setLocalError('El correo electrónico no tiene un formato válido.');
@@ -71,6 +75,19 @@ export default function AuthPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleResetPassword = async () => {
+    clearError();
+    setLocalError(null);
+    setResetSent(false);
+
+    if (!validateEmail(email)) {
+      setLocalError('Introduce un email válido para recuperar la contraseña.');
+      return;
+    }
+    const success = await resetPassword(email);
+    setResetSent(success);
   };
 
   return (
@@ -107,12 +124,12 @@ export default function AuthPage() {
           {/* Header */}
           <div className="auth-card-header">
             <h1 className="auth-title">
-              {mode === 'login' ? 'Bienvenido de vuelta' : 'Crea tu cuenta'}
+              {mode === 'login' ? t('welcomeBack') : t('createAccount')}
             </h1>
             <p className="auth-subtitle">
               {mode === 'login'
-                ? 'Inicia sesión para gestionar tus finanzas'
-                : 'Empieza a controlar tus gastos en pareja'}
+                ? t('authLoginSubtitle')
+                : t('authRegisterSubtitle')}
             </p>
           </div>
 
@@ -123,14 +140,14 @@ export default function AuthPage() {
               onClick={() => switchMode('login')}
               type="button"
             >
-              Iniciar sesión
+              {t('login')}
             </button>
             <button
               className={`toggle-item ${mode === 'register' ? 'active' : ''}`}
               onClick={() => switchMode('register')}
               type="button"
             >
-              Registrarse
+              {t('register')}
             </button>
           </div>
 
@@ -141,12 +158,18 @@ export default function AuthPage() {
               <span>{error || localError}</span>
             </div>
           )}
+          {resetSent && (
+            <div className="auth-error" style={{ background: 'var(--success-bg)', borderColor: 'rgba(16,185,129,0.25)', color: 'var(--success)' }}>
+              <span>✅</span>
+              <span>Revisa tu correo. Te hemos enviado el enlace de recuperación.</span>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="auth-form">
             {mode === 'register' && (
               <div className="auth-field">
-                <label className="form-label">Nombre</label>
+                <label className="form-label">{t('name')}</label>
                 <div className="auth-input-wrapper">
                   <User size={18} className="auth-input-icon" />
                   <input
@@ -162,7 +185,7 @@ export default function AuthPage() {
             )}
 
             <div className="auth-field">
-              <label className="form-label">Email</label>
+              <label className="form-label">{t('email')}</label>
               <div className="auth-input-wrapper">
                 <Mail size={18} className="auth-input-icon" />
                 <input
@@ -176,8 +199,19 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {mode === 'login' && (
+              <button
+                type="button"
+                className="auth-link"
+                onClick={handleResetPassword}
+                style={{ alignSelf: 'flex-end', marginTop: '-10px' }}
+              >
+                {t('forgotPassword')}
+              </button>
+            )}
+
             <div className="auth-field">
-              <label className="form-label">Contraseña</label>
+              <label className="form-label">{t('password')}</label>
               <div className="auth-input-wrapper">
                 <Lock size={18} className="auth-input-icon" />
                 <input
@@ -250,16 +284,16 @@ export default function AuthPage() {
           <div className="auth-footer">
             {mode === 'login' ? (
               <p>
-                ¿No tienes cuenta?{' '}
+                {t('noAccount')}{' '}
                 <button type="button" className="auth-link" onClick={() => switchMode('register')}>
-                  Regístrate aquí
+                  {t('signUpHere')}
                 </button>
               </p>
             ) : (
               <p>
-                ¿Ya tienes cuenta?{' '}
+                {t('alreadyHaveAccount')}{' '}
                 <button type="button" className="auth-link" onClick={() => switchMode('login')}>
-                  Inicia sesión
+                  {t('signInHere')}
                 </button>
               </p>
             )}

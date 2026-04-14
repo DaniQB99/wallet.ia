@@ -31,6 +31,7 @@ export const mockCoupleLink: CoupleLink = {
   user_a_id: "user-1",
   user_b_id: "user-2",
   status: "active",
+  shared_permission: "read_write",
   created_at: "2026-02-01T00:00:00Z",
   linked_at: "2026-02-01T00:05:00Z",
 };

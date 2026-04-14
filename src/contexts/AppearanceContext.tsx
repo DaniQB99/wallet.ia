@@ -8,12 +8,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
  * para garantizar un alto rendimiento sin parpadeos visuales innecesarios.
  */
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'system';
 type AccentColor = 'indigo' | 'emerald' | 'rose' | 'amber';
 
 interface AppearanceContextType {
   /** Tema actual de la interfaz: 'dark' (predeterminado) o 'light' */
   theme: Theme;
+  resolvedTheme: 'dark' | 'light';
   /** Actualiza el tema visual y lo persiste en localStorage */
   setTheme: (theme: Theme) => void;
   /** Color principal de la marca aplicado a botones, bordes y acentos dinámicos */
@@ -58,7 +59,8 @@ const accentVariables: Record<AccentColor, { primary: string, primaryHover: stri
  * Proveedor que inyecta la lógica de diseño en el árbol de componentes.
  */
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
   const [accentColor, setAccentColorState] = useState<AccentColor>('indigo');
 
   // Inicialización: Recuperar preferencias guardadas del usuario
@@ -66,7 +68,9 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     const savedTheme = localStorage.getItem(THEME_KEY) as Theme;
     const savedAccent = localStorage.getItem(ACCENT_KEY) as AccentColor;
 
-    if (savedTheme) setThemeState(savedTheme);
+    if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+      setThemeState(savedTheme);
+    }
     if (savedAccent && accentVariables[savedAccent]) setAccentColorState(savedAccent);
   }, []);
 
@@ -87,9 +91,13 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
    */
   useEffect(() => {
     const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const systemTheme: 'dark' | 'light' = media.matches ? 'dark' : 'light';
+    const currentTheme = theme === 'system' ? systemTheme : theme;
+    setResolvedTheme(currentTheme);
 
     // Gestión del tema mediante el atributo data-theme
-    if (theme === 'light') {
+    if (currentTheme === 'light') {
       root.setAttribute('data-theme', 'light');
     } else {
       root.removeAttribute('data-theme'); // default es dark
@@ -112,10 +120,24 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
       };
       root.style.setProperty('--accent-primary-glow', hex2rgba(vars.primary, 0.15));
     }
+
+    if (theme === 'system') {
+      const onChange = (e: MediaQueryListEvent) => {
+        const nextSystemTheme = e.matches ? 'dark' : 'light';
+        setResolvedTheme(nextSystemTheme);
+        if (nextSystemTheme === 'light') {
+          root.setAttribute('data-theme', 'light');
+        } else {
+          root.removeAttribute('data-theme');
+        }
+      };
+      media.addEventListener('change', onChange);
+      return () => media.removeEventListener('change', onChange);
+    }
   }, [theme, accentColor]);
 
   return (
-    <AppearanceContext.Provider value={{ theme, setTheme, accentColor, setAccentColor }}>
+    <AppearanceContext.Provider value={{ theme, resolvedTheme, setTheme, accentColor, setAccentColor }}>
       {children}
     </AppearanceContext.Provider>
   );

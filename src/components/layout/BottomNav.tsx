@@ -6,17 +6,18 @@ import {
   Plus,
   Settings,
 } from 'lucide-react';
-
-const navItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Inicio' },
-  { path: '/transactions', icon: ArrowLeftRight, label: 'Movimientos' },
-  { path: '/transactions?add=true', icon: Plus, label: '', isAdd: true },
-  { path: '/goals', icon: Target, label: 'Metas' },
-  { path: '/settings', icon: Settings, label: 'Ajustes' },
-];
+import { useLocaleCurrency } from '../../contexts/LocaleCurrencyContext';
 
 export default function BottomNav() {
   const location = useLocation();
+  const { t } = useLocaleCurrency();
+  const navItems = [
+    { path: '/', icon: LayoutDashboard, label: t('home') },
+    { path: '/transactions', icon: ArrowLeftRight, label: t('movements') },
+    { path: '/transactions?add=true', icon: Plus, label: '', isAdd: true },
+    { path: '/goals', icon: Target, label: t('goals') },
+    { path: '/settings', icon: Settings, label: t('settings') },
+  ];
 
   return (
     <nav className="bottom-nav">
@@ -34,7 +35,7 @@ export default function BottomNav() {
                 <NavLink
                   to={item.path}
                   className="bottom-nav-add-btn"
-                  aria-label="Añadir transacción"
+                  aria-label={t('addTransaction')}
                 >
                   <Icon />
                 </NavLink>

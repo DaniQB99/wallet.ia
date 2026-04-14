@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 import type { Category } from '../types/database';
 import { useState } from 'react';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 interface CategorySelectorProps {
   open: boolean;
@@ -24,6 +25,7 @@ const EMOJI_PRESETS = ['🍕', '🚗', '🏠', '💡', '🎮', '👕', '📱', '
 export default function CategorySelector({
   open, onClose, categories, selected, onSelect, onAddCategory
 }: CategorySelectorProps) {
+  const { t } = useLocaleCurrency();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('📦');
@@ -63,7 +65,7 @@ export default function CategorySelector({
           onClick={e => e.stopPropagation()}
         >
           <div className="kebo-sheet-header">
-            <span className="kebo-sheet-title">Categorías</span>
+            <span className="kebo-sheet-title">{t('category')}s</span>
             <button className="kebo-sheet-close" onClick={onClose}><X size={20} /></button>
           </div>
 
@@ -71,7 +73,7 @@ export default function CategorySelector({
             {/* Add button */}
             <button className="kebo-category-item kebo-cat-add" onClick={() => setShowAdd(true)}>
               <span className="kebo-cat-icon-wrap kebo-cat-add-icon">+</span>
-              <span className="kebo-cat-name">Agregar</span>
+              <span className="kebo-cat-name">{t('add')}</span>
             </button>
 
             {categories.map(cat => (
@@ -95,7 +97,7 @@ export default function CategorySelector({
           {showAdd && (
             <div className="kebo-add-category-panel">
               <div className="kebo-add-cat-header">
-                <span>Nueva categoría</span>
+                <span>{t('newCategory')}</span>
                 <button onClick={() => setShowAdd(false)}><X size={16} /></button>
               </div>
               <div className="kebo-add-cat-body">
@@ -112,7 +114,7 @@ export default function CategorySelector({
                 </div>
                 <input
                   className="kebo-add-cat-input"
-                  placeholder="Nombre de categoría"
+                  placeholder={t('categoryNamePlaceholder')}
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   autoFocus
@@ -128,7 +130,7 @@ export default function CategorySelector({
                   ))}
                 </div>
                 <button className="kebo-add-cat-submit" onClick={handleAdd}>
-                  Crear categoría
+                  {t('createCategoryBtn')}
                 </button>
               </div>
             </div>

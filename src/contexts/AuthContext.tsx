@@ -21,6 +21,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithOAuth: (provider: "github" | "google") => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
   clearError: () => void;
   updateProfile: (displayName: string) => Promise<boolean>;
 }
@@ -144,6 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  const resetPassword = useCallback(async (email: string): Promise<boolean> => {
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    if (resetError) {
+      setError(resetError.message);
+      return false;
+    }
+    return true;
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
   const updateProfile = async (displayName: string): Promise<boolean> => {
@@ -179,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, clearError, updateProfile }}
+      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, resetPassword, clearError, updateProfile }}
     >
       {children}
     </AuthContext.Provider>

@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.couple_links (
   user_a_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   user_b_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'rejected')),
+  shared_permission TEXT NOT NULL DEFAULT 'read_only' CHECK (shared_permission IN ('read_only', 'read_write')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   linked_at TIMESTAMPTZ,
   CONSTRAINT unique_couple UNIQUE (user_a_id, user_b_id)
@@ -170,8 +171,32 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own personal and shared transactions" ON public.transactions FOR SELECT
   USING ((type = 'personal' AND auth.uid() = user_id) OR (type = 'shared' AND couple_id IN (SELECT id FROM public.couple_links WHERE (user_a_id = auth.uid() OR user_b_id = auth.uid()) AND status = 'active')));
 CREATE POLICY "Users can insert transactions" ON public.transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own transactions" ON public.transactions FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own transactions" ON public.transactions FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own or permitted shared transactions" ON public.transactions FOR UPDATE
+  USING (
+    auth.uid() = user_id
+    OR (
+      type = 'shared'
+      AND couple_id IN (
+        SELECT id FROM public.couple_links
+        WHERE (user_a_id = auth.uid() OR user_b_id = auth.uid())
+        AND status = 'active'
+        AND shared_permission = 'read_write'
+      )
+    )
+  );
+CREATE POLICY "Users can delete own or permitted shared transactions" ON public.transactions FOR DELETE
+  USING (
+    auth.uid() = user_id
+    OR (
+      type = 'shared'
+      AND couple_id IN (
+        SELECT id FROM public.couple_links
+        WHERE (user_a_id = auth.uid() OR user_b_id = auth.uid())
+        AND status = 'active'
+        AND shared_permission = 'read_write'
+      )
+    )
+  );
 
 CREATE INDEX idx_transactions_user_type ON public.transactions(user_id, type);
 CREATE INDEX idx_transactions_couple ON public.transactions(couple_id) WHERE couple_id IS NOT NULL;

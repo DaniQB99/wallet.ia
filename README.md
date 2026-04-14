@@ -36,6 +36,7 @@
 - Node.js (v18 or higher)
 - npm or pnpm
 - A Supabase Project configured with the schemas in `/supabase/`
+- (Optional) `engram` binary for persistent AI memory integration
 
 ### Installation
 
@@ -64,6 +65,20 @@
    ```bash
    npm run dev
    ```
+
+## 🧠 Persistent Agent Memory (Engram)
+
+This repo includes MCP configuration for `engram` in `.cursor/mcp.json`, so coding agents (like Octopus in Cursor) can keep long-term memory across sessions.
+
+Quick usage after installing `engram`:
+
+```bash
+engram version
+npm run memory:context
+npm run memory:search -- "rls policy"
+```
+
+Detailed setup and recommended memory workflow: `docs/ENGRAM.md`
 
 ## 🔒 Security Posture
 

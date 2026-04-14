@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { X, User, Lock, Save, Camera } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 export default function ProfileSettings({ onClose }: { onClose: () => void }) {
   const { user, updateProfile } = useAuthContext();
+  const { t } = useLocaleCurrency();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
   // Profile state
@@ -24,16 +26,16 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
 
     const success = await updateProfile(displayName);
     if (success) {
-      setProfileMessage({ text: 'Perfil actualizado con éxito', type: 'success' });
+      setProfileMessage({ text: t('saveChanges'), type: 'success' });
     } else {
-      setProfileMessage({ text: 'Error al actualizar el perfil', type: 'error' });
+      setProfileMessage({ text: t('updating'), type: 'error' });
     }
     setIsSavingName(false);
   };
 
   const handleUpdatePassword = async () => {
     if (!newPassword || newPassword.length < 6) {
-      setSecurityMessage({ text: 'La contraseña debe tener al menos 6 caracteres', type: 'error' });
+      setSecurityMessage({ text: t('passwordMin'), type: 'error' });
       return;
     }
 
@@ -48,10 +50,10 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
       });
 
       if (error) throw error;
-      setSecurityMessage({ text: 'Contraseña actualizada con éxito', type: 'success' });
+      setSecurityMessage({ text: t('updatePassword'), type: 'success' });
       setNewPassword('');
     } catch (err: any) {
-      setSecurityMessage({ text: err.message || 'Error al actualizar contraseña', type: 'error' });
+      setSecurityMessage({ text: err.message || t('updating'), type: 'error' });
     } finally {
       setIsSavingPassword(false);
     }
@@ -61,7 +63,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-content profile-modal animate-in" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Gestión de Perfil</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{t('profileManagement')}</h2>
           <button onClick={onClose} className="btn-icon">
             <X size={20} />
           </button>
@@ -73,14 +75,14 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
             onClick={() => setActiveTab('profile')}
             style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'profile' ? '2px solid var(--accent-primary)' : '2px solid transparent', color: activeTab === 'profile' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'profile' ? 600 : 400, cursor: 'pointer' }}
           >
-            <User size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> Perfil
+            <User size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> {t('profileTab')}
           </button>
           <button
             className={`tab ${activeTab === 'security' ? 'active' : ''}`}
             onClick={() => setActiveTab('security')}
             style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'security' ? '2px solid var(--accent-primary)' : '2px solid transparent', color: activeTab === 'security' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'security' ? 600 : 400, cursor: 'pointer' }}
           >
-            <Lock size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> Seguridad
+            <Lock size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> {t('securityTab')}
           </button>
         </div>
 
@@ -99,7 +101,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="form-group">
-                <label>Dirección de Email</label>
+                <label>{t('emailAddress')}</label>
                 <input
                   type="text"
                   value={user?.email || ''}
@@ -110,12 +112,12 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="form-group">
-                <label>Nombre a mostrar</label>
+                <label>{t('displayName')}</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Tu nombre"
+                  placeholder={t('name')}
                   className="input"
                 />
               </div>
@@ -132,18 +134,18 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
                 onClick={handleUpdateProfile}
                 disabled={isSavingName || displayName === user?.display_name || !displayName.trim()}
               >
-                {isSavingName ? 'Guardando...' : (<><Save size={18} /> Guardar cambios</>)}
+                {isSavingName ? t('saving') : (<><Save size={18} /> {t('saveChanges')}</>)}
               </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
-                <label>Nueva contraseña</label>
+                <label>{t('newPassword')}</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t('passwordMin')}
                   className="input"
                 />
               </div>
@@ -160,7 +162,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
                 onClick={handleUpdatePassword}
                 disabled={isSavingPassword || !newPassword || newPassword.length < 6}
               >
-                {isSavingPassword ? 'Actualizando...' : (<><Lock size={18} /> Actualizar contraseña</>)}
+                {isSavingPassword ? t('updating') : (<><Lock size={18} /> {t('updatePassword')}</>)}
               </button>
             </div>
           )}

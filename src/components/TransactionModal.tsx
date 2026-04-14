@@ -8,6 +8,8 @@ import { useCouple } from '../hooks/useCouple';
 import type { Transaction, TransactionType, Category, Account } from '../types/database';
 import CategorySelector from './CategorySelector';
 import AccountSelector from './AccountSelector';
+import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
+import { useAuthContext } from '../contexts/AuthContext';
 
 interface TransactionModalProps {
   open: boolean;
@@ -34,6 +36,13 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
   const { accounts } = useAccounts();
   const { addTransaction, updateTransaction, deleteTransaction } = useTransactions('all');
   const { couple } = useCouple();
+  const { formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
+  const { user } = useAuthContext();
+
+  // Read-only mode: editing a partner's shared transaction with read_only permission
+  const isReadOnly = !!(editTransaction && editTransaction.type === 'shared'
+    && editTransaction.user_id !== user?.id
+    && couple?.shared_permission === 'read_only');
 
   // Estados del formulario
   const [flowTab, setFlowTab] = useState<FlowTab>('expense');
@@ -52,6 +61,16 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
   const [showAccounts, setShowAccounts] = useState(false);
 
   const dateRef = useRef<HTMLInputElement>(null);
+  const openDatePicker = () => {
+    const input = dateRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+    input.click();
+  };
 
   // Filtrado de lógica de negocio: solo mostrar lo relevante al tipo de transacción
   const categories = txType === 'shared' ? sharedCats : personalCats;
@@ -172,7 +191,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
 
   const handleDelete = async () => {
     if (!editTransaction) return;
-    if (!window.confirm('¿Eliminar esta transacción?')) return;
+    if (!window.confirm(`${t('deleteMovement')}?`)) return;
     setSubmitting(true);
     await deleteTransaction(editTransaction.id);
     setSubmitting(false);
@@ -181,17 +200,21 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
 
   const formatDate = (d: string) => {
     const date = new Date(d + 'T00:00:00');
-    return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
   const displayAmount = () => {
     const num = parseFloat(amount);
-    if (isNaN(num)) return '€ 0';
+    if (isNaN(num)) return formatMoney(0);
     if (amount.includes('.')) {
-      return `€ ${amount.replace('.', ',')}`;
+      return formatMoney(parseFloat(amount));
     }
-    return `€ ${num.toLocaleString('es-ES')}`;
+    return formatMoney(num);
   };
+
+  useEffect(() => {
+    void prefetchRates([date]);
+  }, [date, prefetchRates]);
 
   if (!open) return null;
 
@@ -221,13 +244,13 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
                 className={`kebo-tab ${flowTab === 'expense' ? 'active' : ''}`}
                 onClick={() => setFlowTab('expense')}
               >
-                Gasto
+                {t('expenseTab')}
               </button>
               <button
                 className={`kebo-tab ${flowTab === 'income' ? 'active' : ''}`}
                 onClick={() => setFlowTab('income')}
               >
-                Ingreso
+                {t('incomeTab')}
               </button>
             </div>
 
@@ -236,13 +259,13 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
                 className={`kebo-type-btn ${txType === 'personal' ? 'active' : ''}`}
                 onClick={() => { setTxType('personal'); setSelectedCategory(null); setSelectedAccount(null); }}
               >
-                💰 Personal
+                💰 {t('personalLabel')}
               </button>
               <button
                 className={`kebo-type-btn ${txType === 'shared' ? 'active' : ''}`}
                 onClick={() => { setTxType('shared'); setSelectedCategory(null); setSelectedAccount(null); }}
               >
-                👥 Compartido
+                👥 {t('sharedLabelLong')}
               </button>
             </div>
           </div>
@@ -254,6 +277,17 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
             </span>
           </div>
 
+          {/* Read-only notice for partner's shared transactions */}
+          {isReadOnly && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+              background: 'rgba(251, 191, 36, 0.12)', borderRadius: 'var(--radius-md)',
+              margin: '0 16px', fontSize: '0.8rem', color: '#F59E0B', fontWeight: 500
+            }}>
+              🔒 {t('readOnlyNotice')}
+            </div>
+          )}
+
           {/* Campos de entrada tipo cápsula */}
           <div className="kebo-capsules">
             <div className="kebo-capsule" onClick={() => {
@@ -264,7 +298,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
               <input
                 id="kebo-note-input"
                 className="kebo-capsule-input"
-                placeholder="Nota opcional"
+                placeholder={t('optionalNote')}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
               />
@@ -275,11 +309,11 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
                 {selectedAccount ? selectedAccount.icon : '🏦'}
               </span>
               <span className="kebo-capsule-text">
-                {selectedAccount ? selectedAccount.name : 'Seleccionar Cuenta'}
+                {selectedAccount ? selectedAccount.name : t('selectAccount')}
               </span>
               {selectedAccount && (
                 <span className="kebo-capsule-badge">
-                  €{selectedAccount.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                  {formatMoney(selectedAccount.balance)}
                 </span>
               )}
               <ChevronRight size={16} className="kebo-capsule-chevron" />
@@ -288,7 +322,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
             <div className="kebo-capsule-row">
               <div
                 className="kebo-capsule kebo-capsule-half"
-                onClick={() => dateRef.current?.showPicker?.()}
+                onClick={openDatePicker}
               >
                 <Calendar size={18} className="kebo-capsule-icon" />
                 <span className="kebo-capsule-text">{formatDate(date)}</span>
@@ -305,7 +339,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
                   {selectedCategory ? selectedCategory.icon : '📁'}
                 </span>
                 <span className="kebo-capsule-text">
-                  {selectedCategory ? selectedCategory.name : 'Categoría'}
+                  {selectedCategory ? selectedCategory.name : t('category')}
                 </span>
               </div>
             </div>
@@ -318,23 +352,24 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
                 key={key}
                 className={`kebo-numpad-key ${key === 'backspace' ? 'kebo-key-icon' : ''}`}
                 onClick={() => handleNumPad(key)}
+                disabled={isReadOnly}
               >
                 {key === 'backspace' ? <Delete size={22} /> : key}
               </button>
             ))}
             <button
-              className={`kebo-numpad-submit ${submitting ? 'disabled' : ''}`}
+              className={`kebo-numpad-submit ${(submitting || isReadOnly) ? 'disabled' : ''}`}
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || isReadOnly}
             >
               ✓
             </button>
           </div>
 
           {/* Acción secundaria de eliminación */}
-          {editTransaction && (
+          {editTransaction && !isReadOnly && (
             <button className="kebo-delete-btn" onClick={handleDelete} disabled={submitting}>
-              Eliminar movimiento
+              {t('deleteMovement')}
             </button>
           )}
         </motion.div>
