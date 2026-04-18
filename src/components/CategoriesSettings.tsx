@@ -13,6 +13,13 @@ const COLOR_PRESETS = [
   '#06B6D4', '#84CC16', '#64748B', '#000000'
 ];
 
+/**
+ * Componente modal que administra y personaliza el listado de categorías transaccionales de la base de datos.
+ * Funciona como centro de control para crear, estructurar o borrar categorías, tanto en el marco
+ * personal como dentro del régimen compartido de la pareja.
+ *
+ * @param props - Permite inyectar funciones de control como `onClose` para desmontar el modal.
+ */
 export default function CategoriesSettings({ onClose }: { onClose: () => void }) {
   const { t } = useLocaleCurrency();
   const [tab, setTab] = useState<TransactionType>('shared');

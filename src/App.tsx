@@ -7,6 +7,7 @@ import { useLocaleCurrency } from './contexts/LocaleCurrencyContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
+import OnboardingOverlay from './components/OnboardingOverlay';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -40,6 +41,7 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <div className="app-layout">
+                        <OnboardingOverlay />
                         <Sidebar />
                         <main className="main-content">
                           <Suspense fallback={<PageLoader />}>

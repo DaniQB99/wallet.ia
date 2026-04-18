@@ -11,6 +11,11 @@ import {
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLocaleCurrency } from '../../contexts/LocaleCurrencyContext';
 
+/**
+ * Barra lateral (Sidebar) de navegación diseñada para pantallas grandes (Desktop UI).
+ * Orquesta enlaces a las vistas primarias e incluye un sub-componente en el pie
+ * para mostrar la sesión del usuario actual y cerrar sesión (`LogOut`).
+ */
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();

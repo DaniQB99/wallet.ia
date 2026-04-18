@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import type { Notification } from "../types/database";
 
+/**
+ * Hook personalizado para gestionar el sistema de notificaciones de la aplicación en tiempo real.
+ * Permite obtener las notificaciones más recientes (hasta 50), mantener un contador de aquellas
+ * no leídas, registrar suscripciones a la base de datos (Supabase) para recibir actualizaciones,
+ * y proveer métodos para interactuar con las alertas enviadas al usuario.
+ *
+ * @returns Objeto con las notificaciones procesadas, cantidad sin leer, estado de carga,
+ * recargas bajo demanda y métodos de marcado de lectura ('markAsRead', 'markAllAsRead').
+ */
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

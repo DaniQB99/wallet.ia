@@ -8,6 +8,14 @@ interface PartnerSettingsProps {
   onClose: () => void;
 }
 
+/**
+ * Modal central para el manejo de la característica de "Finanzas Compartidas".
+ * Encapsula la lógica de invitaciones (generar o aceptar códigos efímeros), el toggle
+ * interactivo para los permisos de edición sobre movimientos conjuntos, y la zona de peligro
+ * para desvincular un partner activo.
+ *
+ * @param props - Objeto de propiedades con la acción de cierre.
+ */
 export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
   const { t } = useLocaleCurrency();
   const { couple, partner, loading, generateInvite, acceptInvite, unlinkCouple, togglePermission } = useCouple();

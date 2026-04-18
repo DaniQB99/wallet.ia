@@ -8,6 +8,11 @@ import {
 } from 'lucide-react';
 import { useLocaleCurrency } from '../../contexts/LocaleCurrencyContext';
 
+/**
+ * Componente de navegación inferior, persistente en la interfaz móvil.
+ * Proporciona acceso rápido a las páginas principales (Dashboard, Movimientos, Metas, Ajustes)
+ * y un botón central destacado para inicializar nuevas transacciones.
+ */
 export default function BottomNav() {
   const location = useLocation();
   const { t } = useLocaleCurrency();

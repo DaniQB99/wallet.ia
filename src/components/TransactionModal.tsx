@@ -78,6 +78,16 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
     txType === 'shared' ? acc.scope === 'shared' : (acc.scope === 'personal' || !acc.scope)
   );
 
+  const resetForm = () => {
+    setFlowTab('expense');
+    setTxType('personal');
+    setAmount('0');
+    setDescription('');
+    setSelectedCategory(null);
+    setSelectedAccount(null);
+    setDate(new Date().toISOString().split('T')[0]);
+  };
+
   /** Inicialización del formulario en modo edición o creación */
   useEffect(() => {
     if (editTransaction) {
@@ -93,15 +103,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
     }
   }, [editTransaction, open]);
 
-  const resetForm = () => {
-    setFlowTab('expense');
-    setTxType('personal');
-    setAmount('0');
-    setDescription('');
-    setSelectedCategory(null);
-    setSelectedAccount(null);
-    setDate(new Date().toISOString().split('T')[0]);
-  };
+
 
   const handleClose = () => {
     resetForm();
@@ -347,23 +349,32 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
 
           {/* Teclado numérico y confirmación */}
           <div className="kebo-numpad">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'backspace'].map(key => (
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0'].map(key => (
               <button
                 key={key}
-                className={`kebo-numpad-key ${key === 'backspace' ? 'kebo-key-icon' : ''}`}
+                className="kebo-numpad-key"
                 onClick={() => handleNumPad(key)}
                 disabled={isReadOnly}
               >
-                {key === 'backspace' ? <Delete size={22} /> : key}
+                {key}
               </button>
             ))}
-            <button
-              className={`kebo-numpad-submit ${(submitting || isReadOnly) ? 'disabled' : ''}`}
-              onClick={handleSubmit}
-              disabled={submitting || isReadOnly}
-            >
-              ✓
-            </button>
+            <div className="kebo-numpad-actions">
+              <button
+                className="kebo-numpad-key kebo-key-backspace"
+                onClick={() => handleNumPad('backspace')}
+                disabled={isReadOnly}
+              >
+                <Delete size={22} />
+              </button>
+              <button
+                className={`kebo-numpad-submit ${(submitting || isReadOnly) ? 'disabled' : ''}`}
+                onClick={handleSubmit}
+                disabled={submitting || isReadOnly}
+              >
+                ✓
+              </button>
+            </div>
           </div>
 
           {/* Acción secundaria de eliminación */}

@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTransactions } from '../hooks/useTransactions';
 import { shiftReferenceDate, useAnalyticsStats, type AnalyticsPeriod } from '../hooks/useAnalyticsStats';
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
+/**
+ * Vista Analítica de Finanzas (Dashboard de gráficos e informes).
+ * Interpreta las transacciones del usuario, calculando y comparando el balance total de
+ * ingresos frente a gastos a lo largo de un marco temporal dinámico y pivotable (Semana, Mes, Año).
+ * Extrae y desglosa todos los movimientos agrupados por categoría, ilustrando los sumideros principales de liquidez.
+ */
 export default function Analytics() {
   const [period, setPeriod] = useState<AnalyticsPeriod>('month');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
@@ -13,6 +20,7 @@ export default function Analytics() {
     month: t('month'),
     year: t('year'),
   };
+  const navigate = useNavigate();
   const { transactions, loading } = useTransactions('all');
   const { incomeTotal, expenseTotal, categories, rangeStart, rangeEnd } = useAnalyticsStats(transactions, period, referenceDate);
 
@@ -111,7 +119,11 @@ export default function Analytics() {
           ) : categories.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📊</div>
-              <div className="empty-state-title">{t('noTransactionsMatching')}</div>
+              <div className="empty-state-title">No hay datos suficientes</div>
+              <div className="empty-state-desc" style={{ marginBottom: 16 }}>Añade transacciones para poder ver el análisis de tus gastos.</div>
+              <button className="kebo-button-primary" onClick={() => navigate('/transactions')}>
+                Ir a transacciones
+              </button>
             </div>
           ) : (
             <div className="transaction-list">

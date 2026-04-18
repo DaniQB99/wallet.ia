@@ -53,6 +53,12 @@ function SettingsItem({ icon, label, desc, action, danger }: SettingsItemProps) 
   );
 }
 
+/**
+ * Vista del panel de Ajustes Globales y Configuración de la PWA.
+ * Centraliza el núcleo de la experiencia y personalización del usuario abarcando áreas clave:
+ * Gestión de Perfil, Cuentas, Categorías, Modo de Finanzas en Pareja, Apariencia UI/Temática, Localización (Idiomas y Divisas),
+ * Permisos y Gestión de Notificaciones, Seguridad Legal, y Exportación o Eliminación de Datos.
+ */
 export default function Settings() {
   const { user, signOut } = useAuthContext();
   const { theme, resolvedTheme, setTheme, accentColor, setAccentColor } = useAppearance();
@@ -70,6 +76,15 @@ export default function Settings() {
     next.delete('legal');
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'Casal') {
+      setShowPartner(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('tab');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
 
   const handleLogout = async () => {
@@ -114,21 +129,21 @@ export default function Settings() {
   ];
 
   // Prompt de instalación PWA
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<unknown>(null);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
+    const handleBeforeInstallPrompt = (e: unknown) => {
+      (e as any).preventDefault();
       setDeferredPrompt(e);
     };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
   }, []);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+      (deferredPrompt as any).prompt();
+      const { outcome } = await (deferredPrompt as any).userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
       }
@@ -197,9 +212,9 @@ export default function Settings() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err: any) {
-      console.error(err);
-      alert('Error exportando datos: ' + err.message);
+    } catch (error: unknown) {
+      console.error('Error al exportar datos:', error);
+      alert('Error exportando datos: ' + (error as Error).message);
     }
   };
 
@@ -431,10 +446,12 @@ export default function Settings() {
         <div className="settings-section">
           <div className="settings-section-title">{t('support')}</div>
           <div className="card" style={{ padding: 0 }}>
-            <SettingsItem
-              icon={<HelpCircle size={20} />}
-              label={t('helpCenter')}
-            />
+            <div onClick={() => window.dispatchEvent(new Event('show-onboarding'))} style={{ cursor: 'pointer' }}>
+              <SettingsItem
+                icon={<HelpCircle size={20} />}
+                label={t('helpCenter')}
+              />
+            </div>
             <div onClick={handleLogout} style={{ cursor: 'pointer' }}>
               <SettingsItem
                 icon={<LogOut size={20} color="var(--danger)" />}

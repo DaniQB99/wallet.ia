@@ -6,6 +6,11 @@ import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
 type AuthMode = 'login' | 'register';
 
+/**
+ * Página principal de Autenticación de la aplicación Wallet.ia.
+ * Gestiona el flujo completo de inicio de sesión y registro de cuentas (Email/Password, OAuth con Google/GitHub).
+ * Integra recuperación de contraseñas y retroalimentación interactiva de estado mediante notificaciones visuales (toasts).
+ */
 export default function AuthPage() {
   const { user, loading, error, signIn, signUp, signInWithOAuth, resetPassword, clearError } = useAuthContext();
   const { t } = useLocaleCurrency();
@@ -300,9 +305,30 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Bottom tagline */}
-        <div className="auth-tagline">
-          Finanzas en pareja, simplificadas ✨
+        {/* Value Proposition Section */}
+        <div className="auth-value-props">
+          <div className="auth-tagline">
+            <span>Finanzas en pareja, </span>
+            <span className="auth-tagline-highlight">simplificadas ✨</span>
+          </div>
+
+          <div className="value-props-grid">
+            <div className="value-prop-card">
+              <div className="vp-icon">📈</div>
+              <h3>{t('valueProp1Title')}</h3>
+              <p>{t('valueProp1Desc')}</p>
+            </div>
+            <div className="value-prop-card">
+              <div className="vp-icon">🤝</div>
+              <h3>{t('valueProp2Title')}</h3>
+              <p>{t('valueProp2Desc')}</p>
+            </div>
+            <div className="value-prop-card">
+              <div className="vp-icon">🔒</div>
+              <h3>{t('valueProp3Title')}</h3>
+              <p>{t('valueProp3Desc')}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -9,6 +9,12 @@ import type { Transaction, TransactionType } from '../types/database';
 import TransactionModal from '../components/TransactionModal';
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
+/**
+ * Vista central de Movimientos Financieros (Transacciones).
+ * Presenta un listado cronológico de ingresos y gastos, agrupado visualmente por mes temporal.
+ * Expone potentes controles de filtrado (por cuenta, categoría, fecha, tipo de flujo y buscador de texto)
+ * y delega en un modal subyacente la inserción o actualización de cada registro contable.
+ */
 export default function Transactions() {
   const { formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
 
@@ -128,7 +134,7 @@ export default function Transactions() {
           <h1>{t('transactions')}</h1>
           <p>{t('manageMovements')}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditTx(null); setShowModal(true); }}>
+        <button className="btn btn-primary btn-glow" onClick={() => { setEditTx(null); setShowModal(true); }}>
           <Plus size={18} />
           {t('new')}
         </button>
@@ -269,9 +275,12 @@ export default function Transactions() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📭</div>
+              <div className="empty-state-icon">💸</div>
               <div className="empty-state-title">{t('noTransactions')}</div>
-              <div className="empty-state-desc">{t('noTransactionsMatching')}</div>
+              <div className="empty-state-desc" style={{ marginBottom: 16 }}>{t('noTransactionsMatching')}</div>
+              <button className="kebo-button-primary" style={{ display: 'flex', alignItems: 'center' }} onClick={() => setShowModal(true)}>
+                <Plus size={18} style={{ marginRight: 8 }} /> Añadir transacción
+              </button>
             </div>
           ) : (
             Object.entries(grouped).map(([month, txs]) => (

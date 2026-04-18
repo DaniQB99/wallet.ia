@@ -7,6 +7,12 @@ import { Target, Plus, Trash2, ChevronRight, Calendar, Info } from 'lucide-react
 import type { Goal, GoalType } from '../types/database';
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
+/**
+ * Vista de gestión de Metas de Ahorro.
+ * Permite a los usuarios definir objetivos financieros con plazos, apariencia gráfica (colores e iconos) e importes.
+ * Se vincula estrechamente con los registros de transacciones (automáticamente por categoría o de forma manual) para
+ * visualizar una barra de progreso que evalúa la salud y acercamiento real a cada meta financiera en tiempo real.
+ */
 export default function Goals() {
   const [tab, setTab] = useState<GoalType>('personal');
   const [showModal, setShowModal] = useState(false);
@@ -133,7 +139,7 @@ export default function Goals() {
           <h1>{t('goals')}</h1>
           <p>{t('goalsLinkedByCategory')}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button className="btn btn-primary btn-glow" onClick={() => setShowModal(true)}>
           <Plus size={18} />
           {t('newGoal')}
         </button>
@@ -164,9 +170,12 @@ export default function Goals() {
             <div className="loading-state">{t('loadingGoals')}</div>
           ) : goals.length === 0 ? (
             <div className="empty-state">
-              <Target size={48} color="var(--text-tertiary)" />
-              <h3>{t('noGoals')}</h3>
-              <p>{t('createFirstGoal')}</p>
+              <div className="empty-state-icon">🎯</div>
+              <div className="empty-state-title">{t('noGoals')}</div>
+              <div className="empty-state-desc" style={{ marginBottom: 16 }}>{t('createFirstGoal')}</div>
+              <button className="kebo-button-primary" style={{ display: 'flex', alignItems: 'center' }} onClick={() => setShowModal(true)}>
+                <Plus size={18} style={{ marginRight: 8 }} /> Crear primera meta
+              </button>
             </div>
           ) : (
             goals.map(goal => {
@@ -271,7 +280,7 @@ export default function Goals() {
       {/* Add/Edit Goal Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-title">{editingId ? 'Editar Meta' : 'Nueva Meta'}</div>
             <div className="modal-subtitle">Establece tu objetivo de ahorro</div>
 

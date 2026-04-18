@@ -4,6 +4,13 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
+/**
+ * Componente estructurado en pestañas (tabs) enfocado a las credenciales y el perfil del usuario.
+ * Facilita un dashboard de control para actualizar de manera asíncrona el `displayName` de Supabase
+ * y reconfigurar la contraseña del sistema si aplica.
+ *
+ * @param props - Incluye utilidades del renderizado del modal, como `onClose`.
+ */
 export default function ProfileSettings({ onClose }: { onClose: () => void }) {
   const { user, updateProfile } = useAuthContext();
   const { t } = useLocaleCurrency();

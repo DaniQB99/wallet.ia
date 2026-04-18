@@ -37,6 +37,12 @@ function timeAgo(dateStr: string, locale: string) {
   return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
+/**
+ * Modal dinámico e interactivo que presenta la bandeja de entrada de notificaciones
+ * para el usuario activo. Gestiona notificaciones en tiempo real, permite marcar leídas y resalta alertas.
+ *
+ * @param props - Incluye utilidades del renderizado del modal, como `onClose`.
+ */
 export default function NotificationsModal({ onClose }: NotificationsModalProps) {
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
   const { locale, t } = useLocaleCurrency();

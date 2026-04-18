@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Users, Wallet, BarChart3 } from 'lucide-react';
+import { Users, Wallet, BarChart3 } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Dashboard.tsx
@@ -22,72 +22,37 @@ export default function Dashboard() {
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
 
-  // Filtro mensual por defecto en mes actual
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((tx) => new Date(tx.date).toISOString().slice(0, 7) === selectedMonth);
-  }, [transactions, selectedMonth]);
-
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    transactions.forEach((tx) => months.add(new Date(tx.date).toISOString().slice(0, 7)));
-    if (months.size === 0) {
-      months.add(new Date().toISOString().slice(0, 7));
-    }
-    return Array.from(months).sort().reverse();
-  }, [transactions]);
+  // Get user name for greeting
+  const userName = user?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
   // Hook para calcular estadísticas derivadas de las transacciones en tiempo real
+  // Calculando el balance total de toda la vida de la cuenta, sin filtros de mes
   const {
     totalShared,
-    myContribution,
-    partnerContribution,
     personalTotal
-  } = useDashboardStats(filteredTransactions);
+  } = useDashboardStats(transactions);
 
   // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
-  const recentTransactions = filteredTransactions.slice(0, 5);
+  const recentTransactions = transactions.slice(0, 5);
   useEffect(() => {
     void prefetchRates(recentTransactions.map((tx) => tx.date));
   }, [recentTransactions, prefetchRates]);
 
-  const selectedMonthDate = new Date(`${selectedMonth}-01T00:00:00`);
-  const selectedMonthLabel = selectedMonthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+
 
   return (
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h1>{t('dashboard')}</h1>
-          <p>
-            {t('financialSummary')} —
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              style={{
-                marginLeft: '8px',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '3px 8px',
-                textTransform: 'capitalize',
-              }}
-            >
-              {availableMonths.map((monthKey) => (
-                <option key={monthKey} value={monthKey} style={{ textTransform: 'capitalize' }}>
-                  {new Date(`${monthKey}-01T00:00:00`).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
-                </option>
-              ))}
-            </select>
-          </p>
+          <h1>¡Hola {userName}!</h1>
+          <p>{t('financialSummary')} —</p>
         </div>
         <div className="page-header-right">
           <button
             className="notification-shortcut-btn"
             onClick={() => navigate('/analytics')}
             aria-label="Ver analítica"
-            title={`Ver analítica de ${selectedMonthLabel}`}
+            title={t('analytics')}
           >
             <BarChart3 size={24} />
           </button>
@@ -99,29 +64,10 @@ export default function Dashboard() {
         <div className="stats-grid">
           <div className="stat-card" style={{ '--stat-color': 'var(--accent-gradient)' } as React.CSSProperties}>
             <div className="stat-card-icon" style={{ background: 'var(--accent-primary-glow)' }}>
-              <Wallet size={22} color="var(--accent-primary-hover)" />
+              <Users size={22} color="var(--accent-primary-hover)" />
             </div>
             <div className="stat-card-value">{formatMoney(totalShared)}</div>
             <div className="stat-card-label">{t('sharedBalance')}</div>
-            <div className="stat-card-change positive">
-              <TrendingDown size={12} /> 12% vs mes anterior
-            </div>
-          </div>
-
-          <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #10B981, #34D399)' } as React.CSSProperties}>
-            <div className="stat-card-icon" style={{ background: 'var(--success-bg)' }}>
-              <TrendingUp size={22} color="var(--success)" />
-            </div>
-            <div className="stat-card-value">{formatMoney(myContribution)}</div>
-            <div className="stat-card-label">{t('myContribution')}</div>
-          </div>
-
-          <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #EC4899, #F472B6)' } as React.CSSProperties}>
-            <div className="stat-card-icon" style={{ background: 'rgba(236, 72, 153, 0.12)' }}>
-              <Users size={22} color="#EC4899" />
-            </div>
-            <div className="stat-card-value">{formatMoney(partnerContribution)}</div>
-            <div className="stat-card-label">{t('partnerContribution')}</div>
           </div>
 
           <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #F59E0B, #FBBF24)' } as React.CSSProperties}>
@@ -152,11 +98,14 @@ export default function Dashboard() {
                 </div>
               ) : recentTransactions.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">📭</div>
+                  <div className="empty-state-icon">💸</div>
                   <div className="empty-state-title">{t('noTransactions')}</div>
-                  <div className="empty-state-desc">
-                    {t('noRecentMovements')}
+                  <div className="empty-state-desc" style={{ marginBottom: 16 }}>
+                    Añade tu primer ingreso o gasto para empezar a controlar tu dinero.
                   </div>
+                  <button className="kebo-button-primary" onClick={() => navigate('/transactions')}>
+                    Añadir transacción
+                  </button>
                 </div>
               ) : (
                 recentTransactions.map(tx => (

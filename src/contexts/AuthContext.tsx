@@ -9,25 +9,68 @@ import {
 import { supabase } from "../lib/supabase";
 import type { UserProfile } from "../types/database";
 
+/**
+ * Interfaz que define la estructura y capacidades del contexto de autenticación global.
+ */
 interface AuthContextType {
+  /** Perfil del usuario actualmente autenticado (incluye display_name, email). Será nulo si no hay sesión. */
   user: UserProfile | null;
+  /** Estado de carga que indica si la validación/sesión inicial se está resolviendo. */
   loading: boolean;
+  /** Mensaje de error general de autenticación si ocurre alguna excepción. */
   error: string | null;
-  signUp: (
-    email: string,
-    password: string,
-    displayName: string,
-  ) => Promise<boolean>;
+
+  /**
+   * Crea un nuevo usuario y su perfil en el sistema vía Supabase Auth.
+   * @param email Correo electrónico.
+   * @param password Contraseña segura.
+   * @param displayName Nombre a mostrar del usuario.
+   * @returns Un booleano indicando el éxito (true) o fallo (false) de la operación.
+   */
+  signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
+
+  /**
+   * Inicia sesión tradicional con correo y contraseña.
+   * @param email Correo electrónico registrado.
+   * @param password Contraseña de la cuenta.
+   */
   signIn: (email: string, password: string) => Promise<void>;
+
+  /**
+   * Inicia sesión usando proveedores externos OAuth (GitHub, Google, etc.).
+   * @param provider Nombre del proveedor "github" | "google".
+   */
   signInWithOAuth: (provider: "github" | "google") => Promise<void>;
+
+  /**
+   * Cierra la sesión activa actual del usuario.
+   */
   signOut: () => Promise<void>;
+
+  /**
+   * Envía un email con un enlace seguro para recuperación de contraseña.
+   * @param email Correo registrado del usuario.
+   */
   resetPassword: (email: string) => Promise<boolean>;
+
+  /**
+   * Limpia manualmente el estado de error de autenticación.
+   */
   clearError: () => void;
+
+  /**
+   * Actualiza los datos de perfil locales y remotos (auth metadata + tabla `profiles`).
+   * @param displayName Nuevo nombre a mostrar.
+   */
   updateProfile: (displayName: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/**
+ * Proveedor global de autenticación que gestiona el estado de Supabase.
+ * Inicializa y escucha la sesión para mantener al usuario local sincronizado.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -199,10 +242,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Custom hook para acceder fácilmente a la sesión, métodos de login y variables de estado del usuario.
+ * @throws Lanzará error si se inicializa fuera de un AuthProvider.
+ */
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error("useAuthContext must be used dentro de un AuthProvider");
   }
   return context;
 }

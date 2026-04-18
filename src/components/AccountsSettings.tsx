@@ -13,6 +13,13 @@ const COLOR_PRESETS = [
   '#06B6D4', '#84CC16', '#64748B', '#000000'
 ];
 
+/**
+ * Componente modal interactivo para gestionar (crear, editar, eliminar) cuentas y tarjetas financieras.
+ * Permite parametrizar detalles formales como el saldo, nombre, apariencia visual y alcance (personal/compartida).
+ * Dependiendo del perfil de la pareja, expone configuraciones de cuentas conjuntas.
+ *
+ * @param props - Propiedades del componente, incluyendo la función para cerrarlo.
+ */
 export default function AccountsSettings({ onClose }: { onClose: () => void }) {
   const { accounts, addAccount, updateAccount, deleteAccount, loading } = useAccounts();
   const { currency, formatMoney, t } = useLocaleCurrency();
@@ -51,7 +58,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
     resetForm();
   };
 
-  const handleEdit = (acc: any) => {
+  const handleEdit = (acc: { id: string; name: string; balance: number; icon: string; color: string; scope?: 'personal' | 'shared' | null }) => {
     setEditingId(acc.id);
     setName(acc.name);
     setBalance(acc.balance.toString());
@@ -71,7 +78,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
     setDeleting(false);
 
     if (error) {
-      alert(`${t('delete')} - ${String((error as any).message || '')}`);
+      alert(`${t('delete')} - ${String((error as Error).message || '')}`);
     }
     setAccountToDelete(null);
   };
@@ -125,7 +132,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                     <div className="card" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
                       <Picker
                         data={data}
-                        onEmojiSelect={(emoji: any) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
+                        onEmojiSelect={(emoji: { native: string }) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
                         theme="dark"
                         locale="es"
                         set="native"
@@ -184,7 +191,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
 
           <div style={{ marginBottom: '20px' }}>
             <label className="form-label">{t('currentBalance')}</label>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
                 type="number"
                 step="0.01"
@@ -192,9 +199,9 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                 value={balance}
                 onChange={e => setBalance(e.target.value)}
                 className="form-input"
-                style={{ width: '100%', paddingLeft: '32px' }}
+                style={{ width: '100%', paddingLeft: '40px', paddingRight: '32px', textAlign: 'right' }}
               />
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}>
+              <span style={{ position: 'absolute', left: '16px', color: 'var(--text-tertiary)' }}>
                 {currency}
               </span>
             </div>
@@ -208,7 +215,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                   type="button"
                   className={`btn ${scope === 'personal' ? 'btn-primary' : ''}`}
                   onClick={() => setScope('personal')}
-                  style={{ flex: 1, background: scope === 'personal' ? 'var(--primary)' : 'transparent', color: scope === 'personal' ? 'white' : 'var(--text-secondary)' }}
+                  style={{ flex: 1, color: scope === 'personal' ? undefined : 'var(--text-secondary)' }}
                 >
                   <User size={18} style={{ marginRight: '8px' }} />
                   {t('personalLabel')}
@@ -217,7 +224,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                   type="button"
                   className={`btn ${scope === 'shared' ? 'btn-primary' : ''}`}
                   onClick={() => setScope('shared')}
-                  style={{ flex: 1, background: scope === 'shared' ? 'var(--primary)' : 'transparent', color: scope === 'shared' ? 'white' : 'var(--text-secondary)' }}
+                  style={{ flex: 1, color: scope === 'shared' ? undefined : 'var(--text-secondary)' }}
                 >
                   <Users size={18} style={{ marginRight: '8px' }} />
                   {t('joint')}

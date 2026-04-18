@@ -2,6 +2,14 @@ import { useMemo } from "react";
 import type { Transaction } from "../types/database";
 import { useAuthContext } from "../contexts/AuthContext";
 
+/**
+ * Hook personalizado para extraer y calcular estadísticas de las transacciones para el Dashboard.
+ * Diferencia entre cuentas personales y compartidas, determinando la contribución tuya y de tu pareja,
+ * proveyendo a su vez de un desglose por cada categoría de los movimientos operados.
+ *
+ * @param transactions - El arreglo que contiene todo el historial de transacciones a examinar.
+ * @returns Las estadísticas procesadas: total compartido, contribución propia, de pareja, total personal y desglose de las categorías.
+ */
 export function useDashboardStats(transactions: Transaction[]) {
   const { user } = useAuthContext();
 

@@ -5,6 +5,12 @@ interface LegalDocumentModalProps {
 }
 import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
 
+/**
+ * Componente modal de solo lectura para la presentación estructurada de documentos legales,
+ * tales como Términos de Servicio o Políticas de Privacidad.
+ *
+ * @param props - Propiedades del modal: título, contenido de texto y función de cierre.
+ */
 export default function LegalDocumentModal({ title, content, onClose }: LegalDocumentModalProps) {
   const { t } = useLocaleCurrency();
   return (
