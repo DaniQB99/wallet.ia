@@ -39,7 +39,7 @@ export function useGoals(type: GoalType) {
         // Calculate current_amount for each goal
         if (data && data.length > 0) {
           // Fetch transactions that match either goal_id OR (type match AND category_id match)
-          let txQuery = supabase
+          const txQuery = supabase
             .from("transactions")
             .select("goal_id, category_id, amount, type, date");
 

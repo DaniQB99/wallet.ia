@@ -15,6 +15,20 @@ export function useAuth() {
     error: null,
   });
 
+  async function fetchProfile(userId: string) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      setState({ user: null, loading: false, error: error.message });
+    } else {
+      setState({ user: data as UserProfile, loading: false, error: null });
+    }
+  }
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,20 +52,6 @@ export function useAuth() {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      setState({ user: null, loading: false, error: error.message });
-    } else {
-      setState({ user: data as UserProfile, loading: false, error: null });
-    }
-  };
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
