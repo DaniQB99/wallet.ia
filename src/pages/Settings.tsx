@@ -400,15 +400,15 @@ export default function Settings() {
             <div onClick={() => navigate('/settings?legal=privacy')}>
               <SettingsItem
                 icon={<Shield size={20} />}
-                label="Política de privacidad"
-                desc="RGPD + LSSI"
+                label={t('privacyPolicy')}
+                desc={t('rgpdLssi')}
               />
             </div>
             <div onClick={() => navigate('/settings?legal=terms')}>
               <SettingsItem
                 icon={<HelpCircle size={20} />}
-                label="Términos de uso"
-                desc="Condiciones y uso permitido"
+                label={t('termsOfUse')}
+                desc={t('termsConditions')}
               />
             </div>
             <div onClick={() => setShowProfile(true)}>
@@ -479,14 +479,14 @@ export default function Settings() {
       {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}
       {legalDoc === 'privacy' && (
         <LegalDocumentModal
-          title="Política de Privacidad"
+          title={t('privacyPolicy')}
           content={privacyPolicyText}
           onClose={closeLegal}
         />
       )}
       {legalDoc === 'terms' && (
         <LegalDocumentModal
-          title="Términos de Uso"
+          title={t('termsOfUse')}
           content={termsOfUseText}
           onClose={closeLegal}
         />

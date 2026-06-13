@@ -17,7 +17,7 @@ export default function Dashboard() {
   // Estado y autenticación
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const { formatMoney, prefetchRates, locale, t } = useLocaleCurrency();
+  const { formatMoney, prefetchRates, locale, t, currency, loadingRates } = useLocaleCurrency();
 
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
@@ -34,9 +34,13 @@ export default function Dashboard() {
 
   // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
   const recentTransactions = transactions.slice(0, 5);
+
+  // Precarga de tasas: todas las transacciones (para totales correctos) en una sola petición de rango
   useEffect(() => {
-    void prefetchRates(recentTransactions.map((tx) => tx.date));
-  }, [recentTransactions, prefetchRates]);
+    if (transactions.length === 0) return;
+    void prefetchRates(transactions.map((tx) => tx.date));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions.length, currency]);
 
 
 
@@ -47,7 +51,22 @@ export default function Dashboard() {
           <h1>¡Hola {userName}!</h1>
           <p>{t('financialSummary')} —</p>
         </div>
-        <div className="page-header-right">
+        <div className="page-header-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {currency !== 'EUR' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '4px 10px', borderRadius: 'var(--radius-full)',
+              background: 'var(--accent-primary-glow)',
+              border: '1px solid var(--border-accent)',
+              fontSize: '0.75rem', fontWeight: 600,
+              color: 'var(--accent-primary-hover)',
+            }}>
+              {loadingRates ? (
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+              ) : '💱'}
+              {currency}
+            </div>
+          )}
           <button
             className="notification-shortcut-btn"
             onClick={() => navigate('/analytics')}
@@ -154,6 +173,9 @@ export default function Dashboard() {
         </div>
       </div>
       <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
         .notification-shortcut-btn {
           position: relative;
           background: var(--bg-card);

@@ -29,8 +29,10 @@ export default function Analytics() {
   const rangeLabel = `${rangeStart.toLocaleDateString(locale)} - ${rangeEnd.toLocaleDateString(locale)}`;
   const disableNext = shiftReferenceDate(referenceDate, period, 1) > new Date();
   useEffect(() => {
+    if (transactions.length === 0) return;
     void prefetchRates(transactions.map((tx) => tx.date));
-  }, [transactions, prefetchRates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions.length, period, referenceDate]);
 
   return (
     <>

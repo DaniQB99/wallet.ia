@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AppearanceProvider } from './contexts/AppearanceContext';
 import { LocaleCurrencyProvider } from './contexts/LocaleCurrencyContext';
 import { useLocaleCurrency } from './contexts/LocaleCurrencyContext';
+import { DataProvider } from './contexts/DataProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
@@ -40,22 +41,24 @@ export default function App() {
                   path="/*"
                   element={
                     <ProtectedRoute>
-                      <div className="app-layout">
-                        <OnboardingOverlay />
-                        <Sidebar />
-                        <main className="main-content">
-                          <Suspense fallback={<PageLoader />}>
-                            <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/analytics" element={<Analytics />} />
-                              <Route path="/transactions" element={<Transactions />} />
-                              <Route path="/goals" element={<Goals />} />
-                              <Route path="/settings" element={<Settings />} />
-                            </Routes>
-                          </Suspense>
-                        </main>
-                        <BottomNav />
-                      </div>
+                      <DataProvider>
+                        <div className="app-layout">
+                          <OnboardingOverlay />
+                          <Sidebar />
+                          <main className="main-content">
+                            <Suspense fallback={<PageLoader />}>
+                              <Routes>
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/analytics" element={<Analytics />} />
+                                <Route path="/transactions" element={<Transactions />} />
+                                <Route path="/goals" element={<Goals />} />
+                                <Route path="/settings" element={<Settings />} />
+                              </Routes>
+                            </Suspense>
+                          </main>
+                          <BottomNav />
+                        </div>
+                      </DataProvider>
                     </ProtectedRoute>
                   }
                 />

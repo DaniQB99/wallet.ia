@@ -2915,6 +2915,8 @@ input::placeholder {
   border-bottom: 1px solid var(--border);
   transition: background-color 0.2s;
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80px;
 }
 
 .transaction-item:hover {

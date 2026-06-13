@@ -35,4 +35,3 @@ La app puede usar almacenamiento local para preferencias (tema, idioma, moneda) 
 
 ## 10. Contacto
 Para privacidad o ejercicio de derechos: soporte@wallet.ia
-

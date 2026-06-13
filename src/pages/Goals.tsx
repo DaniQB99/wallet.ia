@@ -24,8 +24,10 @@ export default function Goals() {
     const { goals, addGoal, updateGoal, deleteGoal, loading } = useGoals(tab);
   const { transactions } = useTransactions('all');
   useEffect(() => {
+    if (transactions.length === 0) return;
     void prefetchRates(transactions.map((tx) => tx.date));
-  }, [transactions, prefetchRates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions.length, currency]);
 
   // Categorías para auto-vincular
   // Utilizamos el tab actual ('personal' -> personal, 'shared' -> shared)

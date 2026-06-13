@@ -1,9 +1,28 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  loadCacheFromStorage,
+  saveCacheToStorage,
+  getRate,
+  getNearestRate,
+  setRate,
+  markTodayFetched,
+  getMissingDates,
+  type RatesStore,
+} from '../lib/ratesCache';
+import { fetchRate, fetchRateRange } from '../lib/frankfurter';
+import { loadLocaleMessages, getLoadedMessages, defaultMessages } from '../locales';
+import type { SupportedLocale } from '../locales';
 
 /**
- * Define los idiomas (regiones) soportados actualmente por la aplicación para la internacionalización.
+ * @module LocaleCurrencyContext
+ * @description Contexto de internacionalización y cambio de divisas.
+ *
+ * REFACTORIZADO:
+ * - Las traducciones ahora se cargan desde archivos JSON separados (~50KB menos en el bundle)
+ * - es-ES se carga estáticamente (disponible inmediatamente)
+ * - Otros idiomas se cargan con import() dinámico y se cachean
+ * - El sistema de divisas mantiene Frankfurter API con caché localStorage
  */
-type SupportedLocale = 'es-ES' | 'en-US' | 'fr-FR' | 'de-DE' | 'it-IT' | 'pt-PT';
 
 /**
  * Define las opciones de monedas soportadas disponibles para la representación de valores monetarios.
@@ -42,1230 +61,213 @@ const localeToCurrency: Record<SupportedLocale, SupportedCurrency> = {
 
 const LocaleCurrencyContext = createContext<LocaleCurrencyContextType | undefined>(undefined);
 
-const messages: Record<SupportedLocale, Record<string, string>> = {
-  'es-ES': {
-    dashboard: 'Dashboard',
-    settings: 'Ajustes',
-    analytics: 'Analítica',
-    transactions: 'Transacciones',
-    login: 'Iniciar sesión',
-    register: 'Registrarse',
-    recentTransactions: 'Transacciones recientes',
-    noTransactions: 'Sin transacciones',
-    month: 'Mes',
-    week: 'Semana',
-    year: 'Año',
-    income: 'Ingresos',
-    expense: 'Gastos',
-    loadingModule: 'Cargando módulo...',
-    loadingApp: 'Cargando wallet.ia...',
-    mainMenu: 'Menú principal',
-    logout: 'Cerrar sesión',
-    home: 'Inicio',
-    movements: 'Movimientos',
-    goals: 'Metas',
-    addTransaction: 'Añadir transacción',
-    financialSummary: 'Resumen de tus finanzas',
-    sharedBalance: 'Balance compartido',
-    myContribution: 'Mi contribución',
-    partnerContribution: 'Contribución pareja',
-    personalBalance: 'Balance personal',
-    viewMore: 'Ver más',
-    latestMovements: 'Últimos movimientos',
-    noRecentMovements: 'Aún no hay movimientos recientes.',
-    createdByPartner: 'añadido por Pareja',
-    me: 'Yo',
-    partner: 'Pareja',
-    manageMovements: 'Gestiona tus movimientos',
-    new: 'Nueva',
-    account: 'Cuenta',
-    category: 'Categoría',
-    type: 'Tipo',
-    all: 'Todos',
-    search: 'Buscar...',
-    noTransactionsMatching: 'No hay transacciones que coincidan con tus filtros.',
-    goalsLinkedByCategory: 'Los movimientos se vinculan automáticamente por la categoría asignada.',
-    newGoal: 'Nueva Meta',
-    personal: 'Personales',
-    shared: 'Compartidas',
-    loadingGoals: 'Cargando metas...',
-    noGoals: 'Sin metas',
-    createFirstGoal: 'Crea tu primer objetivo de ahorro para empezar a progresar.',
-    editGoal: 'Editar meta',
-    tapToViewMovements: 'Pulsa para ver movimientos',
-    since: 'Desde',
-    deadline: 'Límite',
-    close: 'Cerrar',
-    welcomeBack: 'Bienvenido de vuelta',
-    createAccount: 'Crea tu cuenta',
-    authLoginSubtitle: 'Inicia sesión para gestionar tus finanzas',
-    authRegisterSubtitle: 'Empieza a controlar tus gastos en pareja',
-    email: 'Email',
-    password: 'Contraseña',
-    name: 'Nombre',
-    forgotPassword: '¿Olvidaste tu contraseña?',
-    noAccount: '¿No tienes cuenta?',
-    alreadyHaveAccount: '¿Ya tienes cuenta?',
-    signUpHere: 'Regístrate aquí',
-    signInHere: 'Inicia sesión',
-    configureExperience: 'Configura tu experiencia en wallet.ia',
-    dataManagement: 'Gestión de Datos',
-    couple: 'Pareja',
-    appearance: 'Apariencia',
-    notificationsApp: 'Notificaciones y App',
-    securityPrivacy: 'Seguridad y privacidad',
-    accountData: 'Cuenta y datos',
-    support: 'Soporte',
-    language: 'Idioma',
-    currency: 'Moneda',
-    accountsAndCards: 'Cuentas y Tarjetas',
-    icon: 'Icono',
-    accountName: 'Nombre de la cuenta',
-    accountPlaceholder: 'Ej: Cuenta Principal',
-    color: 'Color',
-    currentBalance: 'Saldo inicial / actual',
-    accountType: 'Tipo de cuenta',
-    joint: 'Conjunta',
-    cancel: 'Cancelar',
-    updateAccount: 'Actualizar cuenta',
-    createAccountAction: 'Crear cuenta',
-    noAccountsYet: 'No has añadido ninguna cuenta aún.',
-    deleteAccountTitle: '¿Eliminar cuenta?',
-    deleteAccountDesc: 'Se perderá el rastro de las transacciones asociadas a esta cuenta. Esta acción no se puede deshacer.',
-    deleting: 'Borrando...',
-    delete: 'Eliminar',
-    categoriesManagement: 'Gestión de Categorías',
-    categoryName: 'Nombre de categoría',
-    categoryPlaceholder: 'Ej: Supermercado',
-    replace: 'Sustituir',
-    updateCategory: 'Actualizar categoría',
-    createCategory: 'Crear categoría',
-    noCategoriesYet: 'No hay categorías definidas aún.',
-    sharedLabel: 'Compartida',
-    partnerStatus: 'Estado de pareja',
-    linked: 'Vinculado/a',
-    dangerZone: 'Zona de peligro',
-    unlinkWarning: 'Si desvinculas a tu pareja, dejaréis de compartir transacciones en tiempo real.',
-    unlinkPartner: 'Desvincular pareja',
-    invitePartnerDesc: 'Vincula tu cuenta con tu pareja para gestionar vuestro dinero juntos.',
-    invite: 'Invitar',
-    join: 'Unirse',
-    giveMyCode: 'Dar mi código',
-    iHaveCode: 'Tengo un código',
-    invitationCodeTitle: 'Tu código de invitación',
-    invitationCodeDesc: 'Comparte este código con tu pareja. Expira en 24h.',
-    copied: '¡Copiado!',
-    copyCode: 'Copiar código',
-    enterCode: 'Ingresar código',
-    enterCodeDesc: 'Ingresa los 6 caracteres del código de tu pareja.',
-    linkNow: 'Vincular ahora',
-    linking: 'Vinculando...',
-    unlinkConfirmTitle: '¿Desvincular pareja?',
-    unlinkConfirmDesc: 'Esta acción es inmediata. No podrás ver las transacciones compartidas nuevas de tu pareja.',
-    confirm: 'Confirmar',
-    profileManagement: 'Gestión de Perfil',
-    profileTab: 'Perfil',
-    securityTab: 'Seguridad',
-    emailAddress: 'Dirección de Email',
-    displayName: 'Nombre a mostrar',
-    saveChanges: 'Guardar cambios',
-    saving: 'Guardando...',
-    newPassword: 'Nueva contraseña',
-    passwordMin: 'Mínimo 6 caracteres',
-    updating: 'Actualizando...',
-    updatePassword: 'Actualizar contraseña',
-    inbox: 'Bandeja de entrada',
-    markAllRead: 'Marcar todo leído',
-    loading: 'Cargando...',
-    noNotifications: 'Sin notificaciones',
-    notificationsDesc: 'Aquí verás las alertas de transacciones compartidas y metas.',
-    optionalNote: 'Nota opcional',
-    selectAccount: 'Seleccionar Cuenta',
-    add: 'Agregar',
-    newCategory: 'Nueva categoría',
-    categoryNamePlaceholder: 'Nombre de categoría',
-    createCategoryBtn: 'Crear categoría',
-    deleteMovement: 'Eliminar movimiento',
-    expenseTab: 'Gasto',
-    incomeTab: 'Ingreso',
-    personalLabel: 'Personal',
-    sharedLabelLong: 'Compartido',
-    installAsApp: 'Instalar como app',
-    available: 'Disponible',
-    configured: 'Configurado',
-    activated: 'Activadas',
-    tapToEnable: 'Toca para activar',
-    dataPrivacy: 'Privacidad de datos',
-    changePassword: 'Cambiar contraseña',
-    exportData: 'Exportar datos',
-    downloadCsv: 'Descargar CSV con tus transacciones',
-    deleteAccountAction: 'Eliminar cuenta',
-    irreversibleAction: 'Acción irreversible',
-    helpCenter: 'Centro de ayuda',
-    signOut: 'Cerrar sesión',
-    sharedPermission: 'Permiso compartido',
-    readOnly: 'Solo lectura',
-    readWrite: 'Lectura y edición',
-    permissionDesc: 'Controla si tu pareja puede editar tus movimientos compartidos.',
-    readOnlyNotice: 'Solo lectura — tu pareja no ha habilitado la edición',
-    onboardingWelcome: '¡Bienvenido a wallet.ia!',
-    onboardingStep1Title: 'Controla tus gastos',
-    onboardingStep1Desc: 'Registra tus ingresos y gastos para entender mejor a dónde va tu dinero cada mes.',
-    onboardingStep2Title: 'Metas inteligentes',
-    onboardingStep2Desc: 'Define objetivos de ahorro y dales seguimiento de forma visual para mantenerte motivado.',
-    onboardingStep3Title: 'Finanzas en pareja',
-    onboardingStep3Desc: 'Vincula tu cuenta y comparte gastos en tiempo real con total transparencia.',
-    onboardingStep4Title: 'Analiza tu progreso',
-    onboardingStep4Desc: 'Descubre tendencias y patrones mensuales gracias a nuestros gráficos interactivos de balances.',
-    onboardingStep5Title: 'Añade movimientos',
-    onboardingStep5Desc: 'Registra nuevos ingresos y gastos de forma inmediata a través del botón Nueva Transacción (+).',
-    onboardingSkip: 'Omitir',
-    onboardingNext: 'Siguiente',
-    onboardingFinish: '¡Empezar!',
-    valueProp1Title: 'Seguimiento inteligente',
-    valueProp1Desc: 'Analiza tus finanzas y entiende a dónde va cada céntimo sin esfuerzo.',
-    valueProp2Title: 'Finanzas compartidas',
-    valueProp2Desc: 'Sincroniza tus cuentas con tu pareja y controlad juntos los gastos reales.',
-    valueProp3Title: 'Privacidad total',
-    valueProp3Desc: 'Tus datos son tuyos, protegidos y anonimizados, sin publicidad.',
-  },
-  'en-US': {
-    dashboard: 'Dashboard',
-    settings: 'Settings',
-    analytics: 'Analytics',
-    transactions: 'Transactions',
-    login: 'Sign in',
-    register: 'Sign up',
-    recentTransactions: 'Recent transactions',
-    noTransactions: 'No transactions',
-    month: 'Month',
-    week: 'Week',
-    year: 'Year',
-    income: 'Income',
-    expense: 'Expenses',
-    loadingModule: 'Loading module...',
-    loadingApp: 'Loading wallet.ia...',
-    mainMenu: 'Main menu',
-    logout: 'Sign out',
-    home: 'Home',
-    movements: 'Movements',
-    goals: 'Goals',
-    addTransaction: 'Add transaction',
-    financialSummary: 'Financial summary',
-    sharedBalance: 'Shared balance',
-    myContribution: 'My contribution',
-    partnerContribution: 'Partner contribution',
-    personalBalance: 'Personal balance',
-    viewMore: 'View more',
-    latestMovements: 'Latest movements',
-    noRecentMovements: 'There are no recent movements yet.',
-    createdByPartner: 'added by Partner',
-    me: 'Me',
-    partner: 'Partner',
-    manageMovements: 'Manage your movements',
-    new: 'New',
-    account: 'Account',
-    category: 'Category',
-    type: 'Type',
-    all: 'All',
-    search: 'Search...',
-    noTransactionsMatching: 'No transactions match your filters.',
-    goalsLinkedByCategory: 'Movements are linked automatically by assigned category.',
-    newGoal: 'New Goal',
-    personal: 'Personal',
-    shared: 'Shared',
-    loadingGoals: 'Loading goals...',
-    noGoals: 'No goals',
-    createFirstGoal: 'Create your first savings goal to get started.',
-    editGoal: 'Edit goal',
-    tapToViewMovements: 'Tap to view movements',
-    since: 'Since',
-    deadline: 'Deadline',
-    close: 'Close',
-    welcomeBack: 'Welcome back',
-    createAccountAction: 'Create account',
-    authLoginSubtitle: 'Sign in to manage your finances',
-    authRegisterSubtitle: 'Start managing your shared finances',
-    email: 'Email',
-    password: 'Password',
-    name: 'Name',
-    forgotPassword: 'Forgot your password?',
-    noAccount: "Don't have an account?",
-    alreadyHaveAccount: 'Already have an account?',
-    signUpHere: 'Sign up here',
-    signInHere: 'Sign in',
-    configureExperience: 'Set up your wallet.ia experience',
-    dataManagement: 'Data management',
-    couple: 'Couple',
-    appearance: 'Appearance',
-    notificationsApp: 'Notifications and App',
-    securityPrivacy: 'Security and privacy',
-    accountData: 'Account and data',
-    support: 'Support',
-    language: 'Language',
-    currency: 'Currency',
-    accountsAndCards: 'Accounts and Cards',
-    icon: 'Icon',
-    accountName: 'Account name',
-    accountPlaceholder: 'Ex: Main account',
-    color: 'Color',
-    currentBalance: 'Initial / current balance',
-    accountType: 'Account type',
-    joint: 'Joint',
-    cancel: 'Cancel',
-    updateAccount: 'Update account',
-    createAccount: 'Create account',
-    noAccountsYet: 'No accounts added yet.',
-    deleteAccountTitle: 'Delete account?',
-    deleteAccountDesc: 'Associated transaction tracking will be lost. This action cannot be undone.',
-    deleting: 'Deleting...',
-    delete: 'Delete',
-    categoriesManagement: 'Category management',
-    categoryName: 'Category name',
-    categoryPlaceholder: 'Ex: Groceries',
-    replace: 'Replace',
-    updateCategory: 'Update category',
-    createCategory: 'Create category',
-    noCategoriesYet: 'No categories defined yet.',
-    sharedLabel: 'Shared',
-    partnerStatus: 'Partner status',
-    linked: 'Linked',
-    dangerZone: 'Danger zone',
-    unlinkWarning: 'If you unlink your partner, you will stop sharing real-time transactions.',
-    unlinkPartner: 'Unlink partner',
-    invitePartnerDesc: 'Link your account with your partner to manage money together.',
-    invite: 'Invite',
-    join: 'Join',
-    giveMyCode: 'Share my code',
-    iHaveCode: 'I have a code',
-    invitationCodeTitle: 'Your invitation code',
-    invitationCodeDesc: 'Share this code with your partner. It expires in 24h.',
-    copied: 'Copied!',
-    copyCode: 'Copy code',
-    enterCode: 'Enter code',
-    enterCodeDesc: 'Enter your partner code (6 characters).',
-    linkNow: 'Link now',
-    linking: 'Linking...',
-    unlinkConfirmTitle: 'Unlink partner?',
-    unlinkConfirmDesc: 'This action is immediate. You will no longer see new shared transactions.',
-    confirm: 'Confirm',
-    profileManagement: 'Profile management',
-    profileTab: 'Profile',
-    securityTab: 'Security',
-    emailAddress: 'Email address',
-    displayName: 'Display name',
-    saveChanges: 'Save changes',
-    saving: 'Saving...',
-    newPassword: 'New password',
-    passwordMin: 'At least 6 characters',
-    updating: 'Updating...',
-    updatePassword: 'Update password',
-    inbox: 'Inbox',
-    markAllRead: 'Mark all as read',
-    loading: 'Loading...',
-    noNotifications: 'No notifications',
-    notificationsDesc: 'You will see shared transaction and goal alerts here.',
-    optionalNote: 'Optional note',
-    selectAccount: 'Select account',
-    add: 'Add',
-    newCategory: 'New category',
-    categoryNamePlaceholder: 'Category name',
-    createCategoryBtn: 'Create category',
-    deleteMovement: 'Delete movement',
-    expenseTab: 'Expense',
-    incomeTab: 'Income',
-    personalLabel: 'Personal',
-    sharedLabelLong: 'Shared',
-    installAsApp: 'Install as app',
-    available: 'Available',
-    configured: 'Configured',
-    activated: 'Enabled',
-    tapToEnable: 'Tap to enable',
-    dataPrivacy: 'Data privacy',
-    changePassword: 'Change password',
-    exportData: 'Export data',
-    downloadCsv: 'Download your transactions CSV',
-    deleteAccountAction: 'Delete account',
-    irreversibleAction: 'Irreversible action',
-    helpCenter: 'Help center',
-    signOut: 'Sign out',
-    sharedPermission: 'Shared permission',
-    readOnly: 'Read only',
-    readWrite: 'Read & edit',
-    permissionDesc: 'Control whether your partner can edit your shared transactions.',
-    readOnlyNotice: 'Read only — your partner has not enabled editing',
-    onboardingWelcome: 'Welcome to wallet.ia!',
-    onboardingStep1Title: 'Track your expenses',
-    onboardingStep1Desc: 'Log your income and expenses to better understand where your money goes every month.',
-    onboardingStep2Title: 'Smart Goals',
-    onboardingStep2Desc: 'Set savings goals and track them visually to stay motivated.',
-    onboardingStep3Title: 'Couple finances',
-    onboardingStep3Desc: 'Link your account and share expenses in real-time with total transparency.',
-    onboardingStep4Title: 'Analyze your progress',
-    onboardingStep4Desc: 'Discover trends and monthly patterns through our interactive balance charts.',
-    onboardingStep5Title: 'Add movements',
-    onboardingStep5Desc: 'Log new income and expenses instantly using the New Transaction (+) button.',
-    onboardingSkip: 'Skip',
-    onboardingNext: 'Next',
-    onboardingFinish: 'Get started!',
-    valueProp1Title: 'Smart tracking',
-    valueProp1Desc: 'Analyze your finances and understand where every penny goes effortlessly.',
-    valueProp2Title: 'Shared finances',
-    valueProp2Desc: 'Sync your accounts with your partner and control actual expenses together.',
-    valueProp3Title: 'Total privacy',
-    valueProp3Desc: 'Your data is yours, protected and anonymized, absolutely ad-free.',
-  },
-  'fr-FR': {
-    dashboard: 'Tableau de bord',
-    settings: 'Paramètres',
-    analytics: 'Analytique',
-    transactions: 'Transactions',
-    login: 'Connexion',
-    register: 'Inscription',
-    recentTransactions: 'Transactions récentes',
-    noTransactions: 'Aucune transaction',
-    month: 'Mois',
-    week: 'Semaine',
-    year: 'Année',
-    income: 'Revenus',
-    expense: 'Dépenses',
-    loadingModule: 'Chargement du module...',
-    loadingApp: 'Chargement de wallet.ia...',
-    mainMenu: 'Menu principal',
-    logout: 'Déconnexion',
-    home: 'Accueil',
-    movements: 'Mouvements',
-    goals: 'Objectifs',
-    addTransaction: 'Ajouter une transaction',
-    financialSummary: 'Résumé financier',
-    sharedBalance: 'Solde partagé',
-    myContribution: 'Ma contribution',
-    partnerContribution: 'Contribution du partenaire',
-    personalBalance: 'Solde personnel',
-    viewMore: 'Voir plus',
-    latestMovements: 'Derniers mouvements',
-    noRecentMovements: 'Aucun mouvement récent.',
-    createdByPartner: 'ajouté par Partenaire',
-    me: 'Moi',
-    partner: 'Partenaire',
-    manageMovements: 'Gérez vos mouvements',
-    new: 'Nouveau',
-    account: 'Compte',
-    category: 'Catégorie',
-    type: 'Type',
-    all: 'Tous',
-    search: 'Rechercher...',
-    noTransactionsMatching: 'Aucune transaction ne correspond à vos filtres.',
-    goalsLinkedByCategory: 'Les mouvements sont liés automatiquement par catégorie.',
-    newGoal: 'Nouvel objectif',
-    personal: 'Personnels',
-    shared: 'Partagés',
-    loadingGoals: 'Chargement des objectifs...',
-    noGoals: 'Aucun objectif',
-    createFirstGoal: 'Créez votre premier objectif d\'épargne pour commencer.',
-    editGoal: 'Modifier l\'objectif',
-    tapToViewMovements: 'Appuyez pour voir les mouvements',
-    since: 'Depuis',
-    deadline: 'Échéance',
-    close: 'Fermer',
-    welcomeBack: 'Bon retour',
-    createAccount: 'Créer un compte',
-    authLoginSubtitle: 'Connectez-vous pour gérer vos finances',
-    authRegisterSubtitle: 'Commencez à gérer vos finances en couple',
-    email: 'Email',
-    password: 'Mot de passe',
-    name: 'Nom',
-    forgotPassword: 'Mot de passe oublié ?',
-    noAccount: 'Pas encore de compte ?',
-    alreadyHaveAccount: 'Déjà un compte ?',
-    signUpHere: 'Inscrivez-vous ici',
-    signInHere: 'Connectez-vous',
-    configureExperience: 'Configurez votre expérience wallet.ia',
-    dataManagement: 'Gestion des données',
-    couple: 'Couple',
-    appearance: 'Apparence',
-    notificationsApp: 'Notifications et App',
-    securityPrivacy: 'Sécurité et confidentialité',
-    accountData: 'Compte et données',
-    support: 'Support',
-    language: 'Langue',
-    currency: 'Devise',
-    accountsAndCards: 'Comptes et Cartes',
-    icon: 'Icône',
-    accountName: 'Nom du compte',
-    accountPlaceholder: 'Ex : Compte principal',
-    color: 'Couleur',
-    currentBalance: 'Solde initial / actuel',
-    accountType: 'Type de compte',
-    joint: 'Conjoint',
-    cancel: 'Annuler',
-    updateAccount: 'Mettre à jour le compte',
-    createAccountAction: 'Créer un compte',
-    noAccountsYet: 'Aucun compte ajouté.',
-    deleteAccountTitle: 'Supprimer le compte ?',
-    deleteAccountDesc: 'Le suivi des transactions associées sera perdu. Cette action est irréversible.',
-    deleting: 'Suppression...',
-    delete: 'Supprimer',
-    categoriesManagement: 'Gestion des catégories',
-    categoryName: 'Nom de la catégorie',
-    categoryPlaceholder: 'Ex : Supermarché',
-    replace: 'Remplacer',
-    updateCategory: 'Mettre à jour la catégorie',
-    createCategory: 'Créer une catégorie',
-    noCategoriesYet: 'Aucune catégorie définie.',
-    sharedLabel: 'Partagée',
-    partnerStatus: 'Statut du partenaire',
-    linked: 'Lié(e)',
-    dangerZone: 'Zone de danger',
-    unlinkWarning: 'Si vous dissociez votre partenaire, vous ne partagerez plus les transactions en temps réel.',
-    unlinkPartner: 'Dissocier le partenaire',
-    invitePartnerDesc: 'Liez votre compte avec votre partenaire pour gérer votre argent ensemble.',
-    invite: 'Inviter',
-    join: 'Rejoindre',
-    giveMyCode: 'Donner mon code',
-    iHaveCode: 'J\'ai un code',
-    invitationCodeTitle: 'Votre code d\'invitation',
-    invitationCodeDesc: 'Partagez ce code avec votre partenaire. Il expire dans 24h.',
-    copied: 'Copié !',
-    copyCode: 'Copier le code',
-    enterCode: 'Saisir le code',
-    enterCodeDesc: 'Entrez les 6 caractères du code de votre partenaire.',
-    linkNow: 'Lier maintenant',
-    linking: 'Association...',
-    unlinkConfirmTitle: 'Dissocier le partenaire ?',
-    unlinkConfirmDesc: 'Cette action est immédiate. Vous ne verrez plus les nouvelles transactions partagées.',
-    confirm: 'Confirmer',
-    profileManagement: 'Gestion du profil',
-    profileTab: 'Profil',
-    securityTab: 'Sécurité',
-    emailAddress: 'Adresse email',
-    displayName: 'Nom affiché',
-    saveChanges: 'Enregistrer',
-    saving: 'Enregistrement...',
-    newPassword: 'Nouveau mot de passe',
-    passwordMin: 'Minimum 6 caractères',
-    updating: 'Mise à jour...',
-    updatePassword: 'Mettre à jour le mot de passe',
-    inbox: 'Boîte de réception',
-    markAllRead: 'Tout marquer lu',
-    loading: 'Chargement...',
-    noNotifications: 'Aucune notification',
-    notificationsDesc: 'Vous verrez ici les alertes de transactions partagées et d\'objectifs.',
-    optionalNote: 'Note optionnelle',
-    selectAccount: 'Sélectionner un compte',
-    add: 'Ajouter',
-    newCategory: 'Nouvelle catégorie',
-    categoryNamePlaceholder: 'Nom de la catégorie',
-    createCategoryBtn: 'Créer une catégorie',
-    deleteMovement: 'Supprimer le mouvement',
-    expenseTab: 'Dépense',
-    incomeTab: 'Revenu',
-    personalLabel: 'Personnel',
-    sharedLabelLong: 'Partagé',
-    installAsApp: 'Installer comme app',
-    available: 'Disponible',
-    configured: 'Configuré',
-    activated: 'Activées',
-    tapToEnable: 'Appuyez pour activer',
-    dataPrivacy: 'Confidentialité des données',
-    changePassword: 'Changer le mot de passe',
-    exportData: 'Exporter les données',
-    downloadCsv: 'Télécharger vos transactions en CSV',
-    deleteAccountAction: 'Supprimer le compte',
-    irreversibleAction: 'Action irréversible',
-    helpCenter: 'Centre d\'aide',
-    signOut: 'Déconnexion',
-    sharedPermission: 'Autorisation partagée',
-    readOnly: 'Lecture seule',
-    readWrite: 'Lecture et édition',
-    permissionDesc: 'Contrôlez si votre partenaire peut modifier vos transactions partagées.',
-    readOnlyNotice: 'Lecture seule — votre partenaire n\'a pas activé l\'édition',
-    onboardingWelcome: 'Bienvenue sur wallet.ia!',
-    onboardingStep1Title: 'Suivez vos dépenses',
-    onboardingStep1Desc: 'Enregistrez vos revenus et dépenses pour mieux comprendre où va votre argent chaque mois.',
-    onboardingStep2Title: 'Objectifs intelligents',
-    onboardingStep2Desc: 'Fixez des objectifs d\'épargne et suivez-les visuellement pour rester motivé.',
-    onboardingStep3Title: 'Finances en couple',
-    onboardingStep3Desc: 'Liez votre compte et partagez les dépenses en temps réel avec une transparence totale.',
-    onboardingStep4Title: 'Analysez vos progrès',
-    onboardingStep4Desc: 'Découvrez des tendances et des modèles mensuels grâce à nos graphiques interactifs.',
-    onboardingStep5Title: 'Ajoutez des mouvements',
-    onboardingStep5Desc: 'Enregistrez instantanément de nouveaux revenus et dépenses via le bouton Nouvelle transaction (+).',
-    onboardingSkip: 'Passer',
-    onboardingNext: 'Suivant',
-    onboardingFinish: 'Commencer !',
-    valueProp1Title: 'Suivi intelligent',
-    valueProp1Desc: 'Analysez vos finances et comprenez facilement où va chaque centime.',
-    valueProp2Title: 'Finances partagées',
-    valueProp2Desc: 'Synchronisez vos comptes avec votre partenaire et contrôlez les dépenses ensemble.',
-    valueProp3Title: 'Intimité totale',
-    valueProp3Desc: 'Vos données sont protégées, anonymisées et sans publicité.',
-  },
-  'de-DE': {
-    dashboard: 'Dashboard',
-    settings: 'Einstellungen',
-    analytics: 'Analytik',
-    transactions: 'Transaktionen',
-    login: 'Anmelden',
-    register: 'Registrieren',
-    recentTransactions: 'Letzte Transaktionen',
-    noTransactions: 'Keine Transaktionen',
-    month: 'Monat',
-    week: 'Woche',
-    year: 'Jahr',
-    income: 'Einnahmen',
-    expense: 'Ausgaben',
-    loadingModule: 'Modul wird geladen...',
-    loadingApp: 'wallet.ia wird geladen...',
-    mainMenu: 'Hauptmenü',
-    logout: 'Abmelden',
-    home: 'Startseite',
-    movements: 'Bewegungen',
-    goals: 'Ziele',
-    addTransaction: 'Transaktion hinzufügen',
-    financialSummary: 'Finanzübersicht',
-    sharedBalance: 'Gemeinsamer Saldo',
-    myContribution: 'Mein Beitrag',
-    partnerContribution: 'Beitrag des Partners',
-    personalBalance: 'Persönlicher Saldo',
-    viewMore: 'Mehr anzeigen',
-    latestMovements: 'Letzte Bewegungen',
-    noRecentMovements: 'Noch keine aktuellen Bewegungen.',
-    createdByPartner: 'hinzugefügt von Partner',
-    me: 'Ich',
-    partner: 'Partner',
-    manageMovements: 'Verwalten Sie Ihre Bewegungen',
-    new: 'Neu',
-    account: 'Konto',
-    category: 'Kategorie',
-    type: 'Typ',
-    all: 'Alle',
-    search: 'Suchen...',
-    noTransactionsMatching: 'Keine Transaktionen entsprechen Ihren Filtern.',
-    goalsLinkedByCategory: 'Bewegungen werden automatisch nach Kategorie verknüpft.',
-    newGoal: 'Neues Ziel',
-    personal: 'Persönlich',
-    shared: 'Geteilt',
-    loadingGoals: 'Ziele werden geladen...',
-    noGoals: 'Keine Ziele',
-    createFirstGoal: 'Erstellen Sie Ihr erstes Sparziel, um loszulegen.',
-    editGoal: 'Ziel bearbeiten',
-    tapToViewMovements: 'Tippen, um Bewegungen zu sehen',
-    since: 'Seit',
-    deadline: 'Frist',
-    close: 'Schließen',
-    welcomeBack: 'Willkommen zurück',
-    createAccount: 'Konto erstellen',
-    authLoginSubtitle: 'Melden Sie sich an, um Ihre Finanzen zu verwalten',
-    authRegisterSubtitle: 'Beginnen Sie, Ihre gemeinsamen Finanzen zu verwalten',
-    email: 'E-Mail',
-    password: 'Passwort',
-    name: 'Name',
-    forgotPassword: 'Passwort vergessen?',
-    noAccount: 'Noch kein Konto?',
-    alreadyHaveAccount: 'Bereits ein Konto?',
-    signUpHere: 'Hier registrieren',
-    signInHere: 'Anmelden',
-    configureExperience: 'Konfigurieren Sie Ihre wallet.ia-Erfahrung',
-    dataManagement: 'Datenverwaltung',
-    couple: 'Paar',
-    appearance: 'Erscheinungsbild',
-    notificationsApp: 'Benachrichtigungen und App',
-    securityPrivacy: 'Sicherheit und Datenschutz',
-    accountData: 'Konto und Daten',
-    support: 'Support',
-    language: 'Sprache',
-    currency: 'Währung',
-    accountsAndCards: 'Konten und Karten',
-    icon: 'Symbol',
-    accountName: 'Kontoname',
-    accountPlaceholder: 'Z.B.: Hauptkonto',
-    color: 'Farbe',
-    currentBalance: 'Anfangs- / aktueller Saldo',
-    accountType: 'Kontotyp',
-    joint: 'Gemeinsam',
-    cancel: 'Abbrechen',
-    updateAccount: 'Konto aktualisieren',
-    createAccountAction: 'Konto erstellen',
-    noAccountsYet: 'Noch keine Konten hinzugefügt.',
-    deleteAccountTitle: 'Konto löschen?',
-    deleteAccountDesc: 'Die zugehörigen Transaktionen gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.',
-    deleting: 'Wird gelöscht...',
-    delete: 'Löschen',
-    categoriesManagement: 'Kategorieverwaltung',
-    categoryName: 'Kategoriename',
-    categoryPlaceholder: 'Z.B.: Supermarkt',
-    replace: 'Ersetzen',
-    updateCategory: 'Kategorie aktualisieren',
-    createCategory: 'Kategorie erstellen',
-    noCategoriesYet: 'Noch keine Kategorien definiert.',
-    sharedLabel: 'Geteilt',
-    partnerStatus: 'Partnerstatus',
-    linked: 'Verknüpft',
-    dangerZone: 'Gefahrenzone',
-    unlinkWarning: 'Wenn Sie Ihren Partner trennen, werden keine Transaktionen mehr in Echtzeit geteilt.',
-    unlinkPartner: 'Partner trennen',
-    invitePartnerDesc: 'Verknüpfen Sie Ihr Konto mit Ihrem Partner, um gemeinsam Geld zu verwalten.',
-    invite: 'Einladen',
-    join: 'Beitreten',
-    giveMyCode: 'Meinen Code geben',
-    iHaveCode: 'Ich habe einen Code',
-    invitationCodeTitle: 'Ihr Einladungscode',
-    invitationCodeDesc: 'Teilen Sie diesen Code mit Ihrem Partner. Er läuft in 24 Stunden ab.',
-    copied: 'Kopiert!',
-    copyCode: 'Code kopieren',
-    enterCode: 'Code eingeben',
-    enterCodeDesc: 'Geben Sie die 6 Zeichen des Codes Ihres Partners ein.',
-    linkNow: 'Jetzt verknüpfen',
-    linking: 'Verknüpfung...',
-    unlinkConfirmTitle: 'Partner trennen?',
-    unlinkConfirmDesc: 'Diese Aktion ist sofort wirksam. Sie werden keine neuen geteilten Transaktionen mehr sehen.',
-    confirm: 'Bestätigen',
-    profileManagement: 'Profilverwaltung',
-    profileTab: 'Profil',
-    securityTab: 'Sicherheit',
-    emailAddress: 'E-Mail-Adresse',
-    displayName: 'Anzeigename',
-    saveChanges: 'Änderungen speichern',
-    saving: 'Wird gespeichert...',
-    newPassword: 'Neues Passwort',
-    passwordMin: 'Mindestens 6 Zeichen',
-    updating: 'Aktualisierung...',
-    updatePassword: 'Passwort aktualisieren',
-    inbox: 'Posteingang',
-    markAllRead: 'Alle als gelesen markieren',
-    loading: 'Laden...',
-    noNotifications: 'Keine Benachrichtigungen',
-    notificationsDesc: 'Hier sehen Sie Benachrichtigungen zu geteilten Transaktionen und Zielen.',
-    optionalNote: 'Optionaler Hinweis',
-    selectAccount: 'Konto auswählen',
-    add: 'Hinzufügen',
-    newCategory: 'Neue Kategorie',
-    categoryNamePlaceholder: 'Kategoriename',
-    createCategoryBtn: 'Kategorie erstellen',
-    deleteMovement: 'Bewegung löschen',
-    expenseTab: 'Ausgabe',
-    incomeTab: 'Einnahme',
-    personalLabel: 'Persönlich',
-    sharedLabelLong: 'Geteilt',
-    installAsApp: 'Als App installieren',
-    available: 'Verfügbar',
-    configured: 'Konfiguriert',
-    activated: 'Aktiviert',
-    tapToEnable: 'Tippen zum Aktivieren',
-    dataPrivacy: 'Datenschutz',
-    changePassword: 'Passwort ändern',
-    exportData: 'Daten exportieren',
-    downloadCsv: 'Transaktionen als CSV herunterladen',
-    deleteAccountAction: 'Konto löschen',
-    irreversibleAction: 'Unwiderrufliche Aktion',
-    helpCenter: 'Hilfezentrum',
-    signOut: 'Abmelden',
-    sharedPermission: 'Geteilte Berechtigung',
-    readOnly: 'Nur Lesen',
-    readWrite: 'Lesen und Bearbeiten',
-    permissionDesc: 'Steuern Sie, ob Ihr Partner Ihre geteilten Transaktionen bearbeiten kann.',
-    readOnlyNotice: 'Nur Lesen — Ihr Partner hat die Bearbeitung nicht aktiviert',
-    onboardingWelcome: 'Willkommen bei wallet.ia!',
-    onboardingStep1Title: 'Verfolgen Sie Ihre Ausgaben',
-    onboardingStep1Desc: 'Erfassen Sie Ihre Einnahmen und Ausgaben, um besser zu verstehen, wohin Ihr Geld jeden Monat geht.',
-    onboardingStep2Title: 'Smarte Ziele',
-    onboardingStep2Desc: 'Setzen Sie Sparziele und verfolgen Sie diese visuell, um motiviert zu bleiben.',
-    onboardingStep3Title: 'Finanzen für Paare',
-    onboardingStep3Desc: 'Verknüpfen Sie Ihr Konto und teilen Sie Ausgaben in Echtzeit mit voller Transparenz.',
-    onboardingStep4Title: 'Analysieren Sie Ihren Fortschritt',
-    onboardingStep4Desc: 'Entdecken Sie Trends und monatliche Muster durch unsere interaktiven Diagramme.',
-    onboardingStep5Title: 'Bewegungen hinzufügen',
-    onboardingStep5Desc: 'Erfassen Sie neue Einnahmen und Ausgaben sofort über die Schaltfläche Neue Transaktion (+).',
-    onboardingSkip: 'Überspringen',
-    onboardingNext: 'Weiter',
-    onboardingFinish: 'Loslegen!',
-    valueProp1Title: 'Smartes Tracking',
-    valueProp1Desc: 'Analysieren Sie Ihre Finanzen und verstehen Sie mühelos jeden Cent.',
-    valueProp2Title: 'Geteilte Finanzen',
-    valueProp2Desc: 'Synchronisieren Sie Ihre Konten mit Ihrem Partner und steuern Sie Ausgaben gemeinsam.',
-    valueProp3Title: 'Vollständige Privatsphäre',
-    valueProp3Desc: 'Ihre Daten sind geschützt, anonymisiert und völlig werbefrei.',
-  },
-  'it-IT': {
-    dashboard: 'Dashboard',
-    settings: 'Impostazioni',
-    analytics: 'Analisi',
-    transactions: 'Transazioni',
-    login: 'Accedi',
-    register: 'Registrati',
-    recentTransactions: 'Transazioni recenti',
-    noTransactions: 'Nessuna transazione',
-    month: 'Mese',
-    week: 'Settimana',
-    year: 'Anno',
-    income: 'Entrate',
-    expense: 'Spese',
-    loadingModule: 'Caricamento modulo...',
-    loadingApp: 'Caricamento wallet.ia...',
-    mainMenu: 'Menu principale',
-    logout: 'Esci',
-    home: 'Home',
-    movements: 'Movimenti',
-    goals: 'Obiettivi',
-    addTransaction: 'Aggiungi transazione',
-    financialSummary: 'Riepilogo finanziario',
-    sharedBalance: 'Saldo condiviso',
-    myContribution: 'Il mio contributo',
-    partnerContribution: 'Contributo del partner',
-    personalBalance: 'Saldo personale',
-    viewMore: 'Vedi di più',
-    latestMovements: 'Ultimi movimenti',
-    noRecentMovements: 'Non ci sono ancora movimenti recenti.',
-    createdByPartner: 'aggiunto dal Partner',
-    me: 'Io',
-    partner: 'Partner',
-    manageMovements: 'Gestisci i tuoi movimenti',
-    new: 'Nuovo',
-    account: 'Conto',
-    category: 'Categoria',
-    type: 'Tipo',
-    all: 'Tutti',
-    search: 'Cerca...',
-    noTransactionsMatching: 'Nessuna transazione corrisponde ai tuoi filtri.',
-    goalsLinkedByCategory: 'I movimenti sono collegati automaticamente per categoria.',
-    newGoal: 'Nuovo obiettivo',
-    personal: 'Personali',
-    shared: 'Condivisi',
-    loadingGoals: 'Caricamento obiettivi...',
-    noGoals: 'Nessun obiettivo',
-    createFirstGoal: 'Crea il tuo primo obiettivo di risparmio per iniziare.',
-    editGoal: 'Modifica obiettivo',
-    tapToViewMovements: 'Tocca per vedere i movimenti',
-    since: 'Dal',
-    deadline: 'Scadenza',
-    close: 'Chiudi',
-    welcomeBack: 'Bentornato',
-    createAccount: 'Crea un conto',
-    authLoginSubtitle: 'Accedi per gestire le tue finanze',
-    authRegisterSubtitle: 'Inizia a gestire le finanze in coppia',
-    email: 'Email',
-    password: 'Password',
-    name: 'Nome',
-    forgotPassword: 'Password dimenticata?',
-    noAccount: 'Non hai un conto?',
-    alreadyHaveAccount: 'Hai già un conto?',
-    signUpHere: 'Registrati qui',
-    signInHere: 'Accedi',
-    configureExperience: 'Configura la tua esperienza wallet.ia',
-    dataManagement: 'Gestione dei dati',
-    couple: 'Coppia',
-    appearance: 'Aspetto',
-    notificationsApp: 'Notifiche e App',
-    securityPrivacy: 'Sicurezza e privacy',
-    accountData: 'Conto e dati',
-    support: 'Supporto',
-    language: 'Lingua',
-    currency: 'Valuta',
-    accountsAndCards: 'Conti e Carte',
-    icon: 'Icona',
-    accountName: 'Nome del conto',
-    accountPlaceholder: 'Es: Conto principale',
-    color: 'Colore',
-    currentBalance: 'Saldo iniziale / attuale',
-    accountType: 'Tipo di conto',
-    joint: 'Congiunto',
-    cancel: 'Annulla',
-    updateAccount: 'Aggiorna conto',
-    createAccountAction: 'Crea conto',
-    noAccountsYet: 'Nessun conto aggiunto.',
-    deleteAccountTitle: 'Eliminare il conto?',
-    deleteAccountDesc: 'Le transazioni associate andranno perse. Questa azione è irreversibile.',
-    deleting: 'Eliminazione...',
-    delete: 'Elimina',
-    categoriesManagement: 'Gestione delle categorie',
-    categoryName: 'Nome categoria',
-    categoryPlaceholder: 'Es: Supermercato',
-    replace: 'Sostituisci',
-    updateCategory: 'Aggiorna categoria',
-    createCategory: 'Crea categoria',
-    noCategoriesYet: 'Nessuna categoria definita.',
-    sharedLabel: 'Condivisa',
-    partnerStatus: 'Stato del partner',
-    linked: 'Collegato/a',
-    dangerZone: 'Zona di pericolo',
-    unlinkWarning: 'Se dissoci il tuo partner, non condividerete più le transazioni in tempo reale.',
-    unlinkPartner: 'Dissocia partner',
-    invitePartnerDesc: 'Collega il tuo conto con il tuo partner per gestire il denaro insieme.',
-    invite: 'Invita',
-    join: 'Unisciti',
-    giveMyCode: 'Dai il mio codice',
-    iHaveCode: 'Ho un codice',
-    invitationCodeTitle: 'Il tuo codice di invito',
-    invitationCodeDesc: 'Condividi questo codice con il tuo partner. Scade tra 24 ore.',
-    copied: 'Copiato!',
-    copyCode: 'Copia codice',
-    enterCode: 'Inserisci codice',
-    enterCodeDesc: 'Inserisci i 6 caratteri del codice del tuo partner.',
-    linkNow: 'Collega ora',
-    linking: 'Collegamento...',
-    unlinkConfirmTitle: 'Dissociare il partner?',
-    unlinkConfirmDesc: 'Questa azione è immediata. Non vedrai più le nuove transazioni condivise.',
-    confirm: 'Conferma',
-    profileManagement: 'Gestione del profilo',
-    profileTab: 'Profilo',
-    securityTab: 'Sicurezza',
-    emailAddress: 'Indirizzo email',
-    displayName: 'Nome visualizzato',
-    saveChanges: 'Salva modifiche',
-    saving: 'Salvataggio...',
-    newPassword: 'Nuova password',
-    passwordMin: 'Minimo 6 caratteri',
-    updating: 'Aggiornamento...',
-    updatePassword: 'Aggiorna password',
-    inbox: 'Posta in arrivo',
-    markAllRead: 'Segna tutto come letto',
-    loading: 'Caricamento...',
-    noNotifications: 'Nessuna notifica',
-    notificationsDesc: 'Qui vedrai gli avvisi di transazioni condivise e obiettivi.',
-    optionalNote: 'Nota facoltativa',
-    selectAccount: 'Seleziona conto',
-    add: 'Aggiungi',
-    newCategory: 'Nuova categoria',
-    categoryNamePlaceholder: 'Nome della categoria',
-    createCategoryBtn: 'Crea categoria',
-    deleteMovement: 'Elimina movimento',
-    expenseTab: 'Spesa',
-    incomeTab: 'Entrata',
-    personalLabel: 'Personale',
-    sharedLabelLong: 'Condiviso',
-    installAsApp: 'Installa come app',
-    available: 'Disponibile',
-    configured: 'Configurato',
-    activated: 'Attivate',
-    tapToEnable: 'Tocca per attivare',
-    dataPrivacy: 'Privacy dei dati',
-    changePassword: 'Cambia password',
-    exportData: 'Esporta dati',
-    downloadCsv: 'Scarica le transazioni in CSV',
-    deleteAccountAction: 'Elimina conto',
-    irreversibleAction: 'Azione irreversibile',
-    helpCenter: 'Centro assistenza',
-    signOut: 'Esci',
-    sharedPermission: 'Permesso condiviso',
-    readOnly: 'Solo lettura',
-    readWrite: 'Lettura e modifica',
-    permissionDesc: 'Controlla se il tuo partner può modificare le tue transazioni condivise.',
-    readOnlyNotice: 'Solo lettura — il tuo partner non ha abilitato la modifica',
-    onboardingWelcome: 'Benvenuto su wallet.ia!',
-    onboardingStep1Title: 'Controlla le tue spese',
-    onboardingStep1Desc: 'Registra le tue entrate e uscite per capire meglio dove vanno i tuoi soldi ogni mese.',
-    onboardingStep2Title: 'Obiettivi intelligenti',
-    onboardingStep2Desc: 'Imposta obiettivi di risparmio e seguili visivamente per rimanere motivato.',
-    onboardingStep3Title: 'Finanze di coppia',
-    onboardingStep3Desc: 'Collega il tuo account e condividi le spese in tempo reale con totale trasparenza.',
-    onboardingStep4Title: 'Analizza i tuoi progressi',
-    onboardingStep4Desc: 'Scopri tendenze e modelli mensili attraverso i nostri grafici interattivi dei saldi.',
-    onboardingStep5Title: 'Aggiungi movimenti',
-    onboardingStep5Desc: 'Registra istantaneamente nuove entrate e uscite utilizzando il pulsante Nuova Transazione (+).',
-    onboardingSkip: 'Salta',
-    onboardingNext: 'Avanti',
-    onboardingFinish: 'Inizia!',
-    valueProp1Title: 'Tracciamento intelligente',
-    valueProp1Desc: 'Analizza le tue finanze e comprendi facilmente dove va ogni centesimo.',
-    valueProp2Title: 'Finanze condivise',
-    valueProp2Desc: 'Sincronizza i tuoi conti con il tuo partner e controlla le spese insieme.',
-    valueProp3Title: 'Privacy totale',
-    valueProp3Desc: 'I tuoi dati sono protetti, anonimizzati e senza pubblicità.',
-  },
-  'pt-PT': {
-    dashboard: 'Painel',
-    settings: 'Definições',
-    analytics: 'Analítica',
-    transactions: 'Transações',
-    login: 'Entrar',
-    register: 'Registar',
-    recentTransactions: 'Transações recentes',
-    noTransactions: 'Sem transações',
-    month: 'Mês',
-    week: 'Semana',
-    year: 'Ano',
-    income: 'Receitas',
-    expense: 'Despesas',
-    loadingModule: 'A carregar módulo...',
-    loadingApp: 'A carregar wallet.ia...',
-    mainMenu: 'Menu principal',
-    logout: 'Sair',
-    home: 'Início',
-    movements: 'Movimentos',
-    goals: 'Metas',
-    addTransaction: 'Adicionar transação',
-    financialSummary: 'Resumo financeiro',
-    sharedBalance: 'Saldo partilhado',
-    myContribution: 'Minha contribuição',
-    partnerContribution: 'Contribuição do parceiro',
-    personalBalance: 'Saldo pessoal',
-    viewMore: 'Ver mais',
-    latestMovements: 'Últimos movimentos',
-    noRecentMovements: 'Ainda não há movimentos recentes.',
-    createdByPartner: 'adicionado pelo Parceiro',
-    me: 'Eu',
-    partner: 'Parceiro',
-    manageMovements: 'Gerir os seus movimentos',
-    new: 'Novo',
-    account: 'Conta',
-    category: 'Categoria',
-    type: 'Tipo',
-    all: 'Todos',
-    search: 'Pesquisar...',
-    noTransactionsMatching: 'Nenhuma transação corresponde aos seus filtros.',
-    goalsLinkedByCategory: 'Os movimentos são associados automaticamente por categoria.',
-    newGoal: 'Nova meta',
-    personal: 'Pessoais',
-    shared: 'Partilhados',
-    loadingGoals: 'A carregar metas...',
-    noGoals: 'Sem metas',
-    createFirstGoal: 'Crie a sua primeira meta de poupança para começar.',
-    editGoal: 'Editar meta',
-    tapToViewMovements: 'Toque para ver movimentos',
-    since: 'Desde',
-    deadline: 'Prazo',
-    close: 'Fechar',
-    welcomeBack: 'Bem-vindo de volta',
-    createAccount: 'Criar conta',
-    authLoginSubtitle: 'Inicie sessão para gerir as suas finanças',
-    authRegisterSubtitle: 'Comece a gerir as finanças em casal',
-    email: 'Email',
-    password: 'Palavra-passe',
-    name: 'Nome',
-    forgotPassword: 'Esqueceu a palavra-passe?',
-    noAccount: 'Não tem conta?',
-    alreadyHaveAccount: 'Já tem conta?',
-    signUpHere: 'Registe-se aqui',
-    signInHere: 'Inicie sessão',
-    configureExperience: 'Configure a sua experiência wallet.ia',
-    dataManagement: 'Gestão de dados',
-    couple: 'Casal',
-    appearance: 'Aparência',
-    notificationsApp: 'Notificações e App',
-    securityPrivacy: 'Segurança e privacidade',
-    accountData: 'Conta e dados',
-    support: 'Suporte',
-    language: 'Idioma',
-    currency: 'Moeda',
-    accountsAndCards: 'Contas e Cartões',
-    icon: 'Ícone',
-    accountName: 'Nome da conta',
-    accountPlaceholder: 'Ex: Conta principal',
-    color: 'Cor',
-    currentBalance: 'Saldo inicial / atual',
-    accountType: 'Tipo de conta',
-    joint: 'Conjunta',
-    cancel: 'Cancelar',
-    updateAccount: 'Atualizar conta',
-    createAccountAction: 'Criar conta',
-    noAccountsYet: 'Ainda sem contas adicionadas.',
-    deleteAccountTitle: 'Eliminar conta?',
-    deleteAccountDesc: 'O registo das transações associadas será perdido. Esta ação é irreversível.',
-    deleting: 'A eliminar...',
-    delete: 'Eliminar',
-    categoriesManagement: 'Gestão de categorias',
-    categoryName: 'Nome da categoria',
-    categoryPlaceholder: 'Ex: Supermercado',
-    replace: 'Substituir',
-    updateCategory: 'Atualizar categoria',
-    createCategory: 'Criar categoria',
-    noCategoriesYet: 'Nenhuma categoria definida.',
-    sharedLabel: 'Partilhada',
-    partnerStatus: 'Estado do parceiro',
-    linked: 'Vinculado/a',
-    dangerZone: 'Zona de perigo',
-    unlinkWarning: 'Se desvincular o seu parceiro, deixarão de partilhar transações em tempo real.',
-    unlinkPartner: 'Desvincular parceiro',
-    invitePartnerDesc: 'Vincule a sua conta com o seu parceiro para gerir o dinheiro juntos.',
-    invite: 'Convidar',
-    join: 'Aderir',
-    giveMyCode: 'Dar o meu código',
-    iHaveCode: 'Tenho um código',
-    invitationCodeTitle: 'O seu código de convite',
-    invitationCodeDesc: 'Partilhe este código com o seu parceiro. Expira em 24h.',
-    copied: 'Copiado!',
-    copyCode: 'Copiar código',
-    enterCode: 'Inserir código',
-    enterCodeDesc: 'Insira os 6 caracteres do código do seu parceiro.',
-    linkNow: 'Vincular agora',
-    linking: 'A vincular...',
-    unlinkConfirmTitle: 'Desvincular parceiro?',
-    unlinkConfirmDesc: 'Esta ação é imediata. Não verá mais as novas transações partilhadas.',
-    confirm: 'Confirmar',
-    profileManagement: 'Gestão de perfil',
-    profileTab: 'Perfil',
-    securityTab: 'Segurança',
-    emailAddress: 'Endereço de email',
-    displayName: 'Nome a exibir',
-    saveChanges: 'Guardar alterações',
-    saving: 'A guardar...',
-    newPassword: 'Nova palavra-passe',
-    passwordMin: 'Mínimo 6 caracteres',
-    updating: 'A atualizar...',
-    updatePassword: 'Atualizar palavra-passe',
-    inbox: 'Caixa de entrada',
-    markAllRead: 'Marcar tudo como lido',
-    loading: 'A carregar...',
-    noNotifications: 'Sem notificações',
-    notificationsDesc: 'Aqui verá os alertas de transações partilhadas e metas.',
-    optionalNote: 'Nota opcional',
-    selectAccount: 'Selecionar conta',
-    add: 'Adicionar',
-    newCategory: 'Nova categoria',
-    categoryNamePlaceholder: 'Nome da categoria',
-    createCategoryBtn: 'Criar categoria',
-    deleteMovement: 'Eliminar movimento',
-    expenseTab: 'Despesa',
-    incomeTab: 'Receita',
-    personalLabel: 'Pessoal',
-    sharedLabelLong: 'Partilhado',
-    installAsApp: 'Instalar como app',
-    available: 'Disponível',
-    configured: 'Configurado',
-    activated: 'Ativadas',
-    tapToEnable: 'Toque para ativar',
-    dataPrivacy: 'Privacidade de dados',
-    changePassword: 'Alterar palavra-passe',
-    exportData: 'Exportar dados',
-    downloadCsv: 'Baixar as transações em CSV',
-    deleteAccountAction: 'Eliminar conta',
-    irreversibleAction: 'Ação irreversível',
-    helpCenter: 'Centro de ajuda',
-    signOut: 'Sair',
-    sharedPermission: 'Permissão partilhada',
-    readOnly: 'Apenas leitura',
-    readWrite: 'Leitura e edição',
-    permissionDesc: 'Controle se o seu parceiro pode editar as suas transações partilhadas.',
-    readOnlyNotice: 'Apenas leitura — o seu parceiro não ativou a edição',
-    onboardingWelcome: 'Bem-vindo ao wallet.ia!',
-    onboardingStep1Title: 'Controle as suas despesas',
-    onboardingStep1Desc: 'Registe as suas receitas e despesas para entender melhor para onde vai o seu dinheiro todos os meses.',
-    onboardingStep2Title: 'Metas inteligentes',
-    onboardingStep2Desc: 'Defina objetivos de poupança e acompanhe-os visualmente para se manter motivado.',
-    onboardingStep3Title: 'Finanças em casal',
-    onboardingStep3Desc: 'Vincule a sua conta e partilhe despesas em tempo real com total transparência.',
-    onboardingStep4Title: 'Analise o seu progresso',
-    onboardingStep4Desc: 'Descubra tendências e padrões mensais através dos nossos gráficos interativos de saldos.',
-    onboardingStep5Title: 'Adicionar movimentos',
-    onboardingStep5Desc: 'Registe instantaneamente novas receitas e despesas utilizando o botão Nova Transação (+).',
-    onboardingSkip: 'Saltar',
-    onboardingNext: 'Seguinte',
-    onboardingFinish: 'Começar!',
-    valueProp1Title: 'Acompanhamento inteligente',
-    valueProp1Desc: 'Analise as suas finanças e compreenda facilmente para onde vai cada cêntimo.',
-    valueProp2Title: 'Finanças partilhadas',
-    valueProp2Desc: 'Sincronize as suas contas com o seu parceiro e controle as despesas em conjunto.',
-    valueProp3Title: 'Privacidade total',
-    valueProp3Desc: 'Os seus dados estão protegidos, anonimizados e sem anúncios.',
-  },
-};
-
 export function LocaleCurrencyProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<SupportedLocale>('es-ES');
   const [currency, setCurrencyState] = useState<SupportedCurrency>('EUR');
-  const [ratesByDate, setRatesByDate] = useState<Record<string, number>>({});
+  // ratesStore: inicializado desde localStorage para evitar cualquier parpadeo al montar
+  const [ratesStore, setRatesStoreState] = useState<RatesStore>(() => loadCacheFromStorage());
   const [loadingRates, setLoadingRates] = useState(false);
+  // Estado de traducciones cargadas — trigger de re-render al cargar nuevo idioma
+  const [messagesVersion, setMessagesVersion] = useState(0);
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
+  /**
+   * Actualiza el store en memoria Y persiste en localStorage de forma atómica.
+   * Usar siempre este helper en lugar de setRatesStoreState directo.
+   */
+  const updateStore = useCallback((updater: (prev: RatesStore) => RatesStore) => {
+    setRatesStoreState(prev => {
+      const next = updater(prev);
+      saveCacheToStorage(next);
+      return next;
+    });
+  }, []);
+
+  // Restaurar locale y currency desde localStorage al montar
   useEffect(() => {
     const savedLocale = localStorage.getItem(LOCALE_KEY) as SupportedLocale | null;
     const savedCurrency = localStorage.getItem(CURRENCY_KEY) as SupportedCurrency | null;
-
     if (savedLocale) {
       setLocaleState(savedLocale);
+      // Cargar traducciones del idioma guardado
+      void loadLocaleMessages(savedLocale).then(() => setMessagesVersion(v => v + 1));
     }
     if (savedCurrency) {
       setCurrencyState(savedCurrency);
     } else if (savedLocale) {
-      setCurrencyState(localeToCurrency[savedLocale] || 'EUR');
+      setCurrencyState(localeToCurrency[savedLocale] ?? 'EUR');
     }
   }, []);
 
+  // Sincronizar el atributo lang del documento HTML
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
 
+  /**
+   * Cargar tasa de HOY cuando la moneda cambia.
+   * Lee SOLO desde localStorage (no desde el estado de React) para evitar closures stale.
+   */
   useEffect(() => {
     if (currency === BASE_CURRENCY) return;
-    const key = `${todayKey}_${currency}`;
-    if (ratesByDate[key]) return;
 
-    const fetchLatestRate = async () => {
+    // Leer siempre desde localStorage (fuente de verdad persistente)
+    const stored = loadCacheFromStorage();
+    const storedTodayRate = getRate(stored, currency, todayKey);
+
+    if (storedTodayRate !== null) {
+      // Tasa de hoy ya disponible en localStorage — sincronizar memoria y salir
+      console.log(`[wallet.ia] Rate for ${currency} loaded from cache: ${storedTodayRate}`);
+      setRatesStoreState(stored);
+      return;
+    }
+
+    // No hay tasa de hoy → hacer fetch a la API
+    console.log(`[wallet.ia] Fetching rate for ${currency}...`);
+    const load = async () => {
+      setLoadingRates(true);
       try {
-        setLoadingRates(true);
-        const response = await fetch(`https://api.frankfurter.app/latest?from=${BASE_CURRENCY}&to=${currency}`);
-        if (!response.ok) return;
-        const payload = await response.json();
-        const rate = Number(payload?.rates?.[currency]);
-        if (!Number.isFinite(rate) || rate <= 0) return;
-        setRatesByDate((prev) => ({ ...prev, [key]: rate }));
+        const res = await fetch(
+          `https://api.frankfurter.app/latest?from=EUR&to=${currency}`,
+          { signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined }
+        );
+        if (!res.ok) {
+          console.error(`[wallet.ia] Frankfurter API error: ${res.status}`);
+          return;
+        }
+        const data = await res.json();
+        const rate = Number(data?.rates?.[currency]);
+        console.log(`[wallet.ia] Rate for ${currency}: ${rate}`);
+        if (Number.isFinite(rate) && rate > 0) {
+          updateStore(prev => {
+            let next = setRate(prev, currency, todayKey, rate);
+            next = markTodayFetched(next, currency);
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error('[wallet.ia] Rate fetch failed:', err);
       } finally {
         setLoadingRates(false);
       }
     };
+    void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, todayKey]);
 
-    void fetchLatestRate();
-  }, [currency, todayKey, ratesByDate]);
-
-  const setLocale = (newLocale: SupportedLocale) => {
+  const setLocale = useCallback((newLocale: SupportedLocale) => {
     setLocaleState(newLocale);
     localStorage.setItem(LOCALE_KEY, newLocale);
-    const suggestedCurrency = localeToCurrency[newLocale];
-    setCurrencyState(suggestedCurrency);
-    localStorage.setItem(CURRENCY_KEY, suggestedCurrency);
-  };
+    const suggested = localeToCurrency[newLocale] ?? 'EUR';
+    setCurrencyState(suggested);
+    localStorage.setItem(CURRENCY_KEY, suggested);
+    // Cargar traducciones del nuevo idioma
+    void loadLocaleMessages(newLocale).then(() => setMessagesVersion(v => v + 1));
+  }, []);
 
-  const setCurrency = (newCurrency: SupportedCurrency) => {
+  const setCurrency = useCallback((newCurrency: SupportedCurrency) => {
     setCurrencyState(newCurrency);
     localStorage.setItem(CURRENCY_KEY, newCurrency);
-  };
+  }, []);
 
-  const resolveRateSync = (dateISO?: string) => {
+  /**
+   * Resuelve la tasa de cambio de forma SINCRÓNICA — nunca bloquea la UI.
+   * Prioridad: tasa exacta del día → cualquier tasa disponible más cercana → 1 (EUR base).
+   */
+  const resolveRateSync = useCallback((dateISO?: string): number => {
     if (currency === BASE_CURRENCY) return 1;
-    const normalizedDate = dateISO ? dateISO.slice(0, 10) : todayKey;
-    const key = `${normalizedDate}_${currency}`;
-    return ratesByDate[key] || ratesByDate[`${todayKey}_${currency}`] || 1;
-  };
+    const dateKey = dateISO ? dateISO.slice(0, 10) : todayKey;
 
-  const convertAmount = (amountInBase: number, dateISO?: string) => {
+    // 1. Tasa exacta del día solicitado
+    const exact = getRate(ratesStore, currency, dateKey);
+    if (exact !== null) return exact;
+
+    // 2. Tasa de hoy (lo más representativo para totales sin fecha)
+    const todayRate = getRate(ratesStore, currency, todayKey);
+    if (todayRate !== null) return todayRate;
+
+    // 3. Tasa más cercana disponible (cualquier dirección)
+    const nearest = getNearestRate(ratesStore, currency, dateKey);
+    if (nearest !== null) return nearest;
+
+    // 4. Cualquier tasa disponible para esta moneda
+    const currencyData = ratesStore[currency];
+    if (currencyData) {
+      const anyRate = Object.entries(currencyData)
+        .filter(([k]) => k !== '_fetched')
+        .map(([, v]) => v)
+        .find(v => typeof v === 'number' && (v as number) > 0);
+      if (anyRate !== undefined) return anyRate as number;
+    }
+
+    // 5. Sin tasa: devolver 1 (muestra en EUR)
+    return 1;
+  }, [currency, ratesStore, todayKey]);
+
+  const convertAmount = useCallback((amountInBase: number, dateISO?: string): number => {
     return amountInBase * resolveRateSync(dateISO);
-  };
+  }, [resolveRateSync]);
 
-  const prefetchRates = async (dates: string[]) => {
+  /**
+   * Pre-carga las tasas para un conjunto de fechas usando la estrategia más eficiente:
+   * - 0 fechas faltantes → no hace nada
+   * - 1 fecha faltante  → petición individual
+   * - N fechas faltantes → petición de rango (1 sola request HTTP)
+   * - Fallback: peticiones individuales en paralelo si el rango falla
+   *
+   * Las fechas ya en caché se ignoran. El resultado se persiste en localStorage.
+   */
+  const prefetchRates = useCallback(async (dates: string[]): Promise<void> => {
     if (currency === BASE_CURRENCY) return;
-    const uniqueDates = Array.from(new Set(dates.map((d) => d.slice(0, 10))));
-    const missing = uniqueDates.filter((date) => !ratesByDate[`${date}_${currency}`]);
+
+    const missing = getMissingDates(ratesStore, currency, dates);
     if (missing.length === 0) return;
 
     setLoadingRates(true);
     try {
-      const entries = await Promise.all(
-        missing.map(async (date) => {
-          const response = await fetch(`https://api.frankfurter.app/${date}?from=${BASE_CURRENCY}&to=${currency}`);
-          if (!response.ok) return null;
-          const payload = await response.json();
-          const rate = Number(payload?.rates?.[currency]);
-          if (!Number.isFinite(rate) || rate <= 0) return null;
-          return [date, rate] as const;
-        }),
-      );
+      if (missing.length === 1) {
+        // Petición individual para una sola fecha
+        const rate = await fetchRate(currency, missing[0]);
+        if (rate !== null) {
+          updateStore(prev => setRate(prev, currency, missing[0], rate));
+        }
+      } else {
+        // Petición de rango: 1 sola request HTTP para todas las fechas
+        const sortedMissing = [...missing].sort();
+        const startDate = sortedMissing[0];
+        const endDate = sortedMissing[sortedMissing.length - 1];
+        const rangeRates = await fetchRateRange(currency, startDate, endDate);
 
-      const valid = entries.filter((entry): entry is readonly [string, number] => Boolean(entry));
-      if (valid.length > 0) {
-        setRatesByDate((prev) => {
-          const next = { ...prev };
-          valid.forEach(([date, rate]) => {
-            next[`${date}_${currency}`] = rate;
+        if (Object.keys(rangeRates).length > 0) {
+          updateStore(prev => {
+            let next = prev;
+            for (const [date, rate] of Object.entries(rangeRates)) {
+              next = setRate(next, currency, date, rate);
+            }
+            return next;
           });
-          return next;
-        });
+        } else {
+          // Fallback: peticiones individuales en paralelo si el rango falla
+          const results = await Promise.all(
+            missing.map(async (d) => {
+              const r = await fetchRate(currency, d);
+              return r !== null ? ([d, r] as const) : null;
+            }),
+          );
+          updateStore(prev => {
+            let next = prev;
+            for (const entry of results) {
+              if (entry) next = setRate(next, currency, entry[0], entry[1]);
+            }
+            return next;
+          });
+        }
       }
     } finally {
       setLoadingRates(false);
     }
-  };
+  }, [currency, ratesStore, updateStore]);
 
   const value = useMemo<LocaleCurrencyContextType>(() => ({
     locale,
@@ -1285,10 +287,10 @@ export function LocaleCurrencyProvider({ children }: { children: React.ReactNode
     },
     loadingRates,
     t: (key: string) => {
-      if (locale === 'es-ES') return messages['es-ES'][key] || key;
-      return messages[locale]?.[key] || messages['en-US'][key] || messages['es-ES'][key] || key;
+      const msgs = getLoadedMessages(locale);
+      return msgs[key] ?? (defaultMessages as Record<string, string>)[key] ?? key;
     },
-  }), [locale, currency, loadingRates, ratesByDate]);
+  }), [locale, currency, loadingRates, ratesStore, messagesVersion, setLocale, setCurrency, prefetchRates, convertAmount]);
 
   return <LocaleCurrencyContext.Provider value={value}>{children}</LocaleCurrencyContext.Provider>;
 }

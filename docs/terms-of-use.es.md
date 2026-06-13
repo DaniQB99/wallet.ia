@@ -36,4 +36,3 @@ Estos términos se interpretan conforme a la normativa española y europea aplic
 
 ## 10. Contacto
 Consultas legales y soporte: soporte@wallet.ia
-
