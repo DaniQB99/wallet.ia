@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Agent specifications and skills
+.agents/
+skills-lock.json
+
