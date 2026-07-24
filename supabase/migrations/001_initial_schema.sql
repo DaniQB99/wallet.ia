@@ -1,5 +1,5 @@
 -- ==========================================
--- wallet.ia — Complete Unified Database Migration
+-- wallet.ia — Initial Master Schema Migration
 -- Comprehensive Schema: Core Tracking, Joint Accounts, GDPR,
 -- Audit Logs, Currency Conversion, RPC Functions & Realtime.
 -- ==========================================

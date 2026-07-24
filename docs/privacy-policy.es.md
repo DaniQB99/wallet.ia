@@ -34,4 +34,5 @@ Aplicamos medidas técnicas y organizativas razonables para proteger la confiden
 La app puede usar almacenamiento local para preferencias (tema, idioma, moneda) y funcionamiento técnico esencial.
 
 ## 10. Contacto
-Para privacidad o ejercicio de derechos: soporte@wallet.ia
+Para privacidad o ejercicio de derechos: daniqb99@icloud.com
+

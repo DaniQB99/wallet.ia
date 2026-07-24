@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Obtener sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       } else {
         setLoading(false);
       }
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       } else {
         setUser(null);
         setLoading(false);

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -619,5 +619,18 @@ export const Constants = {
   public: {
     Enums: {},
   },
-} as const
+} as const;
+
+export type Transaction = Tables<'transactions'>;
+export type Account = Tables<'accounts'>;
+export type Category = Tables<'categories'>;
+export type Goal = Tables<'goals'>;
+export type UserProfile = Tables<'profiles'> & { email?: string };
+export type CoupleLink = Tables<'couple_links'>;
+export type Notification = Tables<'notifications'>;
+
+export type TransactionType = 'personal' | 'shared';
+export type CategoryScope = 'personal' | 'shared';
+export type GoalType = 'savings' | 'debt' | 'expense' | string;
+
 

@@ -6,6 +6,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import type { Account } from '../../../shared/types/database';
 
 const COLOR_PRESETS = [
   '#6366F1', '#EC4899', '#10B981', '#F59E0B',
@@ -58,13 +59,13 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
     resetForm();
   };
 
-  const handleEdit = (acc: { id: string; name: string; balance: number; icon: string; color: string; scope?: 'personal' | 'shared' | null }) => {
+  const handleEdit = (acc: Account) => {
     setEditingId(acc.id);
     setName(acc.name);
     setBalance(acc.balance.toString());
     setIcon(acc.icon || '🏦');
     setColor(acc.color || '#6366F1');
-    setScope(acc.scope || 'personal');
+    setScope((acc.scope as 'personal' | 'shared') || 'personal');
   };
 
   const handleDelete = (id: string) => {
