@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.agents
+.atl
+android
+ios
+openspec
+doctor.config.ts
+README.md

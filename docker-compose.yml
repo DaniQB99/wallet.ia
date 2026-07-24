@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Entorno de Desarrollo (Vite Dev Server con Hot Reload)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: wallet_ia_dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  # Entorno de Producción (Servidor Nginx)
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wallet_ia_prod
+    ports:
+      - "8080:80"
+    restart: always

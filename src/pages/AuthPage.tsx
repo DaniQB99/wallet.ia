@@ -1,8 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, X } from 'lucide-react';
-import { useAuthContext } from '../contexts/AuthContext';
-import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
+import { useAuthContext } from '../app/providers/AuthContext';
+import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 
 type AuthMode = 'login' | 'register';
 

@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, Wallet, BarChart3 } from 'lucide-react';
-import { useAuthContext } from '../contexts/AuthContext';
-import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
-import { useTransactions } from '../hooks/useTransactions';
-import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useAuthContext } from '../app/providers/AuthContext';
+import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
+import { useTransactions } from '../entities/transactions/model/useTransactions';
+import { useDashboardStats } from '../features/dashboard/model/useDashboardStats';
 import { useEffect } from 'react';
 
 /**
@@ -22,7 +22,7 @@ export default function Dashboard() {
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
 
-  // Get user name for greeting
+  // Obtener el nombre del usuario para el saludo
   const userName = user?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
   // Hook para calcular estadísticas derivadas de las transacciones en tiempo real

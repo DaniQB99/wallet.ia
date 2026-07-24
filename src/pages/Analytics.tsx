@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useTransactions } from '../hooks/useTransactions';
-import { shiftReferenceDate, useAnalyticsStats, type AnalyticsPeriod } from '../hooks/useAnalyticsStats';
-import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
+import { useTransactions } from '../entities/transactions/model/useTransactions';
+import { shiftReferenceDate, useAnalyticsStats, type AnalyticsPeriod } from '../features/analytics/model/useAnalyticsStats';
+import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 
 /**
  * Vista Analítica de Finanzas (Dashboard de gráficos e informes).

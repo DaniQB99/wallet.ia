@@ -14,20 +14,20 @@ import {
   Smartphone,
   Monitor,
 } from 'lucide-react';
-import { useAuthContext } from '../contexts/AuthContext';
-import { useAppearance } from '../contexts/AppearanceContext';
-import { useLocaleCurrency, type SupportedCurrency, type SupportedLocale } from '../contexts/LocaleCurrencyContext';
+import { useAuthContext } from '../app/providers/AuthContext';
+import { useAppearance } from '../app/providers/AppearanceContext';
+import { useLocaleCurrency, type SupportedCurrency, type SupportedLocale } from '../app/providers/LocaleCurrencyContext';
 import { Wallet, Tag } from 'lucide-react';
-import AccountsSettings from '../components/AccountsSettings';
-import CategoriesSettings from '../components/CategoriesSettings';
-import ProfileSettings from '../components/ProfileSettings';
-import PartnerSettings from '../components/PartnerSettings';
-import NotificationsModal from '../components/NotificationsModal';
-import LegalDocumentModal from '../components/LegalDocumentModal';
+import AccountsSettings from '../features/settings/ui/AccountsSettings';
+import CategoriesSettings from '../features/settings/ui/CategoriesSettings';
+import ProfileSettings from '../features/settings/ui/ProfileSettings';
+import PartnerSettings from '../features/settings/ui/PartnerSettings';
+import NotificationsModal from '../features/notifications/ui/NotificationsModal';
+import LegalDocumentModal from '../shared/ui/LegalDocumentModal';
 import privacyPolicyText from '../../docs/privacy-policy.es.md?raw';
 import termsOfUseText from '../../docs/terms-of-use.es.md?raw';
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../shared/api/supabase';
 import { Download, Trash2 } from 'lucide-react';
 
 interface SettingsItemProps {
@@ -64,8 +64,9 @@ export default function Settings() {
   const { theme, resolvedTheme, setTheme, accentColor, setAccentColor } = useAppearance();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { locale, setLocale, currency, setCurrency, loadingRates, t } = useLocaleCurrency();
+  const { locale, setLocale, currency, setCurrency, t } = useLocaleCurrency();
   const [showAccounts, setShowAccounts] = useState(false);
+  const [isConvertingCurrency, setIsConvertingCurrency] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
@@ -140,6 +141,48 @@ export default function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
   }, []);
 
+  const handleChangeCurrency = async (newCurrency: SupportedCurrency) => {
+    if (newCurrency === currency) {
+      setShowCurrencyPicker(false);
+      return;
+    }
+
+    if (!window.confirm(`¿Estás seguro de que quieres cambiar tu cuenta entera de ${currency} a ${newCurrency}? Se convertirá todo tu saldo y el historial de transacciones usando el tipo de cambio actual.`)) {
+      return;
+    }
+
+    setIsConvertingCurrency(true);
+    try {
+      // Fetch exchange rate from current to new
+      let rate = 1;
+      if (currency !== newCurrency) {
+        const res = await fetch(`https://api.frankfurter.app/latest?from=${currency}&to=${newCurrency}`);
+        if (!res.ok) throw new Error('Error de red al obtener tasa de cambio');
+        const data = await res.json();
+        rate = Number(data?.rates?.[newCurrency]);
+
+        if (!Number.isFinite(rate) || rate <= 0) {
+          throw new Error('Tasa de cambio inválida recibida');
+        }
+      }
+
+      const { error } = await supabase.rpc('convert_user_currency', {
+        p_exchange_rate: rate,
+        p_new_currency: newCurrency
+      });
+
+      if (error) throw error;
+
+      setCurrency(newCurrency);
+      setShowCurrencyPicker(false);
+    } catch (err: unknown) {
+      console.error('Error al cambiar la divisa:', err);
+      alert('Error cambiando divisa: ' + (err as Error).message);
+    } finally {
+      setIsConvertingCurrency(false);
+    }
+  };
+
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       (deferredPrompt as any).prompt();
@@ -169,46 +212,20 @@ export default function Settings() {
   // Gestión de Datos
   const handleExportData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          id, type, amount, description, date,
-          accounts(name), categories(name)
-        `)
-        .order('date', { ascending: false });
-
+      const { data, error } = await supabase.rpc('export_user_data');
       if (error) throw error;
-      if (!data || data.length === 0) {
+      if (!data) {
         alert('No hay datos para exportar.');
         return;
       }
 
-      // Convert to CSV
-      const headers = ['ID', 'Tipo', 'Monto', 'Descripción', 'Fecha', 'Cuenta', 'Categoría'];
-      const csvRows = [headers.join(',')];
-
-      data.forEach(t => {
-        const accName = Array.isArray(t.accounts) ? t.accounts[0]?.name : (t.accounts as any)?.name;
-        const catName = Array.isArray(t.categories) ? t.categories[0]?.name : (t.categories as any)?.name;
-
-        const row = [
-          t.id,
-          t.type,
-          t.amount,
-          `"${(t.description || '').replace(/"/g, '""')}"`,
-          t.date,
-          `"${(accName || '').replace(/"/g, '""')}"`,
-          `"${(catName || '').replace(/"/g, '""')}"`
-        ];
-        csvRows.push(row.join(','));
-      });
-
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      // Convert JSON to Blob
+      const jsonContent = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `wallet_ia_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `wallet_ia_export_${new Date().toISOString().split('T')[0]}.json`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -218,9 +235,22 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteAccount = () => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar tu cuenta permanentemente? Esta acción no se puede deshacer.')) {
-      alert('Para eliminar tu cuenta definitivamente, por favor envía un correo a soporte@wallet.ia desde tu correo registrado o espera a la próxima actualización.');
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (window.confirm('¿Estás seguro de que quieres eliminar tu cuenta permanentemente? Según la normativa RGPD, tu cuenta y todos tus datos se eliminarán definitivamente tras un período de gracia de 30 días.')) {
+      try {
+        const { error } = await supabase.from('deletion_requests').insert({
+          user_id: user.id,
+          reason: 'Solicitado por el usuario desde la app'
+        });
+
+        if (error) throw error;
+
+        alert('Solicitud registrada. Tu cuenta se eliminará en 30 días.');
+        await handleLogout();
+      } catch (err: unknown) {
+        alert('Error procesando la solicitud: ' + (err as Error).message);
+      }
     }
   };
 
@@ -293,7 +323,7 @@ export default function Settings() {
           <div className="card" style={{ padding: 0 }}>
             <SettingsItem
               icon={theme === 'system' ? <Monitor size={20} /> : resolvedTheme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-                label={t('appearance')}
+              label={t('appearance')}
               desc={theme === 'system' ? `Automático (${resolvedTheme === 'dark' ? 'oscuro' : 'claro'})` : `Modo ${theme === 'dark' ? 'oscuro' : 'claro'}`}
               action={
                 <div className="settings-theme-segmented" onClick={(e) => e.stopPropagation()}>
@@ -317,25 +347,25 @@ export default function Settings() {
                 label={`${t('color')} de acento`}
                 desc={
                   accentColor === 'indigo' ? 'Índigo' :
-                  accentColor === 'emerald' ? 'Esmeralda' :
-                  accentColor === 'rose' ? 'Rosa' : 'Ámbar'
+                    accentColor === 'emerald' ? 'Esmeralda' :
+                      accentColor === 'rose' ? 'Rosa' : 'Ámbar'
                 }
                 action={
                   <div style={{ display: 'flex', gap: '8px', pointerEvents: 'none' }}>
                     {['indigo', 'emerald', 'rose', 'amber'].map(color => (
-                        <div key={color} style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: 'var(--radius-full)',
-                          background: color === 'indigo' ? 'var(--accent-gradient)' :
-                                      color === 'emerald' ? 'linear-gradient(135deg, #10B981, #059669)' :
-                                      color === 'rose' ? 'linear-gradient(135deg, #F43F5E, #E11D48)' :
-                                      'linear-gradient(135deg, #FBBF24, #F59E0B)',
-                          opacity: accentColor === color ? 1 : 0.3,
-                          border: accentColor === color ? '2px solid var(--border-accent)' : 'none',
-                          transform: accentColor === color ? 'scale(1.1)' : 'scale(1)',
-                          transition: 'var(--transition-fast)'
-                        }} />
+                      <div key={color} style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: 'var(--radius-full)',
+                        background: color === 'indigo' ? 'var(--accent-gradient)' :
+                          color === 'emerald' ? 'linear-gradient(135deg, #10B981, #059669)' :
+                            color === 'rose' ? 'linear-gradient(135deg, #F43F5E, #E11D48)' :
+                              'linear-gradient(135deg, #FBBF24, #F59E0B)',
+                        opacity: accentColor === color ? 1 : 0.3,
+                        border: accentColor === color ? '2px solid var(--border-accent)' : 'none',
+                        transform: accentColor === color ? 'scale(1.1)' : 'scale(1)',
+                        transition: 'var(--transition-fast)'
+                      }} />
                     ))}
                   </div>
                 }
@@ -541,7 +571,7 @@ export default function Settings() {
               {currencyOptions.map(item => (
                 <div
                   key={item.value}
-                  onClick={() => { setCurrency(item.value); setShowCurrencyPicker(false); }}
+                  onClick={() => handleChangeCurrency(item.value)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px',
                     cursor: 'pointer', borderBottom: '1px solid var(--border)',
@@ -562,9 +592,9 @@ export default function Settings() {
                 </div>
               ))}
             </div>
-            {loadingRates && (
-              <div style={{ padding: '12px 20px', fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
-                {loadingRates ? 'Actualizando tasas de cambio...' : ''}
+            {isConvertingCurrency && (
+              <div style={{ padding: '12px 20px', fontSize: '0.85rem', color: 'var(--accent-primary)', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                Convirtiendo todos tus datos en la base de datos...
               </div>
             )}
           </div>

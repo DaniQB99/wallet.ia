@@ -1,90 +1,71 @@
 # 💸 Wallet.ia
 
-**Wallet.ia** is a modern, high-performance Progressive Web Application (PWA) designed to help couples manage their shared and personal finances effortlessly. Built with a focus on seamless user experience, strict security, and modern web architecture.
+**Wallet.ia** es una Aplicación Web Progresiva (PWA) moderna y de alto rendimiento diseñada para ayudar a las parejas a gestionar sus finanzas compartidas y personales sin esfuerzo. Está construida con un enfoque estricto en la experiencia del usuario (UX), seguridad en la base de datos y una arquitectura web altamente escalable.
 
-![Wallet.ia Preview](https://via.placeholder.com/1200x600?text=Wallet.ia+-+Finance+Manager+for+Couples)
+![Wallet.ia Preview](https://via.placeholder.com/1200x600?text=Wallet.ia+-+Gestor+Financiero+para+Parejas)
 
-## ✨ Core Features
+## ✨ Características Principales
 
-- **👥 Dual-Mode Finance Management:** Track both personal and joint expenses in real-time. Link accounts with your partner via secure invitation codes.
-- **🎯 Shared Savings Goals:** Create and visualize progress on shared goals (e.g., "Vacations", "New House") or keep personal targets.
-- **🔒 Enterprise-Grade Security:** Data visibility is strictly governed at the database level using Supabase Row Level Security (RLS). Users can only access their data or their partner's explicitly shared data.
-- **⚡ Performance Optimized:** Built on Vite with React. Implements advanced code-splitting via `React.lazy` and `Suspense`, ensuring lightning-fast load times even on slow mobile networks.
-- **📱 Mobile-First PWA:** Native-feeling interactions, bottom navigation, and full PWA compatibility for offline-ready installation on iOS and Android.
+- **👥 Gestión Financiera Dual:** Rastrea tanto los gastos personales como los conjuntos en tiempo real. Vincula cuentas con tu pareja mediante códigos de invitación seguros.
+- **🎯 Metas de Ahorro Compartidas:** Crea y visualiza el progreso de metas compartidas (ej. "Vacaciones", "Casa Nueva") o mantén objetivos personales.
+- **📱 PWA "Mobile-First":** Interacciones fluidas que se sienten nativas, navegación inferior (Bottom Nav) y compatibilidad total PWA para instalación offline en iOS y Android.
+- **🌐 Internacionalización (i18n):** Soporte multi-idioma con carga dinámica (`lazy loading`) de diccionarios JSON para no saturar el bundle principal.
 
-## 🏗️ Architecture & Technologies
+## 🏗️ Arquitectura y Tecnologías
+
+El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizando una separación de responsabilidades clara y una escalabilidad de grado empresarial.
 
 **Frontend Stack:**
+- **React 19** & **TypeScript** para un tipado estricto y seguro.
+- **Vite** para una compilación ultra rápida y HMR.
+- **Framer Motion** para micro-interacciones y transiciones de UI fluidas.
+- **Lucide React** para iconografía.
 
-- [React 19](https://react.dev/)
-- [TypeScript](https://www.typescriptlang.org/) for strict type safety
-- [Vite](https://vitejs.dev/) for ultra-fast HMR and optimized builds
-- [React Router](https://reactrouter.com/) (Lazy Loaded Routes)
-- [Framer Motion](https://www.framer.com/motion/) for micro-interactions and smooth UI transitions
-- [Lucide React](https://lucide.dev/) & [Emoji Mart](https://github.com/missive/emoji-mart)
+**Backend & Datos:**
+- **Supabase (PostgreSQL):** Base de datos en tiempo real.
+- **Suscripciones Websocket:** Sincronización instantánea de transacciones y metas entre parejas vinculadas.
 
-**Backend Stack:**
+## 🔒 Seguridad y Rendimiento
 
-- [Supabase](https://supabase.com/) (PostgreSQL)
-- **Row Level Security (RLS):** Complex DB policies limit row reads/writes inherently without relying on the client's honesty.
-- **Realtime Subscriptions:** Websocket listeners to instantly sync transactions and goals between linked partners.
+- **Row Level Security (RLS):** Las políticas estrictas en la base de datos garantizan que un usuario solo pueda leer/escribir su propia información o la información explícitamente compartida por su pareja, incluso si la API Key queda expuesta.
+- **Rutas Protegidas:** Los usuarios no autenticados son interceptados antes de descargar los chunks de código sensible.
+- **Optimización de Bundle:** Implementación avanzada de code-splitting mediante `React.lazy` y `Suspense`, y separación de chunks (`manualChunks`) para dependencias pesadas, asegurando tiempos de carga relámpago.
 
-## 🚀 Getting Started
+## 🐳 Ejecución Local y Despliegue
 
-### Prerequisites
+El proyecto está completamente **Dockerizado** para garantizar consistencia entre desarrollo y producción.
 
-- Node.js (v18 or higher)
-- npm or pnpm
-- A Supabase Project configured with the schemas in `/supabase/`
-- (Optional) `engram` binary for persistent AI memory integration
+### Requisitos Previos
+- Node.js (v18+) o Docker Desktop
+- Un proyecto configurado en Supabase
 
-### Installation
+### Opción A: Usando Docker (Recomendado)
 
-1. **Clone the repository:**
-
+1. Clonar el repositorio y configurar variables de entorno:
    ```bash
-   git clone https://github.com/your-username/wallet.ia.git
-   cd wallet.ia
+   cp .env.example .env
+   # Añade tus credenciales de Supabase en .env
    ```
-
-2. **Install dependencies:**
-
+2. Levantar el entorno de desarrollo con Hot-Reload:
    ```bash
-   npm install
+   docker-compose up app-dev -d
    ```
-
-3. **Configure Environment:**
-   Rename `.env.example` to `.env` and add your Supabase keys:
-
-   ```env
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. **Run Development Server:**
+3. (Opcional) Probar el contenedor de producción (NGINX + Multi-stage build):
    ```bash
-   npm run dev
+   docker-compose up app-prod -d
    ```
 
-## 🧠 Persistent Agent Memory (Engram)
-
-This repo includes MCP configuration for `engram` in `.cursor/mcp.json`, so coding agents (like Octopus in Cursor) can keep long-term memory across sessions.
-
-Quick usage after installing `engram`:
+### Opción B: Usando NPM/PNPM
 
 ```bash
-engram version
-npm run memory:context
-npm run memory:search -- "rls policy"
+npm install
+npm run dev
 ```
+*(Para compilar a producción localmente, ejecuta `npm run build` y luego usa un servidor estático sobre la carpeta `/dist`)*.
 
-Detailed setup and recommended memory workflow: `docs/ENGRAM.md`
+## 🧠 Integración de Memoria Persistente (IA)
 
-## 🔒 Security Posture
+Este repositorio incluye configuración MCP para `engram` en `.cursor/mcp.json`, lo que permite a agentes de código mantener memoria a largo plazo entre sesiones de programación. Las instrucciones detalladas están en `docs/ENGRAM.md`.
 
-- **Strict RLS Policies:** Even if an API key is extracted, users cannot fetch data associated with `user_id` outside of their personal or linked partner's scope.
-- **Component Boundary Escapes:** Protected routing drops unauthenticated users before any sensitive chunks are requested.
-
-## 📄 License
-
-This project is licensed under the MIT License.
+---
+*Desarrollado con pasión, enfocado en código limpio y arquitectura escalable.*

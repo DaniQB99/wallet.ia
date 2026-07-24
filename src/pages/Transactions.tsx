@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Search, X, Wallet, CalendarDays, Tag, ArrowUpDown, ChevronRight } from 'lucide-react';
 
-import { useTransactions } from '../hooks/useTransactions';
-import { useCategories } from '../hooks/useCategories';
-import { useAccounts } from '../hooks/useAccounts';
-import type { Transaction, TransactionType } from '../types/database';
-import TransactionModal from '../components/TransactionModal';
-import { useLocaleCurrency } from '../contexts/LocaleCurrencyContext';
+import { useTransactions } from '../entities/transactions/model/useTransactions';
+import { useCategories } from '../entities/categories/model/useCategories';
+import { useAccounts } from '../entities/accounts/model/useAccounts';
+import type { Transaction, TransactionType } from '../shared/types/database';
+import TransactionModal from '../features/transactions/ui/TransactionModal';
+import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 
 /**
  * Vista central de Movimientos Financieros (Transacciones).
