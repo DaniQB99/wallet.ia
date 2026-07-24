@@ -10,6 +10,8 @@ import Sidebar from '../widgets/layout/Sidebar';
 import BottomNav from '../widgets/layout/BottomNav';
 import OnboardingOverlay from '../shared/ui/OnboardingOverlay';
 import CookieConsent from '../shared/components/CookieConsent';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Analytics = lazy(() => import('../pages/Analytics'));
@@ -32,6 +34,7 @@ const PageLoaderText = () => {
 export default function App() {
   return (
     <BrowserRouter>
+      <SpeedInsights />
       <AppearanceProvider>
         <AuthProvider>
           <LocaleCurrencyProvider>
