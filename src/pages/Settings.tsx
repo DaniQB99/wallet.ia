@@ -156,7 +156,7 @@ export default function Settings() {
       // Fetch exchange rate from current to new
       let rate = 1;
       if (currency !== newCurrency) {
-        const res = await fetch(`https://api.frankfurter.app/latest?from=${currency}&to=${newCurrency}`);
+        const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=${currency}&to=${newCurrency}`);
         if (!res.ok) throw new Error('Error de red al obtener tasa de cambio');
         const data = await res.json();
         rate = Number(data?.rates?.[newCurrency]);
@@ -167,6 +167,7 @@ export default function Settings() {
       }
 
       const { error } = await supabase.rpc('convert_user_currency', {
+        p_user_id: user!.id,
         p_exchange_rate: rate,
         p_new_currency: newCurrency
       });

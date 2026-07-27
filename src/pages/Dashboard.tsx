@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, Wallet, BarChart3 } from 'lucide-react';
+import { TransactionItem } from '../features/transactions/ui/TransactionItem';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 import { useTransactions } from '../entities/transactions/model/useTransactions';
+import { TotalBalance } from '../shared/ui/TotalBalance';
 import { useDashboardStats } from '../features/dashboard/model/useDashboardStats';
 import { useEffect } from 'react';
 
@@ -17,7 +19,7 @@ export default function Dashboard() {
   // Estado y autenticación
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const { formatMoney, prefetchRates, locale, t, currency, loadingRates } = useLocaleCurrency();
+  const { prefetchRates, t, currency, loadingRates } = useLocaleCurrency();
 
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
@@ -39,7 +41,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (transactions.length === 0) return;
     void prefetchRates(transactions.map((tx) => tx.date));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions.length, currency]);
 
 
@@ -81,21 +83,23 @@ export default function Dashboard() {
       <div className="page-content">
         {/* Stats */}
         <div className="stats-grid">
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent-gradient)' } as React.CSSProperties}>
-            <div className="stat-card-icon" style={{ background: 'var(--accent-primary-glow)' }}>
-              <Users size={22} color="var(--accent-primary-hover)" />
-            </div>
-            <div className="stat-card-value">{formatMoney(totalShared)}</div>
-            <div className="stat-card-label">{t('sharedBalance')}</div>
-          </div>
+          <TotalBalance
+            value={totalShared}
+            label={t('sharedBalance')}
+            color="var(--accent-gradient)"
+            iconBg="var(--accent-primary-glow)"
+            iconColor="var(--accent-primary-hover)"
+            icon={<Users size={22} />}
+          />
 
-          <div className="stat-card" style={{ '--stat-color': 'linear-gradient(90deg, #F59E0B, #FBBF24)' } as React.CSSProperties}>
-            <div className="stat-card-icon" style={{ background: 'var(--warning-bg)' }}>
-              <Wallet size={22} color="var(--warning)" />
-            </div>
-            <div className="stat-card-value">{formatMoney(personalTotal)}</div>
-            <div className="stat-card-label">{t('personalBalance')}</div>
-          </div>
+          <TotalBalance
+            value={personalTotal}
+            label={t('personalBalance')}
+            color="linear-gradient(90deg, #F59E0B, #FBBF24)"
+            iconBg="var(--warning-bg)"
+            iconColor="var(--warning)"
+            icon={<Wallet size={22} />}
+          />
         </div>
 
         <div className="dashboard-grid">
@@ -128,44 +132,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 recentTransactions.map(tx => (
-                  <div key={tx.id} className="transaction-item">
-                    <div className="transaction-icon" style={{ background: tx.category?.color ? `${tx.category.color}15` : 'var(--bg-secondary)', color: tx.category?.color || 'var(--text-primary)' }}>
-                      {tx.category ? tx.category.icon : '🏷️'}
-                    </div>
-                    <div className="transaction-info">
-                      <div className="transaction-desc">
-                        {tx.description}
-                        {tx.type === 'shared' && (
-                          <span className="badge-shared" style={{ marginLeft: '8px' }}>Compartido</span>
-                        )}
-                      </div>
-                      <div className="transaction-meta">
-                        {new Date(tx.date).toLocaleDateString(locale, {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                        {tx.type === 'shared' && tx.user_id !== user?.id && (
-                          <span style={{ color: 'var(--accent-primary-hover)' }}>
-                            — {t('createdByPartner')}
-                          </span>
-                        )}
-                      </div>
-                      {tx.account && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                          {tx.account.icon} {tx.account.name}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className={tx.amount > 0 ? "transaction-amount income" : "transaction-amount expense"}>
-                        {tx.amount > 0 ? '+' : '-'}{formatMoney(Math.abs(Number(tx.amount)), tx.date)}
-                      </div>
-                      <div className="transaction-user" style={{ textAlign: 'right', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                        {tx.user_id === user?.id ? t('me') : t('partner')}
-                      </div>
-                    </div>
-                  </div>
+                  <TransactionItem key={tx.id} tx={tx} />
                 ))
               )}
             </div>

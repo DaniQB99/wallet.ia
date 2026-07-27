@@ -25,7 +25,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
   const accountIdAttr = useId();
   const scopeId = useId();
 
-  const { t } = useLocaleCurrency();
+  const { t, currency } = useLocaleCurrency();
   const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
 
   const [flowType, setFlowType] = useState<'expense' | 'income'>('expense');
@@ -117,6 +117,7 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
           account_id: accountId || null,
           type: scope,
           date,
+          currency: currency || 'EUR',
         });
         if (err) throw err;
       }

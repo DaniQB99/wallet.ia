@@ -367,11 +367,14 @@ export type Database = {
         Row: {
           account_id: string | null
           amount: number
+          base_amount: number
           category_id: string | null
           couple_id: string | null
           created_at: string
+          currency: string
           date: string
           description: string
+          exchange_rate_used: number
           goal_id: string | null
           id: string
           type: string
@@ -381,11 +384,14 @@ export type Database = {
         Insert: {
           account_id?: string | null
           amount: number
+          base_amount?: number
           category_id?: string | null
           couple_id?: string | null
           created_at?: string
+          currency?: string
           date?: string
           description?: string
+          exchange_rate_used?: number
           goal_id?: string | null
           id?: string
           type?: string
@@ -395,11 +401,14 @@ export type Database = {
         Update: {
           account_id?: string | null
           amount?: number
+          base_amount?: number
           category_id?: string | null
           couple_id?: string | null
           created_at?: string
+          currency?: string
           date?: string
           description?: string
+          exchange_rate_used?: number
           goal_id?: string | null
           id?: string
           type?: string

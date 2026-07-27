@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, X, Wallet, CalendarDays, Tag, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { Plus, Search, X, Wallet, CalendarDays, Tag, ArrowUpDown } from 'lucide-react';
 
 import { useTransactions } from '../entities/transactions/model/useTransactions';
 import { useCategories } from '../entities/categories/model/useCategories';
@@ -8,6 +8,7 @@ import { useAccounts } from '../entities/accounts/model/useAccounts';
 import type { Transaction, TransactionType } from '../shared/types/database';
 import TransactionModal from '../features/transactions/ui/TransactionModal';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
+import { TransactionItem } from '@/features/transactions/ui/TransactionItem';
 
 /**
  * Vista central de Movimientos Financieros (Transacciones).
@@ -24,7 +25,7 @@ export default function Transactions() {
   const [showModal, setShowModal] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
-    const [filterAccount, setFilterAccount] = useState<string>('');
+  const [filterAccount, setFilterAccount] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterMonth, setFilterMonth] = useState<string>('');
   const [filterFlow, setFilterFlow] = useState<'all' | 'expense' | 'income'>('all');
@@ -33,7 +34,7 @@ export default function Transactions() {
   const [showFilterMonth, setShowFilterMonth] = useState(false);
   const [showFilterFlow, setShowFilterFlow] = useState(false);
 
-    const { transactions, loading: txLoading } = useTransactions(tab === 'all' ? 'all' : tab);
+  const { transactions, loading: txLoading } = useTransactions(tab === 'all' ? 'all' : tab);
   const { accounts } = useAccounts();
   const { categories: personalCats } = useCategories('personal');
   const { categories: sharedCats } = useCategories('shared');
@@ -90,7 +91,7 @@ export default function Transactions() {
     void prefetchRates(filtered.map((tx) => tx.date));
   }, [filtered, prefetchRates]);
 
-    const grouped = useMemo(() => {
+  const grouped = useMemo(() => {
     const groups: Record<string, Transaction[]> = {};
     filtered.forEach(tx => {
       const key = new Date(tx.date).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
@@ -141,14 +142,14 @@ export default function Transactions() {
       </div>
 
       <div className="page-content">
-                <div className="tx-filter-bar" style={{ marginBottom: '16px' }}>
+        <div className="tx-filter-bar" style={{ marginBottom: '16px' }}>
           {hasFilters && (
             <button className="tx-filter-chip-clear" onClick={clearFilters}>
               <X size={14} />
             </button>
           )}
 
-                    <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterAccount ? 'active' : ''}`}
               onClick={() => setShowFilterAccount(!showFilterAccount)}
@@ -174,7 +175,7 @@ export default function Transactions() {
             )}
           </div>
 
-                    <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterMonth ? 'active' : ''}`}
               onClick={() => setShowFilterMonth(!showFilterMonth)}
@@ -197,7 +198,7 @@ export default function Transactions() {
             )}
           </div>
 
-                    <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterCategory ? 'active' : ''}`}
               onClick={() => setShowFilterCategory(!showFilterCategory)}
@@ -220,7 +221,7 @@ export default function Transactions() {
             )}
           </div>
 
-                    <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
             <button
               className={`tx-filter-chip ${filterFlow !== 'all' ? 'active' : ''}`}
               onClick={() => setShowFilterFlow(!showFilterFlow)}
@@ -247,7 +248,7 @@ export default function Transactions() {
           </div>
         </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <div className="toggle-group" style={{ flex: '1 1 auto' }}>
             {(['all', 'personal', 'shared'] as const).map(t => (
               <button key={t} className={`toggle-item ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
@@ -267,7 +268,7 @@ export default function Transactions() {
           </div>
         </div>
 
-                <div className="card">
+        <div className="card">
           {txLoading ? (
             <div className="empty-state">
               <div className="loading-spinner" />
@@ -288,36 +289,12 @@ export default function Transactions() {
                 <div className="tx-month-header">{month}</div>
                 <div className="transaction-list">
                   {txs.map(tx => (
-                    <div key={tx.id} className="transaction-item" onClick={() => handleEdit(tx)} style={{ cursor: 'pointer' }}>
-                      <div className="transaction-icon" style={{ background: `${tx.category?.color}18` }}>
-                        {tx.category?.icon}
-                      </div>
-                      <div className="transaction-info">
-                        <div className="transaction-desc">
-                          {tx.category?.name || tx.description}
-                          {tx.type === 'shared' && (
-                            <span className="badge-shared">Compartido</span>
-                          )}
-                        </div>
-                        <div className="transaction-meta">
-                          {tx.description}
-                        </div>
-                        {tx.account && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                            {tx.account.icon} {tx.account.name}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div className={tx.amount > 0 ? 'transaction-amount income' : 'transaction-amount expense'}>
-                          {tx.amount > 0 ? '' : '- '}{formatMoney(Math.abs(tx.amount), tx.date)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                          {new Date(tx.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
-                        </div>
-                      </div>
-                      <ChevronRight size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-                    </div>
+                    <TransactionItem
+                      key={tx.id}
+                      tx={tx}
+                      onClick={() => handleEdit(tx)}
+                      showChevron
+                    />
                   ))}
                 </div>
               </div>
@@ -326,7 +303,7 @@ export default function Transactions() {
         </div>
       </div>
 
-            <TransactionModal
+      <TransactionModal
         open={showModal}
         onClose={handleCloseModal}
         editTransaction={editTx}

@@ -13,7 +13,7 @@
  *   GET /2024-01-01..2024-01-31?from=EUR&to=USD → rango de fechas
  */
 
-const BASE_URL = 'https://api.frankfurter.app';
+const BASE_URL = 'https://api.frankfurter.dev/v1';
 const BASE_CURRENCY = 'EUR';
 const TIMEOUT_MS = 8000;
 
