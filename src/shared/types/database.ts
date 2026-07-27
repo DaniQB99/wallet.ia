@@ -621,7 +621,10 @@ export const Constants = {
   },
 } as const;
 
-export type Transaction = Tables<'transactions'>;
+export type Transaction = Tables<'transactions'> & {
+  category?: Category | null;
+  account?: Account | null;
+};
 export type Account = Tables<'accounts'>;
 export type Category = Tables<'categories'>;
 export type Goal = Tables<'goals'>;

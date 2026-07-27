@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { loadLocaleMessages, getLoadedMessages, defaultMessages } from '../../shared/config/locales/index';
 import type { SupportedLocale } from '../../shared/config/locales/index';
+export type { SupportedLocale };
 import { supabase } from '../../shared/api/supabase';
 import { useAuthContext } from './AuthContext';
 
@@ -11,9 +12,10 @@ interface LocaleCurrencyContextType {
   setLocale: (locale: SupportedLocale) => void;
   currency: SupportedCurrency;
   setCurrency: (currency: SupportedCurrency) => void;
-  formatMoney: (amount: number) => string;
+  formatMoney: (amount: number, date?: string) => string;
   convertAmount: (amount: number) => number; // Kept for backwards compatibility
   prefetchRates: (dates: string[]) => Promise<void>; // Dummy for backwards compatibility
+  loadingRates?: boolean;
   t: (key: string) => string;
 }
 
@@ -97,7 +99,8 @@ export function LocaleCurrencyProvider({ children }: { children: React.ReactNode
     // convertAmount no longer does exchange rates, since the DB holds the raw value in the user's currency.
     convertAmount: (amount: number) => amount,
     prefetchRates: async () => { }, // Dummy function for components that still call it
-    formatMoney: (amount: number) => {
+    loadingRates: false,
+    formatMoney: (amount: number, _date?: string) => {
       return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,

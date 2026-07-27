@@ -40,8 +40,8 @@ export function useGoals(type: GoalType) {
           tx.category_id === g.category_id &&
           tx.type === g.type;
 
-        // Solo contar si la fecha es >= start_date de la meta
-        const isDateMatch = tx.date >= g.start_date;
+        // Solo contar si la fecha es >= start_date de la meta (si está definida)
+        const isDateMatch = !g.start_date || tx.date >= g.start_date;
 
         if ((isGoalMatch || isCategoryMatch) && isDateMatch) {
           return sum + Number(tx.amount);

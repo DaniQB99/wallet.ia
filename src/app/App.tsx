@@ -11,7 +11,6 @@ import Sidebar from '../widgets/layout/Sidebar';
 import BottomNav from '../widgets/layout/BottomNav';
 import OnboardingOverlay from '../shared/ui/OnboardingOverlay';
 import CookieConsent from '../shared/components/CookieConsent';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
@@ -73,7 +72,6 @@ export default function App() {
           </LocaleCurrencyProvider>
         </AuthProvider>
       </AppearanceProvider>
-      <SpeedInsights />
     </BrowserRouter>
   );
 }

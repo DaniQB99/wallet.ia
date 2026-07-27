@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../app/providers/AuthContext';
-import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 import { supabase } from '../api/supabase';
 
 /**
@@ -10,7 +9,6 @@ import { supabase } from '../api/supabase';
  */
 export default function CookieConsent() {
   const { user } = useAuthContext();
-  const { t } = useLocaleCurrency();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
