@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Plus, Search, X, Wallet, CalendarDays, Tag, ArrowUpDown } from 'lucide-react';
 
 import { useTransactions } from '../entities/transactions/model/useTransactions';
@@ -130,6 +131,10 @@ export default function Transactions() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('navTransactions')} - Wallet.ia</title>
+        <meta name="description" content="Gestiona y revisa todas tus transacciones financieras." />
+      </Helmet>
       <div className="page-header">
         <div className="page-header-left">
           <h1>{t('transactions')}</h1>

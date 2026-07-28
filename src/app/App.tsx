@@ -31,47 +31,51 @@ const PageLoaderText = () => {
   return <div style={{ color: 'var(--text-secondary)' }}>{t('loadingModule')}</div>;
 };
 
+import { HelmetProvider } from 'react-helmet-async';
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <SpeedInsights />
-      <AppearanceProvider>
-        <AuthProvider>
-          <LocaleCurrencyProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/auth" element={<AuthPage />} />
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <DataProvider>
-                        <div className="app-layout">
-                          <CookieConsent />
-                          <OnboardingOverlay />
-                          <Sidebar />
-                          <main className="main-content">
-                            <Suspense fallback={<PageLoader />}>
-                              <Routes>
-                                <Route path="/" element={<Dashboard />} />
-                                <Route path="/analytics" element={<Analytics />} />
-                                <Route path="/transactions" element={<Transactions />} />
-                                <Route path="/goals" element={<Goals />} />
-                                <Route path="/settings" element={<Settings />} />
-                              </Routes>
-                            </Suspense>
-                          </main>
-                          <BottomNav />
-                        </div>
-                      </DataProvider>
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </Suspense>
-          </LocaleCurrencyProvider>
-        </AuthProvider>
-      </AppearanceProvider>
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <SpeedInsights />
+        <AppearanceProvider>
+          <AuthProvider>
+            <LocaleCurrencyProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <DataProvider>
+                          <div className="app-layout">
+                            <CookieConsent />
+                            <OnboardingOverlay />
+                            <Sidebar />
+                            <main className="main-content">
+                              <Suspense fallback={<PageLoader />}>
+                                <Routes>
+                                  <Route path="/" element={<Dashboard />} />
+                                  <Route path="/analytics" element={<Analytics />} />
+                                  <Route path="/transactions" element={<Transactions />} />
+                                  <Route path="/goals" element={<Goals />} />
+                                  <Route path="/settings" element={<Settings />} />
+                                </Routes>
+                              </Suspense>
+                            </main>
+                            <BottomNav />
+                          </div>
+                        </DataProvider>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </Suspense>
+            </LocaleCurrencyProvider>
+          </AuthProvider>
+        </AppearanceProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /auth
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://wallet-ia-couple.vercel.app/sitemap.xml

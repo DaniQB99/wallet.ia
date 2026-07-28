@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, X } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
@@ -96,7 +97,12 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="auth-page">
+    <>
+      <Helmet>
+        <title>{t('authLogin')} - Wallet.ia</title>
+        <meta name="description" content="Inicia sesión en Wallet.ia para gestionar tus finanzas en pareja de forma segura." />
+      </Helmet>
+      <div className="auth-page">
       {/* Success toast */}
       {registrationSuccess && (
         <div className="auth-toast auth-toast-success">
@@ -332,5 +338,6 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useId } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Plus, Calendar, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoals } from '../entities/goals/model/useGoals';
@@ -120,6 +121,10 @@ export default function Goals() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('navGoals')} - Wallet.ia</title>
+        <meta name="description" content="Alcanza tus metas de ahorro compartidas y personales." />
+      </Helmet>
       <div className="page-header">
         <div className="page-header-left">
           <h1>{t('goals') || 'Metas'}</h1>

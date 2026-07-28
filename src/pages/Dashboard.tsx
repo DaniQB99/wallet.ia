@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Users, Wallet, BarChart3 } from 'lucide-react';
 import { TransactionItem } from '../features/transactions/ui/TransactionItem';
 import { useAuthContext } from '../app/providers/AuthContext';
@@ -48,6 +49,10 @@ export default function Dashboard() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('navDashboard')} - Wallet.ia</title>
+        <meta name="description" content="Vista general de tus finanzas personales y en pareja." />
+      </Helmet>
       <div className="page-header">
         <div className="page-header-left">
           <h1>¡Hola {userName}!</h1>

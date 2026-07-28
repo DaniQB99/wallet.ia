@@ -27,6 +27,7 @@ import LegalDocumentModal from '../shared/ui/LegalDocumentModal';
 import privacyPolicyText from '../../docs/privacy-policy.es.md?raw';
 import termsOfUseText from '../../docs/terms-of-use.es.md?raw';
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { supabase } from '../shared/api/supabase';
 import { Download, Trash2 } from 'lucide-react';
 
@@ -257,6 +258,10 @@ export default function Settings() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('navSettings')} - Wallet.ia</title>
+        <meta name="description" content="Configura tu perfil, preferencias, moneda e integraciones en pareja." />
+      </Helmet>
       <div className="page-header">
         <div className="page-header-left">
           <h1>{t('settings')}</h1>

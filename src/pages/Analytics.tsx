@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTransactions } from '../entities/transactions/model/useTransactions';
@@ -36,6 +37,10 @@ export default function Analytics() {
 
   return (
     <>
+      <Helmet>
+        <title>{t('navAnalytics')} - Wallet.ia</title>
+        <meta name="description" content="Visualiza tus ingresos, gastos y evolución financiera." />
+      </Helmet>
       <div className="page-header">
         <div className="page-header-left">
           <h1>{t('analytics')}</h1>

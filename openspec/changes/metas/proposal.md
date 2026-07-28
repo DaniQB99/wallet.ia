@@ -1,44 +1,34 @@
-# Proposal: Funcionalidad de Metas (Goals)
+# Proposal: Funcionalidad de Metas (Goals) & Contexto de App
 
 ## 1. Executive Summary
 
-El objetivo es reintegrar y hacer funcional el sistema de **Metas (Goals)** en Wallet.ia. Las metas permitirán a los usuarios (individuales o en pareja) establecer objetivos de ahorro. La innovación principal es que **las transacciones (ingresos/gastos) se podrán relacionar directamente con una meta**, ya sea explícitamente al crear la transacción o implícitamente mediante categorías (ej. categoría "Viajes" -> incrementa meta "Viajes").
+El objetivo inicial fue reintegrar y hacer funcional el sistema de **Metas (Goals)** en Wallet.ia, permitiendo a los usuarios establecer objetivos de ahorro vinculables a transacciones. 
 
-## 2. Requirements & Features
+**ESTADO ACTUAL (Completado):** 
+La funcionalidad de Metas ha sido exitosamente implementada e integrada en el flujo general de la aplicación. Actualmente la App se encuentra conectada a **Supabase** (Auth y DB), desplegada en **Vercel** (`wallet-ia-couple.vercel.app`), y cuenta con un sistema robusto de múltiples monedas, multi-idioma (i18n), protección de rutas y un Onboarding premium para nuevos usuarios.
+Además, se han aplicado optimizaciones profundas de **SEO** (Open Graph, Helmet para títulos dinámicos y sitemaps) para su correcta indexación y visualización al compartirse.
 
-1. **Tipos de Metas**:
+## 2. Requirements & Features Implementadas
+
+1. **Autenticación (Supabase Auth)**:
+   - Rutas protegidas (`<ProtectedRoute>`).
+   - El tutorial/onboarding y los consentimientos de cookies son exclusivos y no interfieren con la pantalla de Login.
+2. **Tipos de Metas**:
    - Individuales (`personal`) o Compartidas (`shared`).
-2. **Registro de Metas**:
-   - Nombre, Categoría (opcional - para vinculación automática), Importe Objetivo (Target), Fecha Límite (Deadline).
-3. **Vinculación con Transacciones**:
-   - **Manual**: Al añadir una transacción, se añade un selector opcional "Vincular a Meta".
-   - **Automática**: Si se registra una transacción en una categoría vinculada a una meta activa, suma (o resta) automáticamente.
-4. **Cálculo de Progreso**:
-   - El progreso actual de la meta será calculado dinámicamente sumando las transacciones vinculadas a dicha meta, o se puede mantener como un campo `current_amount` actualizado mediante base de datos.
+3. **Registro de Metas**:
+   - Nombre, Categoría, Importe Objetivo (Target), Fecha Límite (Deadline).
+4. **Onboarding / UX**:
+   - Tutorial animado con Framer Motion de gama alta que solo se muestra a usuarios cuya cuenta fue creada en las últimas 24 horas.
+5. **Contexto Multi-moneda**:
+   - Soporte total integrado en el contexto local (`LocaleCurrencyContext`).
 
-## 3. Database Schema Changes
+## 3. Database Schema (Activo)
 
-Se requerirá crear/modificar tablas en Supabase:
+Las tablas en Supabase ya reflejan:
+- **`goals` table**: Soporta vínculos y montos con Row Level Security (RLS) habilitado.
+- **`transactions` table**: Contempla todo el ecosistema de gastos en pareja.
 
-- **`goals` table**:
-  - `id` (uuid)
-  - `user_id` (uuid)
-  - `type` ('personal' | 'shared')
-  - `name` (text)
-  - `target_amount` (numeric)
-  - `deadline` (date, nullable)
-  - `category_id` (uuid, nullable) - Para auto-vincular
-  - `icon`, `color` (text)
-- **`transactions` table modification**:
-  - Añadir columna `goal_id` (uuid, opcional) como Foreign Key a `goals(id)`.
+## 4. Próximos Pasos de la App
 
-## 4. UI/UX Changes
-
-- **Página de Metas**: Nueva vista/pestaña para visualizar tarjetas de progreso de metas, con botón de "Añadir Meta".
-- **Modal de Transacción**: Añadir campo oculto/colapsable u opcional: "Relacionar con meta: [ Ninguna | Selección ]".
-- **Dashboard**: Opcionalmente mostrar las metas más relevantes o próximas a caducar si el usuario lo desea en el futuro.
-
-## 5. Risks & Considerations
-
-- **Cálculo de saldos**: ¿Una aportación a una meta descuenta el saldo general? Idealmente no, el saldo es de cuentas, las metas son puramente analíticas (saber cuánto de tu dinero acumulado está mentalmente reservado para ese fin).
-- **Gastos vs Ingresos en metas**: Un "ingreso" aumenta el progreso de la meta. Un "gasto" (ej. comprando un billete de avión) relacionado a la meta "Viaje" debería completar el objetivo final (ya me he gastado el dinero en ese objetivo) o restar progreso? Depende de si es una meta de ahorro (ingresos suman progreso) o una bolsa de gasto (gastos suman progreso). Se propondrá: Las Metas son objetivos de "Acumulación".
+- Ampliar analíticas para mostrar desvíos presupuestarios.
+- Notificaciones Push (PWA) para avisar cuando la pareja añade un gasto o se completa una meta compartida.
