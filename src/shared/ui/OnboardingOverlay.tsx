@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
+import { useAuthContext } from '../../app/providers/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart2,
   Target,
@@ -11,13 +13,9 @@ import {
   PlusCircle
 } from 'lucide-react';
 
-/**
- * Componente sobrepuesto (overlay) que encarna el tutorial inicial paso a paso de la PWA.
- * Orquesta un flujo didáctico guiando al usuario a través de la interfaz principal (transacciones, metas, analítica y pareja),
- * integrándose con el React Router para simular el desplazamiento interactivo.
- */
 export default function OnboardingOverlay() {
   const { t } = useLocaleCurrency();
+  const { user } = useAuthContext();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
@@ -31,11 +29,17 @@ export default function OnboardingOverlay() {
     window.addEventListener('show-onboarding', handleShowOnboarding);
 
     const hasSeenOnboarding = localStorage.getItem('walletia_onboarding_completed');
-    if (!hasSeenOnboarding) {
+    
+    // Check if user is "new" (created in the last 24 hours)
+    const isNewUser = user?.created_at 
+      ? (Date.now() - new Date(user.created_at).getTime()) < 1000 * 60 * 60 * 24 
+      : false;
+
+    if (isNewUser && !hasSeenOnboarding) {
       const timer = setTimeout(() => {
         setIsVisible(true);
         navigate('/transactions');
-      }, 500);
+      }, 800);
       return () => {
         clearTimeout(timer);
         window.removeEventListener('show-onboarding', handleShowOnboarding);
@@ -43,7 +47,7 @@ export default function OnboardingOverlay() {
     }
 
     return () => window.removeEventListener('show-onboarding', handleShowOnboarding);
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleFinish = () => {
     localStorage.setItem('walletia_onboarding_completed', 'true');
@@ -68,135 +72,212 @@ export default function OnboardingOverlay() {
     }
   };
 
-  if (!isVisible) return null;
-
   const steps = [
     {
-      icon: <Wallet size={64} style={{ color: 'var(--blue)', marginBottom: '1.5rem' }} />,
+      icon: <Wallet size={48} strokeWidth={1.5} />,
+      color: '#3b82f6', // blue
       title: t('onboardingStep1Title'),
       desc: t('onboardingStep1Desc')
     },
     {
-      icon: <PlusCircle size={64} style={{ color: '#fba9e2', marginBottom: '1.5rem' }} />,
+      icon: <PlusCircle size={48} strokeWidth={1.5} />,
+      color: '#ec4899', // pink
       title: t('onboardingStep6Title'),
       desc: t('onboardingStep6Desc')
     },
     {
-      icon: <Target size={64} style={{ color: '#10b981', marginBottom: '1.5rem' }} />,
+      icon: <Target size={48} strokeWidth={1.5} />,
+      color: '#10b981', // emerald
       title: t('onboardingStep2Title'),
       desc: t('onboardingStep2Desc')
     },
     {
-      icon: <BarChart2 size={64} style={{ color: '#f59e0b', marginBottom: '1.5rem' }} />,
+      icon: <BarChart2 size={48} strokeWidth={1.5} />,
+      color: '#f59e0b', // amber
       title: t('onboardingStep4Title'),
       desc: t('onboardingStep4Desc')
     },
     {
-      icon: <Users size={64} style={{ color: '#a855f7', marginBottom: '1.5rem' }} />,
+      icon: <Users size={48} strokeWidth={1.5} />,
+      color: '#8b5cf6', // violet
       title: t('onboardingStep3Title'),
       desc: t('onboardingStep3Desc')
     }
   ];
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.3)',
-      padding: '1rem',
-      paddingBottom: '3rem'
-    }}>
-      <div className="onboarding-modal" style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-        {/* Skip button */}
-        <button
-          onClick={handleFinish}
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           style={{
-            position: 'absolute',
-            top: '1rem',
-            right: '1rem',
-            color: 'var(--text-secondary)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            zIndex: 10
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            padding: '1rem'
           }}
         >
-          <X size={24} />
-        </button>
-
-        {/* Content area */}
-        <div style={{ padding: '3rem 2rem 0', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{ height: '8rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-             {steps[currentStep].icon}
-          </div>
-
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '1.5rem', marginBottom: '0.75rem' }}>
-            {steps[currentStep].title}
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            {steps[currentStep].desc}
-          </p>
-
-          {/* Dots */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                style={{
-                  height: '0.5rem',
-                  borderRadius: '9999px',
-                  transition: 'all 0.3s ease',
-                  width: currentStep === i ? '2rem' : '0.5rem',
-                  backgroundColor: currentStep === i ? 'var(--blue)' : 'var(--border)'
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Footer actions */}
-        <div style={{ padding: '0 1.5rem 1.5rem', display: 'flex', gap: '1rem', marginTop: 'auto' }}>
-          <button
-            onClick={handleFinish}
-            style={{
-              flex: 1,
-              padding: '0.875rem',
-              borderRadius: '1rem',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            {t('onboardingSkip')}
-          </button>
-
-          <button
-            onClick={nextStep}
-            className="kebo-button-primary"
-            style={{
-              flex: 1,
-              padding: '0.875rem',
-              borderRadius: '1rem',
-              fontWeight: 600,
+          <motion.div 
+            initial={{ y: 40, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 20, opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            style={{ 
+              backgroundColor: '#121214',
+              width: '100%',
+              maxWidth: '420px',
+              borderRadius: '24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)',
+              overflow: 'hidden',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              border: 'none',
-              cursor: 'pointer'
+              flexDirection: 'column',
+              position: 'relative'
             }}
           >
-            {currentStep === 4 ? t('onboardingFinish') : t('onboardingNext')}
-            {currentStep !== 4 && <ChevronRight size={20} />}
-          </button>
-        </div>
-      </div>
-    </div>
+            {/* Skip button */}
+            <button
+              onClick={handleFinish}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                color: '#71717a',
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                zIndex: 10,
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Content area */}
+            <div style={{ padding: '3rem 2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ scale: 0.8, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.8, opacity: 0, y: -10 }}
+                  transition={{ type: "spring", damping: 20 }}
+                  style={{ 
+                    width: '96px', 
+                    height: '96px', 
+                    borderRadius: '24px', 
+                    backgroundColor: `${steps[currentStep].color}15`,
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    marginBottom: '2rem',
+                    color: steps[currentStep].color
+                  }}
+                >
+                   {steps[currentStep].icon}
+                </motion.div>
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ffffff', margin: '0 0 1rem 0', letterSpacing: '-0.02em' }}>
+                    {steps[currentStep].title}
+                  </h2>
+                  <p style={{ color: '#a1a1aa', margin: 0, fontSize: '1rem', lineHeight: '1.5' }}>
+                    {steps[currentStep].desc}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Dots */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '2rem' }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: '6px',
+                    borderRadius: '99px',
+                    transition: 'all 0.3s ease',
+                    width: currentStep === i ? '24px' : '6px',
+                    backgroundColor: currentStep === i ? steps[currentStep].color : '#3f3f46'
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Footer actions */}
+            <div style={{ padding: '0 1.5rem 1.5rem', display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={handleFinish}
+                style={{
+                  flex: 1,
+                  padding: '0.875rem',
+                  borderRadius: '16px',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  color: '#a1a1aa',
+                  backgroundColor: 'transparent',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
+              >
+                {t('onboardingSkip')}
+              </button>
+
+              <button
+                onClick={nextStep}
+                style={{
+                  flex: 1,
+                  padding: '0.875rem',
+                  borderRadius: '16px',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  color: '#ffffff',
+                  backgroundColor: steps[currentStep].color,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: `0 4px 14px ${steps[currentStep].color}40`
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                {currentStep === 4 ? t('onboardingFinish') : t('onboardingNext')}
+                {currentStep !== 4 && <ChevronRight size={20} strokeWidth={2.5} />}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

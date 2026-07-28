@@ -39,7 +39,6 @@ export default function App() {
         <AuthProvider>
           <LocaleCurrencyProvider>
             <Suspense fallback={<PageLoader />}>
-              <CookieConsent />
               <Routes>
                 <Route path="/auth" element={<AuthPage />} />
                 <Route
@@ -48,6 +47,7 @@ export default function App() {
                     <ProtectedRoute>
                       <DataProvider>
                         <div className="app-layout">
+                          <CookieConsent />
                           <OnboardingOverlay />
                           <Sidebar />
                           <main className="main-content">
