@@ -156,7 +156,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
               />
             </div>
 
-            <div>
+            <div style={{ position: 'relative' }}>
               <label className="form-label">{t('color')}</label>
               <button
                 type="button"
@@ -173,7 +173,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
                     exit={{ opacity: 0, y: 10 }}
                     style={{ position: 'absolute', top: '100%', right: 0, zIndex: 1100, marginTop: '8px' }}
                   >
-                    <div className="card" style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', boxShadow: 'var(--shadow-lg)' }}>
+                    <div className="card" style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', boxShadow: 'var(--shadow-lg)', border: `2px solid ${color}` }}>
                       {COLOR_PRESETS.map(c => (
                         <button
                           key={c}

@@ -11,6 +11,7 @@ import Sidebar from '../widgets/layout/Sidebar';
 import BottomNav from '../widgets/layout/BottomNav';
 import OnboardingOverlay from '../shared/ui/OnboardingOverlay';
 import CookieConsent from '../shared/components/CookieConsent';
+import SwipeWrapper from '../widgets/layout/SwipeWrapper';
 
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
@@ -49,23 +50,25 @@ export default function App() {
                     element={
                       <ProtectedRoute>
                         <DataProvider>
-                          <div className="app-layout">
-                            <CookieConsent />
-                            <OnboardingOverlay />
-                            <Sidebar />
-                            <main className="main-content">
-                              <Suspense fallback={<PageLoader />}>
-                                <Routes>
-                                  <Route path="/" element={<Dashboard />} />
-                                  <Route path="/analytics" element={<Analytics />} />
-                                  <Route path="/transactions" element={<Transactions />} />
-                                  <Route path="/goals" element={<Goals />} />
-                                  <Route path="/settings" element={<Settings />} />
-                                </Routes>
-                              </Suspense>
-                            </main>
-                            <BottomNav />
-                          </div>
+                          <SwipeWrapper>
+                            <div className="app-layout">
+                              <CookieConsent />
+                              <OnboardingOverlay />
+                              <Sidebar />
+                              <main className="main-content">
+                                <Suspense fallback={<PageLoader />}>
+                                  <Routes>
+                                    <Route path="/" element={<Dashboard />} />
+                                    <Route path="/analytics" element={<Analytics />} />
+                                    <Route path="/transactions" element={<Transactions />} />
+                                    <Route path="/goals" element={<Goals />} />
+                                    <Route path="/settings" element={<Settings />} />
+                                  </Routes>
+                                </Suspense>
+                              </main>
+                              <BottomNav />
+                            </div>
+                          </SwipeWrapper>
                         </DataProvider>
                       </ProtectedRoute>
                     }

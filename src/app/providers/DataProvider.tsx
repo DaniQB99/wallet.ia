@@ -384,21 +384,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addTransaction = useCallback(async (tx: Partial<Transaction>) => {
     if (!userId) return new Error('Not authenticated');
     const { error } = await supabase.from('transactions').insert({ ...tx, user_id: userId });
-    if (!error) fetchTransactions(true);
+    if (!error) {
+      fetchTransactions(true);
+      fetchAccounts(true);
+    }
     return error;
-  }, [userId, fetchTransactions]);
+  }, [userId, fetchTransactions, fetchAccounts]);
 
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
     const { error } = await supabase.from('transactions').update(updates).eq('id', id);
-    if (!error) fetchTransactions(true);
+    if (!error) {
+      fetchTransactions(true);
+      fetchAccounts(true);
+    }
     return error;
-  }, [fetchTransactions]);
+  }, [fetchTransactions, fetchAccounts]);
 
   const deleteTransaction = useCallback(async (id: string) => {
     const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (!error) fetchTransactions(true);
+    if (!error) {
+      fetchTransactions(true);
+      fetchAccounts(true);
+    }
     return error;
-  }, [fetchTransactions]);
+  }, [fetchTransactions, fetchAccounts]);
 
   // --------------------------------------------------
   // Mutaciones de cuentas
@@ -423,9 +432,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteAccount = useCallback(async (id: string) => {
     const { error } = await supabase.from('accounts').delete().eq('id', id);
-    if (!error) fetchAccounts(true);
+    if (!error) {
+      fetchAccounts(true);
+      fetchTransactions(true);
+    }
     return error;
-  }, [fetchAccounts]);
+  }, [fetchAccounts, fetchTransactions]);
 
   // --------------------------------------------------
   // Mutaciones de categorías

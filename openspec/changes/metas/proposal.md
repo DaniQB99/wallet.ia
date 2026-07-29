@@ -32,3 +32,8 @@ Las tablas en Supabase ya reflejan:
 
 - Ampliar analíticas para mostrar desvíos presupuestarios.
 - Notificaciones Push (PWA) para avisar cuando la pareja añade un gasto o se completa una meta compartida.
+
+## 5. Mejoras Recientes (UI/UX)
+- **Eliminación en cascada**: Reflejo inmediato en la interfaz al eliminar cuentas (las transacciones desaparecen automáticamente).
+- **Saldos sincronizados**: Actualización automática del dinero de la cuenta principal al eliminar una transacción vinculada.
+- **Detalles UI premium**: El recuadro de selección de colores durante la creación de cuentas ahora flota sin romper el diseño (posición absoluta) y adquiere sutilmente el tinte del color seleccionado para mayor inmersión.

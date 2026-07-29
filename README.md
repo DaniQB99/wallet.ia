@@ -11,6 +11,7 @@
 - **🎯 Metas de Ahorro Inteligentes:** Crea y visualiza el progreso de metas compartidas (ej. "Vacaciones", "Casa Nueva") o personales. Las transacciones y categorías se pueden vincular para calcular el progreso de forma automática.
 - **🌍 Soporte Multi-moneda y Multi-idioma (i18n):** Adaptación automática de monedas según el país. Diccionarios de idiomas cargados bajo demanda (lazy loading) para no saturar el rendimiento.
 - **✨ Onboarding Premium:** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion) y un diseño *glassmorphism* exquisito.
+- **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página. Detalles de UI pulidos al máximo, como selectores de color flotantes que se tiñen según la selección, priorizando una experiencia inmersiva.
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.
 - **📱 PWA "Mobile-First":** Interacciones fluidas que se sienten nativas, navegación inferior (Bottom Nav) y compatibilidad total PWA para instalación offline en iOS y Android.
 
