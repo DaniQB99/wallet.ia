@@ -168,21 +168,24 @@ export default function Dashboard() {
                 </div>
               ) : (
                 recentTransactions.map(tx => (
-                  <TransactionItem key={tx.id} tx={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    tx={tx} 
+                  />
                 ))
               )}
             </div>
           </div>
         </div>
       </div>
-      
-      <TransactionModal 
-        open={showModal} 
-        onClose={() => setShowModal(false)} 
-        initialFlowType={flowType} 
+
+      <TransactionModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        initialFlowType={flowType}
       />
       {showAccounts && <AccountsSettings onClose={() => setShowAccounts(false)} />}
-      
+
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Delete, Edit3, Calendar, RefreshCw, FolderOpen, ArrowLeft, Landmark } from 'lucide-react';
+import { X, Check, Delete, Edit3, Calendar, RefreshCw, FolderOpen, ArrowLeft, Landmark, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Transaction } from '../../../shared/types/database';
 import { useTransactions } from '../../../entities/transactions/model/useTransactions';
@@ -18,7 +18,7 @@ interface TransactionModalProps {
 export default function TransactionModal({ open, onClose, editTransaction, initialFlowType }: TransactionModalProps) {
   // Services
   const { currency } = useLocaleCurrency();
-  const { addTransaction, addRecurringTransaction, updateTransaction } = useTransactions();
+  const { addTransaction, addRecurringTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { accounts } = useAccounts();
   const { categories: personalCategories } = useCategories('personal');
   const { categories: sharedCategories } = useCategories('shared');
@@ -39,7 +39,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   const [view, setView] = useState<'main' | 'account' | 'destination' | 'category' | 'recurring'>('main');
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [shakeField, setShakeField] = useState<'amount' | 'account' | 'destination' | null>(null);
-  
+
   const [submitting, setSubmitting] = useState(false);
 
   const activeCategories = scope === 'shared' ? sharedCategories : personalCategories;
@@ -50,8 +50,8 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
       if (editTransaction) {
         setAmountStr(Math.abs(editTransaction.amount).toString().replace('.', ','));
         setFlowType(
-          editTransaction.transfer_group_id ? 'transfer' : 
-          editTransaction.amount < 0 ? 'expense' : 'income'
+          editTransaction.transfer_group_id ? 'transfer' :
+            editTransaction.amount < 0 ? 'expense' : 'income'
         );
         setDescription(editTransaction.description || '');
         setAccountId(editTransaction.account_id || '');
@@ -97,6 +97,22 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   };
 
   const parseAmount = (str: string) => parseFloat(str.replace(',', '.'));
+
+  const handleDelete = async () => {
+    if (!editTransaction) return;
+    if (window.confirm('¿Seguro que deseas eliminar esta transacción?')) {
+      setSubmitting(true);
+      try {
+        const err = await deleteTransaction(editTransaction.id);
+        if (err) throw err;
+        onClose();
+      } catch (err: unknown) {
+        console.error(err);
+      } finally {
+        setSubmitting(false);
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     const triggerShake = (field: 'amount' | 'account' | 'destination') => {
@@ -211,7 +227,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
     const symbol = new Intl.NumberFormat('es', { style: 'currency', currency: currency || 'EUR' }).formatToParts(0).find(x => x.type === 'currency')?.value || '€';
     return `${symbol} ${amountStr}`;
   };
-  
+
   const formatDateDisplay = (d: string) => {
     try {
       const parsed = new Date(d);
@@ -231,7 +247,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   // Components: Keypad
   const renderKeypad = () => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: 'auto', paddingBottom: '10px' }}>
-      {[1,2,3,4,5,6,7,8,9].map(n => (
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
         <button key={n} type="button" onClick={() => handleKeypad(n.toString())}
           style={{ background: '#2C2C2E', border: 'none', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '1.5rem', fontWeight: 500, cursor: 'pointer' }}>
           {n}
@@ -274,7 +290,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   };
 
   const renderMainView = () => (
-    <motion.div 
+    <motion.div
       initial={{ x: 0 }} animate={{ x: 0 }} exit={{ x: -50, opacity: 0 }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
@@ -296,11 +312,17 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
             {flowType === 'transfer' && <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '20px', height: '3px', background: '#6366F1', borderRadius: '2px' }} />}
           </div>
         </div>
-        <div style={{ width: '40px' }} />
+        {editTransaction ? (
+          <button type="button" onClick={handleDelete} disabled={submitting} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px' }}>
+            <Trash2 size={24} />
+          </button>
+        ) : (
+          <div style={{ width: '40px' }} />
+        )}
       </div>
 
-      <motion.div 
-        animate={shakeField === 'amount' ? { x: [-10, 10, -10, 10, 0], color: ['#fff', '#ef4444', '#fff'] } : {}} 
+      <motion.div
+        animate={shakeField === 'amount' ? { x: [-10, 10, -10, 10, 0], color: ['#fff', '#ef4444', '#fff'] } : {}}
         transition={{ duration: 0.4 }}
         style={{ textAlign: 'center', margin: '40px 0', fontSize: '3.5rem', fontWeight: 400, color: '#fff' }}
       >
@@ -320,9 +342,9 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
           />
         </div>
 
-        <motion.button 
-          type="button" 
-          style={pillStyle} 
+        <motion.button
+          type="button"
+          style={pillStyle}
           onClick={() => setView('account')}
           animate={shakeField === 'account' ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.05)', '#ef4444', 'rgba(255,255,255,0.05)'] } : {}}
           transition={{ duration: 0.4 }}
@@ -332,9 +354,9 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
         </motion.button>
 
         {flowType === 'transfer' && (
-          <motion.button 
-            type="button" 
-            style={pillStyle} 
+          <motion.button
+            type="button"
+            style={pillStyle}
             onClick={() => setView('destination')}
             animate={shakeField === 'destination' ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.05)', '#ef4444', 'rgba(255,255,255,0.05)'] } : {}}
             transition={{ duration: 0.4 }}
@@ -379,7 +401,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   );
 
   const renderAccountList = (isDestination: boolean) => (
-    <motion.div 
+    <motion.div
       initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
@@ -448,7 +470,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   );
 
   const renderCategoryList = () => (
-    <motion.div 
+    <motion.div
       initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
@@ -482,7 +504,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   );
 
   const renderRecurringList = () => (
-    <motion.div 
+    <motion.div
       initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
@@ -522,7 +544,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
             color: '#fff',
             display: 'flex',
             flexDirection: 'column',
-            padding: '24px 20px',
+            padding: '64px 20px 24px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
           }}
         >

@@ -567,10 +567,16 @@ BEGIN
     SELECT CASE WHEN user_a_id = p_user_id THEN user_b_id ELSE user_a_id END INTO v_partner_id FROM public.couple_links WHERE id = v_couple_id;
   END IF;
 
+  -- Disable balance calculation trigger temporarily for this transaction
+  PERFORM set_config('app.bypass_trigger', 'true', true);
+
   UPDATE public.accounts SET balance = balance * p_exchange_rate WHERE user_id = p_user_id OR (v_couple_id IS NOT NULL AND couple_id = v_couple_id);
   UPDATE public.transactions SET amount = amount * p_exchange_rate WHERE user_id = p_user_id OR (v_couple_id IS NOT NULL AND couple_id = v_couple_id);
   UPDATE public.goals SET target_amount = target_amount * p_exchange_rate, current_amount = current_amount * p_exchange_rate WHERE user_id = p_user_id OR (v_partner_id IS NOT NULL AND user_id = v_partner_id AND type = 'shared');
   UPDATE public.profiles SET currency = p_new_currency WHERE id = p_user_id OR (v_partner_id IS NOT NULL AND id = v_partner_id);
+
+  -- Re-enable triggers
+  PERFORM set_config('app.bypass_trigger', 'false', true);
 END;
 $$;
 

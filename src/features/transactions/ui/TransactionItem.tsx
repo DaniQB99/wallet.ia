@@ -18,21 +18,21 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
   const baseAmount = Math.abs(Number(tx.base_amount || tx.amount));
 
   return (
-    <div 
-      className="transaction-item" 
+    <div
+      className="transaction-item"
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
-      <div 
-        className="transaction-icon" 
-        style={{ 
-          background: tx.category?.color ? `${tx.category.color}15` : 'var(--bg-secondary)', 
-          color: tx.category?.color || 'var(--text-primary)' 
+      <div
+        className="transaction-icon"
+        style={{
+          background: tx.category?.color ? `${tx.category.color}15` : 'var(--bg-secondary)',
+          color: tx.category?.color || 'var(--text-primary)'
         }}
       >
         {tx.category ? tx.category.icon : '🏷️'}
       </div>
-      
+
       <div className="transaction-info">
         <div className="transaction-desc">
           {tx.description || t('noDescription')}
@@ -52,7 +52,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
             </span>
           )}
         </div>
-        
+
         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
           {tx.currency && tx.currency !== 'EUR' ? (
             <span>
@@ -63,7 +63,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
           )}
         </div>
       </div>
-      
+
       <div>
         <div className={isIncome ? "transaction-amount income" : "transaction-amount expense"}>
           {isIncome ? '+' : '-'}{formatMoney(baseAmount, tx.date)}
@@ -72,11 +72,11 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
           {tx.user_id === user?.id ? t('me') : t('partner')}
         </div>
       </div>
-      
+
       {showChevron && (
         <div style={{ paddingLeft: '8px', display: 'flex', alignItems: 'center' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}>
-            <path d="m9 18 6-6-6-6"/>
+            <path d="m9 18 6-6-6-6" />
           </svg>
         </div>
       )}
