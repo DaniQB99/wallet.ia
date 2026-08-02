@@ -86,7 +86,8 @@ interface DataContextType {
   invalidate: (target: InvalidateTarget) => void;
 
   // Mutaciones de transacciones (centralizadas para evitar getUser() en cada llamada)
-  addTransaction: (tx: Partial<Transaction>) => Promise<Error | null>;
+  addTransaction: (tx: Partial<Transaction> | Partial<Transaction>[]) => Promise<Error | null>;
+  addRecurringTransaction: (tx: any) => Promise<Error | null>; // Using any for brevity here, or type later
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<Error | null>;
   deleteTransaction: (id: string) => Promise<Error | null>;
 
@@ -381,15 +382,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Mutaciones de transacciones
   // --------------------------------------------------
 
-  const addTransaction = useCallback(async (tx: Partial<Transaction>) => {
+  const addTransaction = useCallback(async (tx: Partial<Transaction> | Partial<Transaction>[]) => {
     if (!userId) return new Error('Not authenticated');
-    const { error } = await supabase.from('transactions').insert({ ...tx, user_id: userId });
+    
+    // Si es un array (ej. transferencia), inyectamos userId a cada elemento
+    const insertData = Array.isArray(tx) 
+      ? tx.map(t => ({ ...t, user_id: userId }))
+      : { ...tx, user_id: userId };
+      
+    const { error } = await supabase.from('transactions').insert(insertData as any);
     if (!error) {
       fetchTransactions(true);
       fetchAccounts(true);
     }
     return error;
   }, [userId, fetchTransactions, fetchAccounts]);
+
+  const addRecurringTransaction = useCallback(async (tx: any) => {
+    if (!userId) return new Error('Not authenticated');
+    const { error } = await supabase.from('recurring_transactions').insert({ ...tx, user_id: userId });
+    return error;
+  }, [userId]);
 
   const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
     const { error } = await supabase.from('transactions').update(updates).eq('id', id);
@@ -570,6 +583,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadMoreTransactions,
     invalidate,
     addTransaction,
+    addRecurringTransaction,
     updateTransaction,
     deleteTransaction,
     addAccount,

@@ -9,6 +9,7 @@ interface TotalBalanceProps {
   color?: string;
   iconBg?: string;
   iconColor?: string;
+  size?: 'normal' | 'small';
 }
 
 export const TotalBalance: React.FC<TotalBalanceProps> = ({ 
@@ -17,7 +18,8 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({
   icon, 
   color = 'var(--bg-secondary)', 
   iconBg = 'var(--bg-tertiary)',
-  iconColor = 'var(--text-primary)'
+  iconColor = 'var(--text-primary)',
+  size = 'normal'
 }) => {
   const { locale, currency } = useLocaleCurrency();
   
@@ -37,7 +39,7 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({
   });
 
   return (
-    <div className="stat-card" style={{ '--stat-color': color } as React.CSSProperties}>
+    <div className={`stat-card ${size === 'small' ? 'stat-card-small' : ''}`} style={{ '--stat-color': color } as React.CSSProperties}>
       {icon && (
         <div className="stat-card-icon" style={{ background: iconBg, color: iconColor }}>
           {icon}

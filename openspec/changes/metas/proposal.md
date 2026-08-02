@@ -36,4 +36,6 @@ Las tablas en Supabase ya reflejan:
 ## 5. Mejoras Recientes (UI/UX)
 - **Eliminación en cascada**: Reflejo inmediato en la interfaz al eliminar cuentas (las transacciones desaparecen automáticamente).
 - **Saldos sincronizados**: Actualización automática del dinero de la cuenta principal al eliminar una transacción vinculada.
-- **Detalles UI premium**: El recuadro de selección de colores durante la creación de cuentas ahora flota sin romper el diseño (posición absoluta) y adquiere sutilmente el tinte del color seleccionado para mayor inmersión.
+- **Transacciones Recurrentes & Transferencias**: Gestión completa de transferencias entre cuentas y gastos repetitivos directamente a nivel de base de datos y UI.
+- **Transacción Mobile-First**: Rediseño completo del modal de transacciones (pantalla completa, paneles deslizables, botones 'pill') y teclado numérico customizado. 
+- **Dashboard Refactorizado**: Incorporación de cuadrícula de acciones rápidas (iconos de Gasto, Ingreso, Transferencia y Cuentas exclusivos en vista móvil) y saldos globales (Cuentas Personales y Compartidas) más compactos y adaptativos.

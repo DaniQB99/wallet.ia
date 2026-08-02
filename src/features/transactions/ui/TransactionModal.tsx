@@ -1,76 +1,79 @@
-import { useState, useEffect, useId } from 'react';
-import { X, Trash2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Check, Delete, Edit3, Calendar, RefreshCw, FolderOpen, ArrowLeft, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Transaction } from '../../../shared/types/database';
 import { useTransactions } from '../../../entities/transactions/model/useTransactions';
 import { useCategories } from '../../../entities/categories/model/useCategories';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import AccountsSettings from '../../settings/ui/AccountsSettings';
 
 interface TransactionModalProps {
   open: boolean;
   onClose: () => void;
   editTransaction?: Transaction | null;
+  initialFlowType?: 'expense' | 'income' | 'transfer';
 }
 
-/**
- * Modal interactivo para crear o editar transacciones (ingresos y gastos).
- * Permite seleccionar el tipo de flujo, monto, categoría, cuenta, alcance (personal/compartido) y fecha.
- */
-export default function TransactionModal({ open, onClose, editTransaction }: TransactionModalProps) {
-  const amountId = useId();
-  const descriptionId = useId();
-  const dateId = useId();
-  const categoryIdAttr = useId();
-  const accountIdAttr = useId();
-  const scopeId = useId();
+export default function TransactionModal({ open, onClose, editTransaction, initialFlowType }: TransactionModalProps) {
+  // Services
+  const { currency } = useLocaleCurrency();
+  const { addTransaction, addRecurringTransaction, updateTransaction } = useTransactions();
+  const { accounts } = useAccounts();
+  const { categories: personalCategories } = useCategories('personal');
+  const { categories: sharedCategories } = useCategories('shared');
 
-  const { t, currency } = useLocaleCurrency();
-  const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
-
-  const [flowType, setFlowType] = useState<'expense' | 'income'>('expense');
-  const [amount, setAmount] = useState<string>('');
+  // Core State
+  const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>(initialFlowType || 'expense');
+  const [amountStr, setAmountStr] = useState<string>('0');
   const [description, setDescription] = useState<string>('');
   const [scope, setScope] = useState<'personal' | 'shared'>('personal');
   const [categoryId, setCategoryId] = useState<string>('');
   const [accountId, setAccountId] = useState<string>('');
+  const [destinationAccountId, setDestinationAccountId] = useState<string>('');
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [interval, setInterval] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
 
-  const { categories: personalCategories } = useCategories('personal');
-  const { categories: sharedCategories } = useCategories('shared');
-  const { accounts } = useAccounts();
+  // Navigation State
+  const [view, setView] = useState<'main' | 'account' | 'destination' | 'category' | 'recurring'>('main');
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [shakeField, setShakeField] = useState<'amount' | 'account' | 'destination' | null>(null);
+  
+  const [submitting, setSubmitting] = useState(false);
 
   const activeCategories = scope === 'shared' ? sharedCategories : personalCategories;
+  const descriptionRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editTransaction) {
-      const isExpense = editTransaction.amount < 0;
-      setFlowType(isExpense ? 'expense' : 'income');
-      setAmount(String(Math.abs(editTransaction.amount)));
-      setDescription(editTransaction.description || '');
-      setScope((editTransaction.type as 'personal' | 'shared') || 'personal');
-      setCategoryId(editTransaction.category_id || '');
-      setAccountId(editTransaction.account_id || '');
-      setDate(
-        editTransaction.date
-          ? new Date(editTransaction.date).toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10)
-      );
-    } else {
-      setFlowType('expense');
-      setAmount('');
-      setDescription('');
-      setScope('personal');
-      setCategoryId('');
-      setAccountId('');
-      setDate(new Date().toISOString().slice(0, 10));
+    if (open) {
+      if (editTransaction) {
+        setAmountStr(Math.abs(editTransaction.amount).toString().replace('.', ','));
+        setFlowType(
+          editTransaction.transfer_group_id ? 'transfer' : 
+          editTransaction.amount < 0 ? 'expense' : 'income'
+        );
+        setDescription(editTransaction.description || '');
+        setAccountId(editTransaction.account_id || '');
+        setScope(editTransaction.type as 'personal' | 'shared');
+        setCategoryId(editTransaction.category_id || '');
+        setDate(editTransaction.date.split('T')[0]);
+      } else {
+        setAmountStr('0');
+        setFlowType(initialFlowType || 'expense');
+        setDescription('');
+        setAccountId(accounts.length > 0 ? accounts[0].id : '');
+        setScope(accounts.length > 0 ? (accounts[0].scope as 'personal' | 'shared') : 'personal');
+        setDestinationAccountId('');
+        setCategoryId('');
+        setDate(new Date().toISOString().split('T')[0]);
+        setIsRecurring(false);
+        setInterval('monthly');
+      }
+      setView('main');
     }
-    setErrorMsg(null);
-  }, [editTransaction, open]);
+  }, [editTransaction, open, accounts.length, initialFlowType]);
 
-  // Si cambia la selección de scope y la categoría actual no pertenece al nuevo scope, resetearla
   useEffect(() => {
     if (categoryId) {
       const exists = activeCategories.some((c) => c.id === categoryId);
@@ -80,21 +83,38 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseFloat(amount);
+  // Keypad Handlers
+  const handleKeypad = (val: string) => {
+    if (val === 'backspace') {
+      setAmountStr(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
+    } else if (val === ',') {
+      if (!amountStr.includes(',')) {
+        setAmountStr(prev => prev + ',');
+      }
+    } else {
+      setAmountStr(prev => prev === '0' ? val : prev + val);
+    }
+  };
+
+  const parseAmount = (str: string) => parseFloat(str.replace(',', '.'));
+
+  const handleSubmit = async () => {
+    const triggerShake = (field: 'amount' | 'account' | 'destination') => {
+      setShakeField(field);
+      setTimeout(() => setShakeField(null), 500);
+    };
+
+    const numAmount = parseAmount(amountStr);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setErrorMsg(t('invalidAmount') || 'Por favor ingresa un monto válido mayor a 0');
+      triggerShake('amount');
       return;
     }
-
-    if (!description.trim()) {
-      setErrorMsg(t('invalidDescription') || 'Por favor ingresa una descripción');
+    if (!accountId) {
+      triggerShake('account');
       return;
     }
 
     setSubmitting(true);
-    setErrorMsg(null);
 
     const finalAmount = flowType === 'expense' ? -Math.abs(numAmount) : Math.abs(numAmount);
 
@@ -110,377 +130,412 @@ export default function TransactionModal({ open, onClose, editTransaction }: Tra
         });
         if (err) throw err;
       } else {
-        const err = await addTransaction({
-          amount: finalAmount,
-          description: description.trim(),
-          category_id: categoryId || null,
-          account_id: accountId || null,
-          type: scope,
-          date,
-          currency: currency || 'EUR',
-        });
-        if (err) throw err;
+        if (isRecurring) {
+          const err = await addRecurringTransaction({
+            amount: finalAmount,
+            description: description.trim(),
+            category_id: flowType === 'transfer' ? null : (categoryId || null),
+            account_id: accountId || null,
+            destination_account_id: flowType === 'transfer' ? destinationAccountId : null,
+            type: scope,
+            interval,
+            start_date: date,
+            end_date: null,
+            next_process_date: date,
+          });
+          if (err) throw err;
+        } else if (flowType === 'transfer') {
+          if (!destinationAccountId) {
+            triggerShake('destination');
+            setSubmitting(false);
+            return;
+          }
+          const t_group_id = crypto.randomUUID();
+          const err = await addTransaction([
+            {
+              amount: -Math.abs(numAmount),
+              description: description.trim(),
+              account_id: accountId,
+              type: scope,
+              date,
+              currency: currency || 'EUR',
+              transfer_group_id: t_group_id
+            },
+            {
+              amount: Math.abs(numAmount),
+              description: description.trim(),
+              account_id: destinationAccountId,
+              type: scope,
+              date,
+              currency: currency || 'EUR',
+              transfer_group_id: t_group_id
+            }
+          ]);
+          if (err) throw err;
+        } else {
+          const err = await addTransaction({
+            amount: finalAmount,
+            description: description.trim(),
+            category_id: categoryId || null,
+            account_id: accountId || null,
+            type: scope,
+            date,
+            currency: currency || 'EUR',
+          });
+          if (err) throw err;
+        }
       }
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al guardar la transacción';
-      setErrorMsg(message);
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!editTransaction) return;
-    if (!window.confirm('¿Estás seguro de eliminar esta transacción?')) return;
-    setSubmitting(true);
+  const handleAccountSelect = (id: string, newScope: 'personal' | 'shared') => {
+    if (view === 'destination') {
+      setDestinationAccountId(id);
+    } else {
+      setAccountId(id);
+      setScope(newScope);
+    }
+    setView('main');
+  };
+
+  const formatCurrencyLocal = (val: number) => {
+    return new Intl.NumberFormat('es', { style: 'currency', currency: currency || 'EUR' }).format(val);
+  };
+
+  const formatCurrencyDisplay = () => {
+    const symbol = new Intl.NumberFormat('es', { style: 'currency', currency: currency || 'EUR' }).formatToParts(0).find(x => x.type === 'currency')?.value || '€';
+    return `${symbol} ${amountStr}`;
+  };
+  
+  const formatDateDisplay = (d: string) => {
     try {
-      const err = await deleteTransaction(editTransaction.id);
-      if (err) throw err;
-      onClose();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al eliminar la transacción';
-      setErrorMsg(message);
-    } finally {
-      setSubmitting(false);
+      const parsed = new Date(d);
+      const userTimezoneOffset = parsed.getTimezoneOffset() * 60000;
+      const localDate = new Date(parsed.getTime() + userTimezoneOffset);
+      const parts = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(localDate);
+      return parts.charAt(0).toUpperCase() + parts.slice(1);
+    } catch {
+      return d;
     }
   };
 
-  return (
-    <AnimatePresence>
-      <div className="modal-overlay" onClick={onClose}>
-        <motion.div
-          className="modal-content animate-in"
-          style={{ maxWidth: '520px', width: '100%', borderRadius: 'var(--radius-xl, 20px)' }}
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          onClick={(e) => e.stopPropagation()}
+  const selectedAccount = accounts.find(a => a.id === accountId);
+  const selectedDestAccount = accounts.find(a => a.id === destinationAccountId);
+  const selectedCategory = activeCategories.find(c => c.id === categoryId);
+
+  // Components: Keypad
+  const renderKeypad = () => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: 'auto', paddingBottom: '10px' }}>
+      {[1,2,3,4,5,6,7,8,9].map(n => (
+        <button key={n} type="button" onClick={() => handleKeypad(n.toString())}
+          style={{ background: '#2C2C2E', border: 'none', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '1.5rem', fontWeight: 500, cursor: 'pointer' }}>
+          {n}
+        </button>
+      ))}
+      <button type="button" onClick={() => handleKeypad(',')}
+        style={{ background: '#2C2C2E', border: 'none', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '1.5rem', fontWeight: 500, cursor: 'pointer' }}>
+        ,
+      </button>
+      <button type="button" onClick={() => handleKeypad('0')}
+        style={{ background: '#2C2C2E', border: 'none', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '1.5rem', fontWeight: 500, cursor: 'pointer' }}>
+        0
+      </button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <button type="button" onClick={() => handleKeypad('backspace')}
+          style={{ background: '#2C2C2E', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+          <Delete size={22} />
+        </button>
+        <button type="button" onClick={handleSubmit} disabled={submitting}
+          style={{ background: '#6366F1', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+          <Check size={26} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const pillStyle = {
+    background: '#1C1C1E',
+    border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '12px',
+    padding: '16px',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '0.95rem',
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left' as const
+  };
+
+  const renderMainView = () => (
+    <motion.div 
+      initial={{ x: 0 }} animate={{ x: 0 }} exit={{ x: -50, opacity: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px' }}>
+          <X size={24} />
+        </button>
+        <div style={{ display: 'flex', gap: '20px', fontSize: '0.9rem', color: '#8E8E93', fontWeight: 500 }}>
+          <div onClick={() => setFlowType('expense')} style={{ cursor: 'pointer', color: flowType === 'expense' ? '#fff' : '#8E8E93', position: 'relative', paddingBottom: '4px' }}>
+            Gasto
+            {flowType === 'expense' && <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '20px', height: '3px', background: '#6366F1', borderRadius: '2px' }} />}
+          </div>
+          <div onClick={() => setFlowType('income')} style={{ cursor: 'pointer', color: flowType === 'income' ? '#fff' : '#8E8E93', position: 'relative', paddingBottom: '4px' }}>
+            Ingreso
+            {flowType === 'income' && <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '20px', height: '3px', background: '#6366F1', borderRadius: '2px' }} />}
+          </div>
+          <div onClick={() => setFlowType('transfer')} style={{ cursor: 'pointer', color: flowType === 'transfer' ? '#fff' : '#8E8E93', position: 'relative', paddingBottom: '4px' }}>
+            Transferencia
+            {flowType === 'transfer' && <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '20px', height: '3px', background: '#6366F1', borderRadius: '2px' }} />}
+          </div>
+        </div>
+        <div style={{ width: '40px' }} />
+      </div>
+
+      <motion.div 
+        animate={shakeField === 'amount' ? { x: [-10, 10, -10, 10, 0], color: ['#fff', '#ef4444', '#fff'] } : {}} 
+        transition={{ duration: 0.4 }}
+        style={{ textAlign: 'center', margin: '40px 0', fontSize: '3.5rem', fontWeight: 400, color: '#fff' }}
+      >
+        {formatCurrencyDisplay()}
+      </motion.div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+        <div style={{ ...pillStyle, padding: '0 16px', cursor: 'text' }} onClick={() => descriptionRef.current?.focus()}>
+          <Edit3 size={18} color="#8E8E93" />
+          <input
+            ref={descriptionRef}
+            type="text"
+            placeholder="Nota"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.95rem', width: '100%', outline: 'none', padding: '16px 0' }}
+          />
+        </div>
+
+        <motion.button 
+          type="button" 
+          style={pillStyle} 
+          onClick={() => setView('account')}
+          animate={shakeField === 'account' ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.05)', '#ef4444', 'rgba(255,255,255,0.05)'] } : {}}
+          transition={{ duration: 0.4 }}
         >
-          <div className="modal-header">
-            <div className="modal-header-left">
-              <h2 className="modal-title">
-                {editTransaction
-                  ? t('editTransaction') || 'Editar transacción'
-                  : t('addTransaction') || 'Nueva transacción'}
-              </h2>
-            </div>
-            <button className="btn-icon" onClick={onClose} aria-label="Cerrar modal">
-              <X size={20} />
-            </button>
+          <Landmark size={18} color="#6366F1" />
+          {selectedAccount ? `${selectedAccount.icon} ${selectedAccount.name}` : 'Seleccionar cuenta'}
+        </motion.button>
+
+        {flowType === 'transfer' && (
+          <motion.button 
+            type="button" 
+            style={pillStyle} 
+            onClick={() => setView('destination')}
+            animate={shakeField === 'destination' ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.05)', '#ef4444', 'rgba(255,255,255,0.05)'] } : {}}
+            transition={{ duration: 0.4 }}
+          >
+            <Landmark size={18} color="#6366F1" />
+            {selectedDestAccount ? `${selectedDestAccount.icon} ${selectedDestAccount.name}` : 'Cuenta destino'}
+          </motion.button>
+        )}
+
+        {flowType !== 'transfer' && (
+          <button type="button" style={pillStyle} onClick={() => setView('recurring')}>
+            <RefreshCw size={18} color="#8E8E93" />
+            {isRecurring ? `Repetir: ${interval === 'daily' ? 'Diaria' : interval === 'weekly' ? 'Semanal' : interval === 'monthly' ? 'Mensual' : 'Anual'}` : 'Nunca'}
+          </button>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: flowType === 'transfer' ? '1fr' : '1fr 1fr', gap: '8px' }}>
+          <div style={{ ...pillStyle, padding: '0 16px', position: 'relative' }}>
+            <Calendar size={18} color="#8E8E93" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+            />
+            <span style={{ padding: '16px 0', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDateDisplay(date)}</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="modal-body">
-            {errorMsg && (
-              <div
-                className="error-banner"
-                style={{
-                  background: 'var(--danger-bg, rgba(239, 68, 68, 0.12))',
-                  color: 'var(--danger-color, #ef4444)',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  fontSize: '0.875rem',
-                  marginBottom: '16px',
-                }}
-              >
-                {errorMsg}
-              </div>
-            )}
-
-            {/* Toggle Tipo de Flujo: Gasto / Ingreso */}
-            <div
-              className="flow-toggle"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-                background: 'var(--bg-tertiary, rgba(255,255,255,0.05))',
-                padding: '4px',
-                borderRadius: '14px',
-                marginBottom: '20px',
-              }}
-            >
-              <button
-                type="button"
-                className={`btn ${flowType === 'expense' ? 'active-expense' : ''}`}
-                onClick={() => setFlowType('expense')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: flowType === 'expense' ? 'var(--danger-bg, rgba(239, 68, 68, 0.2))' : 'transparent',
-                  color: flowType === 'expense' ? '#ef4444' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <ArrowDownCircle size={18} />
-                {t('expense') || 'Gasto'}
-              </button>
-              <button
-                type="button"
-                className={`btn ${flowType === 'income' ? 'active-income' : ''}`}
-                onClick={() => setFlowType('income')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: flowType === 'income' ? 'var(--success-bg, rgba(34, 197, 94, 0.2))' : 'transparent',
-                  color: flowType === 'income' ? '#22c55e' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <ArrowUpCircle size={18} />
-                {t('income') || 'Ingreso'}
-              </button>
-            </div>
-
-            {/* Input de Monto */}
-            <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label htmlFor={amountId} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                Monto
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id={amountId}
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                    background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                    color: 'var(--text-primary)',
-                    fontSize: '1.25rem',
-                    fontWeight: '600',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Input de Descripción */}
-            <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label htmlFor={descriptionId} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                Descripción
-              </label>
-              <input
-                id={descriptionId}
-                type="text"
-                placeholder="Ej. Supermercado, Sueldo..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                  background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            {/* Selector de Alcance: Personal / Compartida */}
-            <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label htmlFor={scopeId} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                Alcance
-              </label>
-              <select
-                id={scopeId}
-                value={scope}
-                onChange={(e) => setScope(e.target.value as 'personal' | 'shared')}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                  background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-              >
-                <option value="personal">{t('personal') || 'Personal'}</option>
-                <option value="shared">{t('shared') || 'Compartida'}</option>
-              </select>
-            </div>
-
-            {/* Grid 2 Columnas: Categoría y Cuenta */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div className="form-group">
-                <label htmlFor={categoryIdAttr} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                  Categoría
-                </label>
-                <select
-                  id={categoryIdAttr}
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                    background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="">Sin categoría</option>
-                  {activeCategories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon ? `${cat.icon} ` : ''}{cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor={accountIdAttr} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                  Cuenta
-                </label>
-                <select
-                  id={accountIdAttr}
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                    background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="">Sin cuenta</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.icon ? `${acc.icon} ` : ''}{acc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Input de Fecha */}
-            <div className="form-group" style={{ marginBottom: '24px' }}>
-              <label htmlFor={dateId} className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 500 }}>
-                Fecha
-              </label>
-              <input
-                id={dateId}
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                  background: 'var(--bg-secondary, rgba(0,0,0,0.2))',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            {/* Acciones de Footer */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: editTransaction ? 'space-between' : 'flex-end',
-                gap: '12px',
-                marginTop: '16px',
-              }}
-            >
-              {editTransaction && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleDelete}
-                  disabled={submitting}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#ef4444',
-                    border: 'none',
-                    padding: '10px 16px',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Trash2 size={16} />
-                  Eliminar
-                </button>
-              )}
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={onClose}
-                  disabled={submitting}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '12px',
-                    background: 'var(--bg-tertiary, rgba(255,255,255,0.08))',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitting}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '12px',
-                    background: 'var(--accent-primary, #6366f1)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {submitting ? 'Guardando...' : editTransaction ? 'Actualizar' : 'Guardar'}
-                </button>
-              </div>
-            </div>
-          </form>
-        </motion.div>
+          {flowType !== 'transfer' && (
+            <button type="button" style={pillStyle} onClick={() => setView('category')}>
+              <FolderOpen size={18} color="#8E8E93" />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.name}` : 'Entradas'}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
-    </AnimatePresence>
+
+      {renderKeypad()}
+    </motion.div>
+  );
+
+  const renderAccountList = (isDestination: boolean) => (
+    <motion.div 
+      initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+        <button type="button" onClick={() => setView('main')} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px' }}>
+          <X size={24} />
+        </button>
+        <h2 style={{ margin: '0 auto', fontSize: '1.1rem', fontWeight: 600, transform: 'translateX(-16px)' }}>
+          {isDestination ? 'Cuenta Destino' : 'Cuenta'}
+        </h2>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {accounts.filter(acc => !isDestination || acc.id !== accountId).map(acc => (
+          <button
+            key={acc.id}
+            type="button"
+            onClick={() => handleAccountSelect(acc.id, acc.scope as 'personal' | 'shared')}
+            style={{
+              background: '#1C1C1E',
+              border: `1px solid ${(isDestination ? destinationAccountId === acc.id : accountId === acc.id) ? '#6366F1' : 'rgba(255,255,255,0.05)'}`,
+              borderRadius: '20px',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              color: '#fff',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {acc.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '4px' }}>{acc.name}</div>
+                <div style={{ fontSize: '0.85rem', color: '#8E8E93' }}>Balance : {formatCurrencyLocal(acc.balance || 0)}</div>
+              </div>
+            </div>
+            <ArrowLeft size={16} color="#6366F1" style={{ transform: 'rotate(180deg)' }} />
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '20px 0', marginTop: 'auto' }}>
+        <button
+          type="button"
+          onClick={() => setShowAddAccount(true)}
+          style={{
+            width: '100%',
+            padding: '16px',
+            borderRadius: '24px',
+            border: '1px solid #6366F1',
+            background: 'transparent',
+            color: '#6366F1',
+            fontSize: '1rem',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          Agregar cuenta
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  const renderCategoryList = () => (
+    <motion.div 
+      initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+        <button type="button" onClick={() => setView('main')} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px' }}>
+          <ArrowLeft size={24} />
+        </button>
+        <h2 style={{ margin: '0 auto', fontSize: '1.1rem', fontWeight: 600, transform: 'translateX(-16px)' }}>Categoría</h2>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <button
+          type="button"
+          onClick={() => { setCategoryId(''); setView('main'); }}
+          style={{ ...pillStyle, border: categoryId === '' ? '1px solid #6366F1' : pillStyle.border }}
+        >
+          <FolderOpen size={18} color="#8E8E93" /> Sin categoría
+        </button>
+        {activeCategories.map(cat => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => { setCategoryId(cat.id); setView('main'); }}
+            style={{ ...pillStyle, border: categoryId === cat.id ? '1px solid #6366F1' : pillStyle.border }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>{cat.icon}</span> {cat.name}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+
+  const renderRecurringList = () => (
+    <motion.div 
+      initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+        <button type="button" onClick={() => setView('main')} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px' }}>
+          <ArrowLeft size={24} />
+        </button>
+        <h2 style={{ margin: '0 auto', fontSize: '1.1rem', fontWeight: 600, transform: 'translateX(-16px)' }}>Frecuencia</h2>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <button type="button" onClick={() => { setIsRecurring(false); setView('main'); }} style={{ ...pillStyle, border: !isRecurring ? '1px solid #6366F1' : pillStyle.border }}>
+          Nunca
+        </button>
+        {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(inv => (
+          <button key={inv} type="button" onClick={() => { setIsRecurring(true); setInterval(inv); setView('main'); }} style={{ ...pillStyle, border: isRecurring && interval === inv ? '1px solid #6366F1' : pillStyle.border }}>
+            {inv === 'daily' ? 'Diaria' : inv === 'weekly' ? 'Semanal' : inv === 'monthly' ? 'Mensual' : 'Anual'}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <>
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: '100%' }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: '#000',
+            color: '#fff',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px 20px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+          }}
+        >
+          {view === 'main' && renderMainView()}
+          {view === 'account' && renderAccountList(false)}
+          {view === 'destination' && renderAccountList(true)}
+          {view === 'category' && renderCategoryList()}
+          {view === 'recurring' && renderRecurringList()}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Render Add Account overlay if requested */}
+      {showAddAccount && <AccountsSettings onClose={() => setShowAddAccount(false)} />}
+    </>
   );
 }

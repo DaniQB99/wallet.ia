@@ -339,6 +339,92 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          category_id: string | null
+          couple_id: string | null
+          created_at: string
+          description: string
+          destination_account_id: string | null
+          end_date: string | null
+          id: string
+          interval: string
+          last_processed_date: string | null
+          next_process_date: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          category_id?: string | null
+          couple_id?: string | null
+          created_at?: string
+          description?: string
+          destination_account_id?: string | null
+          end_date?: string | null
+          id?: string
+          interval: string
+          last_processed_date?: string | null
+          next_process_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          category_id?: string | null
+          couple_id?: string | null
+          created_at?: string
+          description?: string
+          destination_account_id?: string | null
+          end_date?: string | null
+          id?: string
+          interval?: string
+          last_processed_date?: string | null
+          next_process_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couple_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_destination_account_id_fkey"
+            columns: ["destination_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       shared_categories: {
         Row: {
           color: string
@@ -377,6 +463,8 @@ export type Database = {
           exchange_rate_used: number
           goal_id: string | null
           id: string
+          is_recurring: boolean
+          transfer_group_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -394,6 +482,8 @@ export type Database = {
           exchange_rate_used?: number
           goal_id?: string | null
           id?: string
+          is_recurring?: boolean
+          transfer_group_id?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -411,6 +501,8 @@ export type Database = {
           exchange_rate_used?: number
           goal_id?: string | null
           id?: string
+          is_recurring?: boolean
+          transfer_group_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string

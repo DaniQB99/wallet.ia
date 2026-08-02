@@ -5,9 +5,12 @@ import { TransactionItem } from '../features/transactions/ui/TransactionItem';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 import { useTransactions } from '../entities/transactions/model/useTransactions';
+import { useAccounts } from '../entities/accounts/model/useAccounts';
 import { TotalBalance } from '../shared/ui/TotalBalance';
-import { useDashboardStats } from '../features/dashboard/model/useDashboardStats';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import TransactionModal from '../features/transactions/ui/TransactionModal';
+import AccountsSettings from '../features/settings/ui/AccountsSettings';
+import { ArrowDownRight, ArrowUpRight, ArrowLeftRight, Landmark } from 'lucide-react';
 
 /**
  * Dashboard.tsx
@@ -17,10 +20,12 @@ import { useEffect } from 'react';
  */
 
 export default function Dashboard() {
-  // Estado y autenticación
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const { prefetchRates, t, currency, loadingRates } = useLocaleCurrency();
+  const [showModal, setShowModal] = useState(false);
+  const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>('expense');
+  const [showAccounts, setShowAccounts] = useState(false);
 
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
@@ -28,12 +33,9 @@ export default function Dashboard() {
   // Obtener el nombre del usuario para el saludo
   const userName = user?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
-  // Hook para calcular estadísticas derivadas de las transacciones en tiempo real
-  // Calculando el balance total de toda la vida de la cuenta, sin filtros de mes
-  const {
-    totalShared,
-    personalTotal
-  } = useDashboardStats(transactions);
+  const { accounts } = useAccounts();
+  const totalAccountsShared = accounts.filter(a => a.scope === 'shared').reduce((acc, curr) => acc + (curr.balance || 0), 0);
+  const totalAccountsPersonal = accounts.filter(a => a.scope === 'personal').reduce((acc, curr) => acc + (curr.balance || 0), 0);
 
   // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
   const recentTransactions = transactions.slice(0, 5);
@@ -89,22 +91,51 @@ export default function Dashboard() {
         {/* Stats */}
         <div className="stats-grid">
           <TotalBalance
-            value={totalShared}
-            label={t('sharedBalance')}
-            color="var(--accent-gradient)"
-            iconBg="var(--accent-primary-glow)"
-            iconColor="var(--accent-primary-hover)"
-            icon={<Users size={22} />}
+            size="small"
+            value={totalAccountsPersonal}
+            label="Balance personal"
+            color="linear-gradient(90deg, #10B981, #34D399)"
+            iconBg="var(--success-bg)"
+            iconColor="var(--success)"
+            icon={<Wallet size={18} />}
           />
 
           <TotalBalance
-            value={personalTotal}
-            label={t('personalBalance')}
-            color="linear-gradient(90deg, #F59E0B, #FBBF24)"
-            iconBg="var(--warning-bg)"
-            iconColor="var(--warning)"
-            icon={<Wallet size={22} />}
+            size="small"
+            value={totalAccountsShared}
+            label="Balance compartido"
+            color="var(--accent-gradient)"
+            iconBg="var(--accent-primary-glow)"
+            iconColor="var(--accent-primary-hover)"
+            icon={<Users size={18} />}
           />
+        </div>
+
+        <div className="quick-actions-mobile">
+          <div className="quick-action-item" onClick={() => { setFlowType('expense'); setShowModal(true); }}>
+            <button className="quick-action-btn">
+              <ArrowDownRight size={26} />
+            </button>
+            <span className="quick-action-label">Gasto</span>
+          </div>
+          <div className="quick-action-item" onClick={() => { setFlowType('income'); setShowModal(true); }}>
+            <button className="quick-action-btn">
+              <ArrowUpRight size={26} />
+            </button>
+            <span className="quick-action-label">Ingreso</span>
+          </div>
+          <div className="quick-action-item" onClick={() => { setFlowType('transfer'); setShowModal(true); }}>
+            <button className="quick-action-btn">
+              <ArrowLeftRight size={26} />
+            </button>
+            <span className="quick-action-label">Transferencia</span>
+          </div>
+          <div className="quick-action-item" onClick={() => setShowAccounts(true)}>
+            <button className="quick-action-btn">
+              <Landmark size={26} />
+            </button>
+            <span className="quick-action-label">Cuentas</span>
+          </div>
         </div>
 
         <div className="dashboard-grid">
@@ -144,6 +175,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      
+      <TransactionModal 
+        open={showModal} 
+        onClose={() => setShowModal(false)} 
+        initialFlowType={flowType} 
+      />
+      {showAccounts && <AccountsSettings onClose={() => setShowAccounts(false)} />}
+      
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
