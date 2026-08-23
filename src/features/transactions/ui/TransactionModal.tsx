@@ -7,6 +7,7 @@ import { useCategories } from '../../../entities/categories/model/useCategories'
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import AccountsSettings from '../../settings/ui/AccountsSettings';
+import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 
 interface TransactionModalProps {
   open: boolean;
@@ -39,7 +40,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   const [view, setView] = useState<'main' | 'account' | 'destination' | 'category' | 'recurring'>('main');
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [shakeField, setShakeField] = useState<'amount' | 'account' | 'destination' | null>(null);
-
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const activeCategories = scope === 'shared' ? sharedCategories : personalCategories;
@@ -75,13 +76,13 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   }, [editTransaction, open, accounts.length, initialFlowType]);
 
   useEffect(() => {
-    if (categoryId) {
+    if (activeCategories.length > 0) {
       const exists = activeCategories.some((c) => c.id === categoryId);
-      if (!exists) setCategoryId('');
+      if (!exists) {
+        setCategoryId(activeCategories[0].id);
+      }
     }
   }, [scope, activeCategories, categoryId]);
-
-  if (!open) return null;
 
   // Keypad Handlers
   const handleKeypad = (val: string) => {
@@ -98,19 +99,23 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
 
   const parseAmount = (str: string) => parseFloat(str.replace(',', '.'));
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!editTransaction) return;
-    if (window.confirm('¿Seguro que deseas eliminar esta transacción?')) {
-      setSubmitting(true);
-      try {
-        const err = await deleteTransaction(editTransaction.id);
-        if (err) throw err;
-        onClose();
-      } catch (err: unknown) {
-        console.error(err);
-      } finally {
-        setSubmitting(false);
-      }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!editTransaction) return;
+    setSubmitting(true);
+    try {
+      const err = await deleteTransaction(editTransaction.id);
+      if (err) throw err;
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -324,7 +329,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
       <motion.div
         animate={shakeField === 'amount' ? { x: [-10, 10, -10, 10, 0], color: ['#fff', '#ef4444', '#fff'] } : {}}
         transition={{ duration: 0.4 }}
-        style={{ textAlign: 'center', margin: '40px 0', fontSize: '3.5rem', fontWeight: 400, color: '#fff' }}
+        style={{ textAlign: 'center', margin: '20px 0 32px 0', fontSize: '3rem', fontWeight: 400, color: '#fff' }}
       >
         {formatCurrencyDisplay()}
       </motion.div>
@@ -386,10 +391,10 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
           </div>
 
           {flowType !== 'transfer' && (
-            <button type="button" style={pillStyle} onClick={() => setView('category')}>
-              <FolderOpen size={18} color="#8E8E93" />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.name}` : 'Entradas'}
+            <button type="button" style={{ ...pillStyle, minWidth: 0 }} onClick={() => setView('category')}>
+              {!selectedCategory && <FolderOpen size={18} color="#8E8E93" style={{ flexShrink: 0 }} />}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
+                {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.name}` : 'Categoría'}
               </span>
             </button>
           )}
@@ -482,13 +487,7 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <button
-          type="button"
-          onClick={() => { setCategoryId(''); setView('main'); }}
-          style={{ ...pillStyle, border: categoryId === '' ? '1px solid #6366F1' : pillStyle.border }}
-        >
-          <FolderOpen size={18} color="#8E8E93" /> Sin categoría
-        </button>
+
         {activeCategories.map(cat => (
           <button
             key={cat.id}
@@ -531,33 +530,60 @@ export default function TransactionModal({ open, onClose, editTransaction, initi
   return (
     <>
       <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, y: '100%' }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: '#000',
-            color: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '64px 20px 24px',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-          }}
-        >
-          {view === 'main' && renderMainView()}
-          {view === 'account' && renderAccountList(false)}
-          {view === 'destination' && renderAccountList(true)}
-          {view === 'category' && renderCategoryList()}
-          {view === 'recurring' && renderRecurringList()}
-        </motion.div>
+        {open && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '440px',
+                background: '#0C0D12',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '24px',
+                color: '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '24px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                maxHeight: '90vh',
+                overflow: 'hidden'
+              }}
+            >
+              {view === 'main' && renderMainView()}
+              {view === 'account' && renderAccountList(false)}
+              {view === 'destination' && renderAccountList(true)}
+              {view === 'category' && renderCategoryList()}
+              {view === 'recurring' && renderRecurringList()}
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
 
       {/* Render Add Account overlay if requested */}
       {showAddAccount && <AccountsSettings onClose={() => setShowAddAccount(false)} />}
+
+      <DoubleConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        titleStep1="¿Eliminar transacción?"
+        descStep1="Estás a punto de eliminar esta transacción de tu registro."
+        titleStep2="¿Estás seguro?"
+        descStep2="Esta acción no se puede deshacer y afectará el balance de tus cuentas."
+        loading={submitting}
+      />
     </>
   );
 }

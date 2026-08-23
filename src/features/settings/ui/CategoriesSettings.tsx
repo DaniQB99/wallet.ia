@@ -6,6 +6,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 
 const COLOR_PRESETS = [
   '#6366F1', '#EC4899', '#10B981', '#F59E0B',
@@ -20,9 +21,9 @@ const COLOR_PRESETS = [
  *
  * @param props - Permite inyectar funciones de control como `onClose` para desmontar el modal.
  */
-export default function CategoriesSettings({ onClose }: { onClose: () => void }) {
+export default function CategoriesSettings({ onClose, initialTab = 'shared', hideTabs = false }: { onClose: () => void, initialTab?: TransactionType, hideTabs?: boolean }) {
   const { t } = useLocaleCurrency();
-  const [tab, setTab] = useState<TransactionType>('shared');
+  const [tab, setTab] = useState<TransactionType>(initialTab);
   const { categories, addCategory, updateCategory, deleteCategory, loading } = useCategories(tab);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,12 +34,25 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const nameExists = categories.some(
+      cat => cat.name.trim().toLowerCase() === name.trim().toLowerCase() && cat.id !== editingId
+    );
+
+    if (nameExists) {
+      setError(t('categoryExists') || 'Ya existe una categoría con este nombre');
+      return;
+    }
+
     if (editingId) {
-      await updateCategory(editingId, { name, icon, color, scope: tab as 'personal' | 'shared' });
+      await updateCategory(editingId, { name: name.trim(), icon, color, scope: tab as 'personal' | 'shared' });
     } else {
-      await addCategory({ name, icon, color, scope: tab as 'personal' | 'shared' });
+      await addCategory({ name: name.trim(), icon, color, scope: tab as 'personal' | 'shared' });
     }
     resetForm();
   };
@@ -50,10 +64,19 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
     setColor(cat.color);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm(`${t('delete')}?`)) {
-      await deleteCategory(id);
-    }
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = (id: string) => {
+    setCategoryToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
+    setDeleting(true);
+    await deleteCategory(categoryToDelete);
+    setDeleting(false);
+    setCategoryToDelete(null);
   };
 
   const resetForm = () => {
@@ -79,24 +102,26 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
           </button>
         </div>
 
-        <div className="toggle-group" style={{ marginBottom: '24px', display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
-          <button
-            className={`toggle-item ${tab === 'personal' ? 'active' : ''}`}
-            onClick={() => { setTab('personal'); resetForm(); }}
-            style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'personal' ? 'var(--bg-primary)' : 'transparent', color: tab === 'personal' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-          >
-            {t('personal')}
-          </button>
-          <button
-            className={`toggle-item ${tab === 'shared' ? 'active' : ''}`}
-            onClick={() => { setTab('shared'); resetForm(); }}
-            style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'shared' ? 'var(--bg-primary)' : 'transparent', color: tab === 'shared' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-          >
-            {t('shared')}
-          </button>
-        </div>
+        {!hideTabs && (
+          <div className="toggle-group" style={{ marginBottom: '24px', display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+            <button
+              className={`toggle-item ${tab === 'personal' ? 'active' : ''}`}
+              onClick={() => { setTab('personal'); resetForm(); }}
+              style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'personal' ? 'var(--bg-primary)' : 'transparent', color: tab === 'personal' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              {t('personal')}
+            </button>
+            <button
+              className={`toggle-item ${tab === 'shared' ? 'active' : ''}`}
+              onClick={() => { setTab('shared'); resetForm(); }}
+              style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'shared' ? 'var(--bg-primary)' : 'transparent', color: tab === 'shared' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              {t('shared')}
+            </button>
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)' }}>
+        <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)', position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div style={{ position: 'relative' }}>
               <label className="form-label">{t('icon')}</label>
@@ -104,7 +129,7 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
                 type="button"
                 className="btn-icon"
                 onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowColorPicker(false); }}
-                style={{ width: '48px', height: '48px', fontSize: '1.5rem', background: `${color}15`, border: `2px solid ${color}30`, color: color, borderRadius: 'var(--radius-md)' }}
+                style={{ width: '48px', height: '48px', fontSize: '1.5rem', background: `${color}15`, border: `2px solid ${color}30`, color: color, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 {icon}
               </button>
@@ -137,7 +162,6 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder={t('categoryPlaceholder')}
                 className="form-input"
                 style={{ width: '100%' }}
               />
@@ -177,6 +201,21 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
             </div>
           </div>
 
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                style={{ overflow: 'hidden', marginBottom: '16px' }}
+              >
+                <div style={{ padding: '12px', background: 'var(--danger-light, #fee2e2)', color: 'var(--danger, #ef4444)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid var(--danger, #ef4444)' }}>
+                  {error}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div style={{ display: 'flex', gap: '12px' }}>
             {editingId && (
               <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>{t('replace')}</button>
@@ -198,17 +237,17 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
             </div>
           ) : (
             categories.map(cat => (
-              <div key={cat.id} className="transaction-item" style={{ background: 'var(--bg-secondary)', marginBottom: '8px', borderRadius: 'var(--radius-md)' }}>
+              <div key={cat.id} className="transaction-item" style={{ background: 'var(--bg-secondary)', marginBottom: '8px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center' }}>
                 <div className="transaction-icon" style={{ background: `${cat.color}15`, color: cat.color }}>
                   {cat.icon}
                 </div>
-                <div className="transaction-details">
+                <div className="transaction-details" style={{ flex: 1 }}>
                   <div className="transaction-title" style={{ fontWeight: 600 }}>{cat.name}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                     {cat.scope === 'shared' ? t('sharedLabel') : t('personalLabel')}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
                   <button className="btn-icon" onClick={() => handleEdit(cat)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)' }}>
                     <Edit size={16} />
                   </button>
@@ -221,6 +260,17 @@ export default function CategoriesSettings({ onClose }: { onClose: () => void })
           )}
         </div>
       </motion.div>
+
+      <DoubleConfirmModal
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={confirmDelete}
+        titleStep1={t('deleteCategoryTitle') || '¿Eliminar categoría?'}
+        descStep1={t('deleteCategoryDesc') || 'Se eliminará la categoría y todas las transacciones quedarán sin asignar. ¿Estás seguro?'}
+        titleStep2={t('finalConfirmation') || 'Confirmación final'}
+        descStep2={t('finalConfirmationDesc') || 'Esta acción no se puede deshacer. ¿Deseas proceder con la eliminación?'}
+        loading={deleting}
+      />
     </div>
   );
 }

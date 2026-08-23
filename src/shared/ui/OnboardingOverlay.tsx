@@ -1,44 +1,160 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 import { useAuthContext } from '../../app/providers/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BarChart2,
-  Target,
-  Users,
-  ChevronRight,
-  X,
   Wallet,
-  PlusCircle
+  PlusCircle,
+  BarChart2,
+  Compass,
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  Heart,
 } from 'lucide-react';
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+/** CSS selectors for target elements highlighted in each step.        */
+const STEP_SELECTORS: (string | null)[] = [
+  null,                    // 0 — Welcome (no highlight)
+  '.stats-grid',           // 1 — Balance cards
+  '.quick-actions-mobile', // 2 — Quick actions
+  '.dashboard-grid',       // 3 — Transactions
+  '#settings-partner-card', // 4 — Partner Settings
+  '.bottom-nav-container', // 5 — Navigation bar
+];
+
+const TOTAL_STEPS = STEP_SELECTORS.length;
+const HIGHLIGHT_PAD = 8;
+
+interface HighlightRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+/* ------------------------------------------------------------------ */
+/*  OnboardingOverlay                                                  */
+/*                                                                     */
+/*  Coach-mark / spotlight tour for first-time users.                  */
+/*  Shows the real Dashboard UI in the background with highlighted     */
+/*  elements and a floating explanation card.                          */
+/* ------------------------------------------------------------------ */
 
 export default function OnboardingOverlay() {
   const { t } = useLocaleCurrency();
   const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const navigate = useNavigate();
+  const [highlightRect, setHighlightRect] = useState<HighlightRect | null>(null);
+  const [direction, setDirection] = useState(1);
+
+  /* ---- Step definitions (rebuilt every render for i18n) ---- */
+
+  const steps = [
+    {
+      path: '/',
+      cardPosition: 'bottom' as const,
+      pointerDirection: null as 'up' | 'down' | null,
+      icon: <Sparkles size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(99, 102, 241, 0.15)',
+      iconColor: '#818cf8',
+      subtitle: t('onboardingSub1'),
+      title: t('onboardingWelcome'),
+      desc: t('onboardingWelcomeDesc'),
+    },
+    {
+      path: '/',
+      cardPosition: 'bottom' as const,
+      pointerDirection: 'up' as const,
+      icon: <Wallet size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(16, 185, 129, 0.15)',
+      iconColor: '#10b981',
+      subtitle: t('onboardingSub2'),
+      title: t('onboardingStep1Title'),
+      desc: t('onboardingStep1Desc'),
+    },
+    {
+      path: '/',
+      cardPosition: 'top' as const,
+      pointerDirection: 'down' as const,
+      icon: <PlusCircle size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(59, 130, 246, 0.15)',
+      iconColor: '#3b82f6',
+      subtitle: t('onboardingSub3'),
+      title: t('onboardingStep5Title'),
+      desc: t('onboardingStep5Desc'),
+    },
+    {
+      path: '/',
+      cardPosition: 'top' as const,
+      pointerDirection: 'down' as const,
+      icon: <BarChart2 size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(245, 158, 11, 0.15)',
+      iconColor: '#f59e0b',
+      subtitle: t('onboardingSub4'),
+      title: t('onboardingStep4Title'),
+      desc: t('onboardingStep4Desc'),
+    },
+    {
+      path: '/settings',
+      cardPosition: 'top' as const,
+      pointerDirection: 'down' as const,
+      icon: <Heart size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(236, 72, 153, 0.15)',
+      iconColor: '#ec4899',
+      subtitle: t('onboardingSubPartner'),
+      title: t('onboardingStepPartnerTitle'),
+      desc: t('onboardingStepPartnerDesc'),
+    },
+    {
+      path: '/',
+      cardPosition: 'top' as const,
+      pointerDirection: 'down' as const,
+      icon: <Compass size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(139, 92, 246, 0.15)',
+      iconColor: '#8b5cf6',
+      subtitle: t('onboardingSub5'),
+      title: t('onboardingNavTitle'),
+      desc: t('onboardingNavDesc'),
+    },
+  ];
+
+  const step = steps[currentStep];
+  const isLastStep = currentStep === TOTAL_STEPS - 1;
+
+  /* ---- Show / mount logic ---- */
 
   useEffect(() => {
     const handleShowOnboarding = () => {
       setCurrentStep(0);
+      setDirection(1);
+      setHighlightRect(null);
       setIsVisible(true);
-      navigate('/transactions');
+      if (location.pathname !== '/') navigate('/');
     };
     window.addEventListener('show-onboarding', handleShowOnboarding);
 
     const hasSeenOnboarding = localStorage.getItem('walletia_onboarding_completed');
-    
-    // Check if user is "new" (created in the last 24 hours)
-    const isNewUser = user?.created_at 
-      ? (Date.now() - new Date(user.created_at).getTime()) < 1000 * 60 * 60 * 24 
+    const isNewUser = user?.created_at
+      ? Date.now() - new Date(user.created_at).getTime() < 86_400_000
       : false;
 
     if (isNewUser && !hasSeenOnboarding) {
       const timer = setTimeout(() => {
         setIsVisible(true);
-        navigate('/transactions');
+        if (location.pathname !== '/') navigate('/');
       }, 800);
       return () => {
         clearTimeout(timer);
@@ -49,233 +165,270 @@ export default function OnboardingOverlay() {
     return () => window.removeEventListener('show-onboarding', handleShowOnboarding);
   }, [navigate, user]);
 
-  const handleFinish = () => {
+  /* ---- Highlight rect tracking ---- */
+
+  useEffect(() => {
+    if (!isVisible) {
+      setHighlightRect(null);
+      return;
+    }
+
+    const selector = STEP_SELECTORS[currentStep];
+    if (!selector) {
+      setHighlightRect(null);
+      return;
+    }
+
+    let rafId: number;
+
+    const updateRect = () => {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setHighlightRect((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.top - r.top) < 0.5 &&
+          Math.abs(prev.left - r.left) < 0.5 &&
+          Math.abs(prev.width - r.width) < 0.5 &&
+          Math.abs(prev.height - r.height) < 0.5
+        ) {
+          return prev; // skip re-render if nothing changed
+        }
+        return { top: r.top, left: r.left, width: r.width, height: r.height };
+      });
+    };
+
+    const throttledUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateRect);
+    };
+
+    // Scroll target into view, then measure
+    const el = document.querySelector(selector);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Immediate measurement + continuous tracking
+    updateRect();
+    
+    // Poll aggressively for the first 600ms to catch DOM render after page transition
+    let pollCount = 0;
+    const pollInterval = setInterval(() => {
+      updateRect();
+      pollCount++;
+      if (pollCount > 12) clearInterval(pollInterval); // Stops after ~600ms
+    }, 50);
+
+    window.addEventListener('resize', throttledUpdate);
+    window.addEventListener('scroll', throttledUpdate, true);
+
+    return () => {
+      clearInterval(pollInterval);
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', throttledUpdate);
+      window.removeEventListener('scroll', throttledUpdate, true);
+    };
+  }, [currentStep, isVisible]);
+
+  /* ---- Handlers ---- */
+
+  const handleFinish = useCallback(() => {
     localStorage.setItem('walletia_onboarding_completed', 'true');
     setIsVisible(false);
-  };
+    setHighlightRect(null);
+  }, []);
 
-  const nextStep = () => {
-    if (currentStep < 4) {
+  const nextStep = useCallback(() => {
+    if (currentStep < TOTAL_STEPS - 1) {
+      setDirection(1);
       const next = currentStep + 1;
-      setCurrentStep(next);
-      if (next === 1) {
-        navigate('/transactions?add=true');
-      } else if (next === 2) {
-        navigate('/goals');
-      } else if (next === 3) {
-        navigate('/analytics');
-      } else if (next === 4) {
-        navigate('/settings?tab=Casal');
+      
+      const nextPath = steps[next].path;
+      if (nextPath && nextPath !== location.pathname) {
+        setHighlightRect(null);
+        navigate(nextPath);
       }
+
+      if (!STEP_SELECTORS[next]) setHighlightRect(null);
+      setCurrentStep(next);
     } else {
       handleFinish();
     }
-  };
+  }, [currentStep, handleFinish, navigate, location.pathname, steps]);
 
-  const steps = [
-    {
-      icon: <Wallet size={48} strokeWidth={1.5} />,
-      color: '#3b82f6', // blue
-      title: t('onboardingStep1Title'),
-      desc: t('onboardingStep1Desc')
-    },
-    {
-      icon: <PlusCircle size={48} strokeWidth={1.5} />,
-      color: '#ec4899', // pink
-      title: t('onboardingStep6Title'),
-      desc: t('onboardingStep6Desc')
-    },
-    {
-      icon: <Target size={48} strokeWidth={1.5} />,
-      color: '#10b981', // emerald
-      title: t('onboardingStep2Title'),
-      desc: t('onboardingStep2Desc')
-    },
-    {
-      icon: <BarChart2 size={48} strokeWidth={1.5} />,
-      color: '#f59e0b', // amber
-      title: t('onboardingStep4Title'),
-      desc: t('onboardingStep4Desc')
-    },
-    {
-      icon: <Users size={48} strokeWidth={1.5} />,
-      color: '#8b5cf6', // violet
-      title: t('onboardingStep3Title'),
-      desc: t('onboardingStep3Desc')
+  const prevStep = useCallback(() => {
+    if (currentStep > 0) {
+      setDirection(-1);
+      const prev = currentStep - 1;
+
+      const prevPath = steps[prev].path;
+      if (prevPath && prevPath !== location.pathname) {
+        setHighlightRect(null);
+        navigate(prevPath);
+      }
+
+      if (!STEP_SELECTORS[prev]) setHighlightRect(null);
+      setCurrentStep(prev);
     }
-  ];
+  }, [currentStep, navigate, location.pathname, steps]);
+
+  /* ---- Render ---- */
 
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div 
+        <motion.div
+          key="onboarding-root"
+          className="onboarding-root"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            padding: '1rem'
-          }}
+          transition={{ duration: 0.3 }}
         >
-          <motion.div 
-            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 20, opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            style={{ 
-              backgroundColor: '#121214',
-              width: '100%',
-              maxWidth: '420px',
-              borderRadius: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative'
-            }}
-          >
-            {/* Skip button */}
-            <button
-              onClick={handleFinish}
-              style={{
-                position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                color: '#71717a',
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                cursor: 'pointer',
-                zIndex: 10,
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease'
+          {/* Visual overlay — spotlight or full dim */}
+          <AnimatePresence>
+            {highlightRect ? (
+              <motion.div
+                key="spotlight"
+                className="onboarding-spotlight"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: 1,
+                  top: highlightRect.top - HIGHLIGHT_PAD,
+                  left: highlightRect.left - HIGHLIGHT_PAD,
+                  width: highlightRect.width + HIGHLIGHT_PAD * 2,
+                  height: highlightRect.height + HIGHLIGHT_PAD * 2,
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              />
+            ) : (
+              <motion.div
+                key="dim"
+                className="onboarding-dim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Floating card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`card-${step.cardPosition}`}
+              className={`onboarding-card onboarding-card--${step.cardPosition}`}
+              initial={{
+                opacity: 0,
+                y: step.cardPosition === 'bottom' ? 80 : -80,
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{
+                opacity: 0,
+                y: step.cardPosition === 'bottom' ? 80 : -80,
+              }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             >
-              <X size={18} />
-            </button>
+              {/* Header */}
+              <div className="onboarding-card-header">
+                <div className="onboarding-badge">
+                  {t('onboardingStepLabel')} {currentStep + 1} {t('onboardingStepOf')}{' '}
+                  {TOTAL_STEPS}
+                </div>
+                <div className="onboarding-header-actions">
+                  {step.pointerDirection && (
+                    <motion.div
+                      className="onboarding-pointer"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 }}
+                    >
+                      {step.pointerDirection === 'up' ? (
+                        <ArrowUp size={14} strokeWidth={2.5} />
+                      ) : (
+                        <ArrowDown size={14} strokeWidth={2.5} />
+                      )}
+                      <span>
+                        {step.pointerDirection === 'up'
+                          ? t('onboardingPointUp')
+                          : t('onboardingPointDown')}
+                      </span>
+                    </motion.div>
+                  )}
+                  <button
+                    className="onboarding-btn-close"
+                    onClick={handleFinish}
+                    aria-label={t('onboardingSkip')}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
 
-            {/* Content area */}
-            <div style={{ padding: '3rem 2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              
-              <AnimatePresence mode="wait">
+              {/* Body — content animates on step change */}
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={currentStep}
-                  initial={{ scale: 0.8, opacity: 0, y: 10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.8, opacity: 0, y: -10 }}
-                  transition={{ type: "spring", damping: 20 }}
-                  style={{ 
-                    width: '96px', 
-                    height: '96px', 
-                    borderRadius: '24px', 
-                    backgroundColor: `${steps[currentStep].color}15`,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    marginBottom: '2rem',
-                    color: steps[currentStep].color
-                  }}
-                >
-                   {steps[currentStep].icon}
-                </motion.div>
-              </AnimatePresence>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentStep}
-                  initial={{ opacity: 0, x: 20 }}
+                  className="onboarding-card-body"
+                  initial={{ opacity: 0, x: direction * 30 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, x: direction * -30 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ffffff', margin: '0 0 1rem 0', letterSpacing: '-0.02em' }}>
-                    {steps[currentStep].title}
-                  </h2>
-                  <p style={{ color: '#a1a1aa', margin: 0, fontSize: '1rem', lineHeight: '1.5' }}>
-                    {steps[currentStep].desc}
-                  </p>
+                  <div className="onboarding-content-row">
+                    <div
+                      className="onboarding-icon-wrap"
+                      style={{
+                        background: step.iconBg,
+                        color: step.iconColor,
+                      }}
+                    >
+                      {step.icon}
+                    </div>
+                    <div className="onboarding-content-text">
+                      {step.subtitle && (
+                        <div className="onboarding-subtitle">{step.subtitle}</div>
+                      )}
+                      <h3 className="onboarding-title">{step.title}</h3>
+                    </div>
+                  </div>
+                  <p className="onboarding-desc">{step.desc}</p>
                 </motion.div>
               </AnimatePresence>
-            </div>
 
-            {/* Dots */}
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '2rem' }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: '6px',
-                    borderRadius: '99px',
-                    transition: 'all 0.3s ease',
-                    width: currentStep === i ? '24px' : '6px',
-                    backgroundColor: currentStep === i ? steps[currentStep].color : '#3f3f46'
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Footer actions */}
-            <div style={{ padding: '0 1.5rem 1.5rem', display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={handleFinish}
-                style={{
-                  flex: 1,
-                  padding: '0.875rem',
-                  borderRadius: '16px',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  color: '#a1a1aa',
-                  backgroundColor: 'transparent',
-                  border: '1px solid transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
-              >
-                {t('onboardingSkip')}
-              </button>
-
-              <button
-                onClick={nextStep}
-                style={{
-                  flex: 1,
-                  padding: '0.875rem',
-                  borderRadius: '16px',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  color: '#ffffff',
-                  backgroundColor: steps[currentStep].color,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: `0 4px 14px ${steps[currentStep].color}40`
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                {currentStep === 4 ? t('onboardingFinish') : t('onboardingNext')}
-                {currentStep !== 4 && <ChevronRight size={20} strokeWidth={2.5} />}
-              </button>
-            </div>
-          </motion.div>
+              {/* Footer */}
+              <div className="onboarding-footer">
+                <div className="onboarding-dots">
+                  {steps.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`onboarding-dot${
+                        i === currentStep ? ' onboarding-dot--active' : ''
+                      }${i < currentStep ? ' onboarding-dot--done' : ''}`}
+                    />
+                  ))}
+                </div>
+                <div className="onboarding-nav-buttons">
+                  {currentStep > 0 && (
+                    <button
+                      className="onboarding-btn-prev"
+                      onClick={prevStep}
+                      aria-label={t('onboardingPrev')}
+                    >
+                      <ChevronLeft size={20} strokeWidth={2.5} />
+                    </button>
+                  )}
+                  <button className="onboarding-btn-next" onClick={nextStep}>
+                    <span>
+                      {isLastStep ? t('onboardingFinish') : t('onboardingNext')}
+                    </span>
+                    {!isLastStep && <ChevronRight size={18} strokeWidth={2.5} />}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

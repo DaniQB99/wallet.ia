@@ -35,7 +35,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
 
       <div className="transaction-info">
         <div className="transaction-desc">
-          {tx.description || t('noDescription')}
+          {tx.description}
           {tx.type === 'shared' && (
             <span className="badge-shared" style={{ marginLeft: '8px' }}>Compartido</span>
           )}

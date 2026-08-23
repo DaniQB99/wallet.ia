@@ -138,6 +138,7 @@ CREATE POLICY "Users can view partner shared categories" ON public.categories FO
   );
 
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON public.categories(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS categories_user_scope_name_idx ON public.categories (user_id, scope, lower(name));
 
 -- ==========================================
 -- 5. Accounts
@@ -386,10 +387,10 @@ BEGIN
   (NEW.id, 'Transporte', '🚌', '#3B82F6', 'personal'),
   (NEW.id, 'Compras', '🛍️', '#EC4899', 'personal'),
   (NEW.id, 'Suscripciones', '📱', '#8B5CF6', 'personal'),
-  (NEW.id, 'Hogar (Comp.)', '🏠', '#6366F1', 'shared'),
-  (NEW.id, 'Supermercado (Comp.)', '🛒', '#10B981', 'shared'),
-  (NEW.id, 'Servicios (Comp.)', '💡', '#F59E0B', 'shared'),
-  (NEW.id, 'Transporte (Comp.)', '🚗', '#3B82F6', 'shared');
+  (NEW.id, 'Hogar', '🏠', '#6366F1', 'shared'),
+  (NEW.id, 'Supermercado', '🛒', '#10B981', 'shared'),
+  (NEW.id, 'Servicios', '💡', '#F59E0B', 'shared'),
+  (NEW.id, 'Transporte', '🚗', '#3B82F6', 'shared');
 
   RETURN NEW;
 END;
@@ -513,7 +514,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 CREATE OR REPLACE FUNCTION public.generate_invite_code()
 RETURNS TEXT AS $$
 DECLARE
-  chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
   result TEXT := '';
   i INT;
 BEGIN

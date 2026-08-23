@@ -2491,31 +2491,305 @@ input::placeholder {
   text-align: center;
 }
 
-/* Modal de onboarding */
-.onboarding-modal {
-  background-color: var(--card-bg);
-  width: 100%;
-  max-width: 28rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+/* ==========================================
+   Onboarding — Coach Mark / Spotlight Tour
+   ========================================== */
+
+.onboarding-root {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
   overflow: hidden;
+}
+
+/* Full-screen dim — welcome step (no target) */
+.onboarding-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Spotlight cutout — positioned over the highlighted element.
+   The massive spread shadow acts as the page dimmer while the
+   element itself stays bright through the transparent hole. */
+.onboarding-spotlight {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 0 0 3px var(--accent-primary),
+    0 0 0 7px rgba(99, 102, 241, 0.25),
+    0 0 50px rgba(99, 102, 241, 0.12),
+    0 0 0 9999px rgba(0, 0, 0, 0.7);
+  animation: onboarding-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes onboarding-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px var(--accent-primary),
+      0 0 0 7px rgba(99, 102, 241, 0.25),
+      0 0 50px rgba(99, 102, 241, 0.12),
+      0 0 0 9999px rgba(0, 0, 0, 0.7);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--accent-primary-hover),
+      0 0 0 10px rgba(99, 102, 241, 0.35),
+      0 0 70px rgba(99, 102, 241, 0.2),
+      0 0 0 9999px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Floating card — glass morphism */
+.onboarding-card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: rgba(12, 13, 18, 0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+.onboarding-card--bottom {
+  bottom: 0;
+  border-radius: 24px 24px 0 0;
+  border-bottom: none;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-card--bottom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient);
+  border-radius: 24px 24px 0 0;
+}
+
+.onboarding-card--top {
+  top: 0;
+  border-radius: 0 0 24px 24px;
+  border-top: none;
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-card--top::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient);
+  border-radius: 0 0 24px 24px;
+}
+
+/* Header */
+.onboarding-card-header {
   display: flex;
-  flex-direction: column;
-  position: relative;
-  animation: fade-in-up 0.5s ease-out;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
 }
 
-@keyframes fade-in-up {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.onboarding-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
+
+.onboarding-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onboarding-pointer {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--accent-primary-hover);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.onboarding-btn-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.onboarding-btn-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+}
+
+/* Body */
+.onboarding-card-body {
+  margin-bottom: 0.75rem;
+}
+
+.onboarding-content-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+}
+
+.onboarding-icon-wrap {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-content-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-subtitle {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #8b92a8;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.onboarding-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f1f3f9;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.onboarding-desc {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Footer */
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.875rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 0.5rem;
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.onboarding-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: #3f3f46;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.onboarding-dot--active {
+  width: 24px;
+  background: var(--accent-primary);
+}
+
+.onboarding-dot--done {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+.onboarding-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.onboarding-btn-prev {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.onboarding-btn-prev:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.onboarding-btn-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+  white-space: nowrap;
+}
+
+.onboarding-btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.45);
+  background: var(--accent-primary-hover);
+}
+
+.onboarding-btn-next:active {
+  transform: translateY(0);
+}
+
 
 /* ==========================================
    Hoja inferior (compartida por Cat & Cuenta)

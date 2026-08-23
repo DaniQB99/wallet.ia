@@ -54,6 +54,7 @@ export default function Sidebar() {
           return (
             <NavLink
               key={item.path}
+              id={item.path === '/' ? 'sidebar-nav-home' : `sidebar-nav-${item.path.replace('/', '')}`}
               to={item.path}
               className={`sidebar-link ${isActive ? 'active' : ''}`}
             >

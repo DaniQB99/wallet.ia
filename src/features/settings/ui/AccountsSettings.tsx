@@ -7,6 +7,7 @@ import Picker from '@emoji-mart/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import type { Account } from '../../../shared/types/database';
+import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 
 const COLOR_PRESETS = [
   '#6366F1', '#EC4899', '#10B981', '#F59E0B',
@@ -109,7 +110,7 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)' }}>
+        <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)', position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div style={{ position: 'relative' }}>
               <label className="form-label">{t('icon')}</label>
@@ -282,41 +283,16 @@ export default function AccountsSettings({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Custom Confirmation Modal */}
-        <AnimatePresence>
-          {accountToDelete && (
-            <div className="modal-overlay" style={{ zIndex: 1200, background: 'rgba(0,0,0,0.8)' }}>
-              <motion.div
-                className="card"
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                style={{ maxWidth: '320px', width: '90%', textAlign: 'center', padding: '24px' }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div style={{ color: 'var(--danger)', marginBottom: '16px' }}>
-                  <Trash2 size={48} style={{ margin: '0 auto' }} />
-                </div>
-                <h3 style={{ marginBottom: '12px' }}>{t('deleteAccountTitle')}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
-                  {t('deleteAccountDesc')}
-                </p>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn btn-secondary" onClick={() => setAccountToDelete(null)} style={{ flex: 1 }}>
-                    {t('cancel')}
-                  </button>
-                  <button
-                    className={`btn btn-danger ${deleting ? 'disabled' : ''}`}
-                    onClick={confirmDelete}
-                    style={{ flex: 1 }}
-                    disabled={deleting}
-                  >
-                    {deleting ? t('deleting') : t('delete')}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        <DoubleConfirmModal
+          isOpen={!!accountToDelete}
+          onClose={() => setAccountToDelete(null)}
+          onConfirm={confirmDelete}
+          titleStep1={t('deleteAccountTitle') || '¿Eliminar cuenta?'}
+          descStep1={t('deleteAccountDesc') || 'Se eliminará la cuenta y todas sus transacciones. ¿Estás seguro?'}
+          titleStep2={t('finalConfirmation') || 'Confirmación final'}
+          descStep2={t('finalConfirmationDesc') || 'Esta acción no se puede deshacer. ¿Deseas proceder con la eliminación?'}
+          loading={deleting}
+        />
       </motion.div>
     </div>
   );

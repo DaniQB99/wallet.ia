@@ -220,20 +220,63 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_categories: {
+        Row: {
+          category_id: string
+          created_at: string
+          goal_id: string
+          id: string
+          target_amount: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          goal_id: string
+          id?: string
+          target_amount: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          goal_id?: string
+          id?: string
+          target_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_categories_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       goals: {
         Row: {
           category_id: string | null
           color: string | null
           created_at: string | null
           created_by: string | null
-          current_amount: number
+          current_amount: number | null
           deadline: string | null
           icon: string | null
           id: string
           name: string
           start_date: string | null
-          target_amount: number
+          target_amount: number | null
           type: string
+          goal_type: string
           updated_at: string
           user_id: string
         }
@@ -242,14 +285,15 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          current_amount?: number
+          current_amount?: number | null
           deadline?: string | null
           icon?: string | null
           id?: string
           name: string
           start_date?: string | null
-          target_amount: number
+          target_amount?: number | null
           type: string
+          goal_type?: string
           updated_at?: string
           user_id: string
         }
@@ -258,14 +302,15 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
-          current_amount?: number
+          current_amount?: number | null
           deadline?: string | null
           icon?: string | null
           id?: string
           name?: string
           start_date?: string | null
-          target_amount?: number
+          target_amount?: number | null
           type?: string
+          goal_type?: string
           updated_at?: string
           user_id?: string
         }
@@ -728,13 +773,18 @@ export type Transaction = Tables<'transactions'> & {
 };
 export type Account = Tables<'accounts'>;
 export type Category = Tables<'categories'>;
-export type Goal = Tables<'goals'>;
+export type GoalCategory = Tables<'goal_categories'> & {
+  category?: Category;
+};
+export type Goal = Tables<'goals'> & {
+  goal_categories?: GoalCategory[];
+};
 export type UserProfile = Tables<'profiles'> & { email?: string };
 export type CoupleLink = Tables<'couple_links'>;
 export type Notification = Tables<'notifications'>;
 
 export type TransactionType = 'personal' | 'shared';
 export type CategoryScope = 'personal' | 'shared';
-export type GoalType = 'savings' | 'debt' | 'expense' | string;
+export type GoalType = 'budget' | 'savings';
 
 

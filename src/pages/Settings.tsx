@@ -1,6 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  User,
   Heart,
   Bell,
   Shield,
@@ -13,6 +12,7 @@ import {
   Sun,
   Smartphone,
   Monitor,
+  Lock,
 } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useAppearance } from '../app/providers/AppearanceContext';
@@ -22,6 +22,9 @@ import AccountsSettings from '../features/settings/ui/AccountsSettings';
 import CategoriesSettings from '../features/settings/ui/CategoriesSettings';
 import ProfileSettings from '../features/settings/ui/ProfileSettings';
 import PartnerSettings from '../features/settings/ui/PartnerSettings';
+import DoubleConfirmModal from '../shared/ui/DoubleConfirmModal';
+import DataPrivacyModal from '../features/settings/ui/DataPrivacyModal';
+import ChangePasswordModal from '../features/settings/ui/ChangePasswordModal';
 import NotificationsModal from '../features/notifications/ui/NotificationsModal';
 import LegalDocumentModal from '../shared/ui/LegalDocumentModal';
 import privacyPolicyText from '../../docs/privacy-policy.es.md?raw';
@@ -72,6 +75,9 @@ export default function Settings() {
   const [showProfile, setShowProfile] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const legalDoc = searchParams.get('legal');
   const closeLegal = () => {
     const next = new URLSearchParams(searchParams);
@@ -108,6 +114,7 @@ export default function Settings() {
 
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [pendingCurrencyChange, setPendingCurrencyChange] = useState<SupportedCurrency | null>(null);
 
   const localeOptions: { value: SupportedLocale; label: string; flag: string; native: string }[] = [
     { value: 'es-ES', label: 'España', flag: '🇪🇸', native: 'Español' },
@@ -142,16 +149,17 @@ export default function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
   }, []);
 
-  const handleChangeCurrency = async (newCurrency: SupportedCurrency) => {
+  const handleChangeCurrency = (newCurrency: SupportedCurrency) => {
     if (newCurrency === currency) {
       setShowCurrencyPicker(false);
       return;
     }
+    setPendingCurrencyChange(newCurrency);
+  };
 
-    if (!window.confirm(`¿Estás seguro de que quieres cambiar tu cuenta entera de ${currency} a ${newCurrency}? Se convertirá todo tu saldo y el historial de transacciones usando el tipo de cambio actual.`)) {
-      return;
-    }
-
+  const confirmCurrencyChange = async () => {
+    if (!pendingCurrencyChange) return;
+    const newCurrency = pendingCurrencyChange;
     setIsConvertingCurrency(true);
     try {
       // Fetch exchange rate from current to new
@@ -182,6 +190,7 @@ export default function Settings() {
       alert('Error cambiando divisa: ' + (err as Error).message);
     } finally {
       setIsConvertingCurrency(false);
+      setPendingCurrencyChange(null);
     }
   };
 
@@ -239,20 +248,14 @@ export default function Settings() {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    if (window.confirm('¿Estás seguro de que quieres eliminar tu cuenta permanentemente? Según la normativa RGPD, tu cuenta y todos tus datos se eliminarán definitivamente tras un período de gracia de 30 días.')) {
-      try {
-        const { error } = await supabase.from('deletion_requests').insert({
-          user_id: user.id,
-          reason: 'Solicitado por el usuario desde la app'
-        });
+    try {
+      const { error } = await supabase.rpc('delete_user_account');
+      if (error) throw error;
 
-        if (error) throw error;
-
-        alert('Solicitud registrada. Tu cuenta se eliminará en 30 días.');
-        await handleLogout();
-      } catch (err: unknown) {
-        alert('Error procesando la solicitud: ' + (err as Error).message);
-      }
+      alert('Tu cuenta y todos tus datos han sido eliminados correctamente.');
+      await handleLogout();
+    } catch (err: unknown) {
+      alert('Error procesando la solicitud: ' + (err as Error).message);
     }
   };
 
@@ -271,7 +274,7 @@ export default function Settings() {
 
       <div className="page-content" style={{ maxWidth: '640px' }}>
         {/* Profile */}
-        <div className="card animate-in" style={{ marginBottom: '24px' }}>
+        <div className="card animate-in" style={{ marginBottom: '24px', background: 'rgba(30, 30, 30, 0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="avatar avatar-lg">
               {user?.display_name?.charAt(0) || '?'}
@@ -312,7 +315,7 @@ export default function Settings() {
         {/* Pareja */}
         <div className="settings-section">
           <div className="settings-section-title">{t('couple')}</div>
-          <div className="card" style={{ padding: 0 }}>
+          <div className="card" style={{ padding: 0 }} id="settings-partner-card">
             <div onClick={() => setShowPartner(true)}>
               <SettingsItem
                 icon={<Heart size={20} color="#EC4899" />}
@@ -428,11 +431,13 @@ export default function Settings() {
         <div className="settings-section">
           <div className="settings-section-title">{t('securityPrivacy')}</div>
           <div className="card" style={{ padding: 0 }}>
-            <SettingsItem
-              icon={<Shield size={20} />}
-              label={t('dataPrivacy')}
-              desc={t('personalBalance')}
-            />
+            <div onClick={() => setShowPrivacy(true)}>
+              <SettingsItem
+                icon={<Shield size={20} />}
+                label={t('dataPrivacy')}
+                desc={t('personalBalance')}
+              />
+            </div>
             <div onClick={() => navigate('/settings?legal=privacy')}>
               <SettingsItem
                 icon={<Shield size={20} />}
@@ -445,12 +450,6 @@ export default function Settings() {
                 icon={<HelpCircle size={20} />}
                 label={t('termsOfUse')}
                 desc={t('termsConditions')}
-              />
-            </div>
-            <div onClick={() => setShowProfile(true)}>
-              <SettingsItem
-                icon={<User size={20} />}
-                label={t('changePassword')}
               />
             </div>
           </div>
@@ -467,7 +466,13 @@ export default function Settings() {
                 desc={t('downloadCsv')}
               />
             </div>
-            <div onClick={handleDeleteAccount} style={{ cursor: 'pointer' }}>
+            <div onClick={() => setShowPassword(true)} style={{ cursor: 'pointer' }}>
+              <SettingsItem
+                icon={<Lock size={20} />}
+                label={t('changePassword')}
+              />
+            </div>
+            <div onClick={() => setDeleteConfirmOpen(true)} style={{ cursor: 'pointer' }}>
               <SettingsItem
                 icon={<Trash2 size={20} color="var(--danger)" />}
                 label={t('deleteAccountAction')}
@@ -512,6 +517,21 @@ export default function Settings() {
       {showCategories && <CategoriesSettings onClose={() => setShowCategories(false)} />}
       {showProfile && <ProfileSettings onClose={() => setShowProfile(false)} />}
       {showPartner && <PartnerSettings onClose={() => setShowPartner(false)} />}
+
+      <DataPrivacyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
+
+      <ChangePasswordModal isOpen={showPassword} onClose={() => setShowPassword(false)} />
+
+      <DoubleConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteAccount}
+        titleStep1="Eliminar tu cuenta"
+        descStep1="¿Estás seguro de que quieres iniciar el proceso para eliminar tu cuenta y todos los datos asociados?"
+        titleStep2="Confirmación Final"
+        descStep2="Esta acción no se puede deshacer. ¿Eliminar definitivamente?"
+      />
+
       {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}
       {legalDoc === 'privacy' && (
         <LegalDocumentModal
@@ -606,6 +626,17 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      <DoubleConfirmModal
+        isOpen={!!pendingCurrencyChange}
+        onClose={() => setPendingCurrencyChange(null)}
+        onConfirm={confirmCurrencyChange}
+        titleStep1="¿Cambiar divisa global?"
+        descStep1={`¿Estás seguro de que quieres cambiar tu cuenta entera de ${currency} a ${pendingCurrencyChange}?`}
+        titleStep2="Conversión en progreso"
+        descStep2="Se convertirá todo tu saldo y el historial de transacciones usando el tipo de cambio actual. Esto no se puede deshacer."
+        loading={isConvertingCurrency}
+      />
     </>
   );
 }

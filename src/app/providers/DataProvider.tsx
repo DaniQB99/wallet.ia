@@ -74,6 +74,11 @@ interface DataContextType {
   partner: UserProfile | null;
   goals: Goal[];
 
+  // Mutaciones de goal_categories
+  addGoalCategory: (goalCategory: { goal_id: string; category_id: string; target_amount: number }) => Promise<Error | null>;
+  removeGoalCategory: (id: string) => Promise<Error | null>;
+  updateGoalCategory: (id: string, updates: { target_amount: number }) => Promise<Error | null>;
+
   // Estado
   loading: LoadingState;
   initialLoadComplete: boolean;
@@ -244,7 +249,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const { data, error } = await supabase
       .from('goals')
-      .select('*');
+      .select('*, goal_categories(*, category:categories(*))');
 
     if (!error && data) {
       setGoals(data as Goal[]);
@@ -500,6 +505,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return error;
   }, [fetchGoals]);
 
+  const addGoalCategory = useCallback(async (goalCategory: { goal_id: string; category_id: string; target_amount: number }) => {
+    const { error } = await supabase.from('goal_categories').insert([goalCategory]);
+    if (!error) fetchGoals(true);
+    return error;
+  }, [fetchGoals]);
+
+  const removeGoalCategory = useCallback(async (id: string) => {
+    const { error } = await supabase.from('goal_categories').delete().eq('id', id);
+    if (!error) fetchGoals(true);
+    return error;
+  }, [fetchGoals]);
+
+  const updateGoalCategory = useCallback(async (id: string, updates: { target_amount: number }) => {
+    const { error } = await supabase.from('goal_categories').update(updates).eq('id', id);
+    if (!error) fetchGoals(true);
+    return error;
+  }, [fetchGoals]);
+
   // --------------------------------------------------
   // Mutaciones de pareja
   // --------------------------------------------------
@@ -595,6 +618,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addGoal,
     updateGoal,
     deleteGoal,
+    addGoalCategory,
+    removeGoalCategory,
+    updateGoalCategory,
     generateInvite,
     acceptInvite,
     unlinkCouple,

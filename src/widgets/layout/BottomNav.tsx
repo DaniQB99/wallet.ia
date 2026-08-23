@@ -52,6 +52,7 @@ export default function BottomNav() {
             return (
               <NavLink
                 key={item.path}
+                id={item.path === '/' ? 'nav-home' : `nav-${item.path.replace('/', '')}`}
                 to={item.path}
                 className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                 style={{ position: 'relative' }}
