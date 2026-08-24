@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, User, Lock, Save, Camera } from 'lucide-react';
 import { useAuthContext } from '../../../app/providers/AuthContext';
 import { supabase } from '../../../shared/api/supabase';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { motion } from 'framer-motion';
 
 /**
  * Componente estructurado en pestañas (tabs) enfocado a las credenciales y el perfil del usuario.
@@ -12,7 +13,7 @@ import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext'
  * @param props - Incluye utilidades del renderizado del modal, como `onClose`.
  */
 export default function ProfileSettings({ onClose }: { onClose: () => void }) {
-  const { user, updateProfile } = useAuthContext();
+  const { user, updateProfile, updateAvatarUrl } = useAuthContext();
   const { t } = useLocaleCurrency();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
@@ -21,7 +22,12 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
   const [isSavingName, setIsSavingName] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
+  // Ref para subida de imagen
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   // Estado de seguridad
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [securityMessage, setSecurityMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -40,9 +46,73 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
     setIsSavingName(false);
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) return;
+      const file = event.target.files[0];
+      
+      // Basic validation
+      if (!file.type.startsWith('image/')) {
+        setProfileMessage({ text: 'Por favor, selecciona una imagen válida.', type: 'error' });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setProfileMessage({ text: 'La imagen no puede superar los 5MB.', type: 'error' });
+        return;
+      }
+
+      setIsUploadingAvatar(true);
+      setProfileMessage(null);
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user?.id}/avatar_${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user?.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      updateAvatarUrl(publicUrl);
+      setProfileMessage({ text: 'Foto de perfil actualizada correctamente.', type: 'success' });
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      setProfileMessage({ text: error.message || 'Error al subir la imagen.', type: 'error' });
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleUpdatePassword = async () => {
+    if (!currentPassword) {
+      setSecurityMessage({ text: 'Por favor, introduce tu contraseña actual.', type: 'error' });
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
       setSecurityMessage({ text: t('passwordMin'), type: 'error' });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setSecurityMessage({ text: 'La nueva contraseña no puede ser igual a la actual.', type: 'error' });
       return;
     }
 
@@ -50,14 +120,22 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
     setSecurityMessage(null);
 
     try {
-      // En una aplicación real, podríamos verificar la contraseña actual primero a través de una reautenticación,
-      // pero supabase.auth.updateUser solo necesita la sesión activa.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error('La contraseña actual es incorrecta.');
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (error) throw error;
       setSecurityMessage({ text: t('updatePassword'), type: 'success' });
+      setCurrentPassword('');
       setNewPassword('');
     } catch (err: any) {
       setSecurityMessage({ text: err.message || t('updating'), type: 'error' });
@@ -67,11 +145,18 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-content profile-modal animate-in" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{t('profileManagement')}</h2>
-          <button onClick={onClose} className="btn-icon">
+    <div className="modal-overlay" style={{ zIndex: 1000, alignItems: 'flex-start', paddingTop: '10vh' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <motion.div
+        className="modal animate-in"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        style={{ padding: 0, overflow: 'hidden' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="modal-title" style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>{t('profileManagement')}</h2>
+          <button className="btn-icon" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', padding: 0 }}>
             <X size={20} />
           </button>
         </div>
@@ -98,11 +183,27 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <div style={{ position: 'relative' }}>
-                  <div className="avatar" style={{ width: '80px', height: '80px', fontSize: '2rem' }}>
-                    {displayName.charAt(0) || user?.display_name?.charAt(0) || '?'}
+                  <div className="avatar" style={{ width: '80px', height: '80px', fontSize: '2rem', overflow: 'hidden' }}>
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      displayName.charAt(0) || user?.display_name?.charAt(0) || '?'
+                    )}
                   </div>
-                  <button className="btn-icon" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '6px' }}>
-                    <Camera size={14} color="var(--text-secondary)" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={fileInputRef} 
+                    style={{ display: 'none' }} 
+                    onChange={handleAvatarUpload} 
+                  />
+                  <button 
+                    className="btn-icon" 
+                    style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '6px' }}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                  >
+                    <Camera size={14} color={isUploadingAvatar ? "var(--text-tertiary)" : "var(--text-secondary)"} />
                   </button>
                 </div>
               </div>
@@ -147,6 +248,17 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
+                <label>Contraseña actual</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Introduce tu contraseña actual"
+                  className="input"
+                />
+              </div>
+
+              <div className="form-group">
                 <label>{t('newPassword')}</label>
                 <input
                   type="password"
@@ -167,14 +279,14 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: '8px' }}
                 onClick={handleUpdatePassword}
-                disabled={isSavingPassword || !newPassword || newPassword.length < 6}
+                disabled={isSavingPassword || !currentPassword || !newPassword || newPassword.length < 6 || currentPassword === newPassword}
               >
                 {isSavingPassword ? t('updating') : (<><Lock size={18} /> {t('updatePassword')}</>)}
               </button>
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

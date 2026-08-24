@@ -63,6 +63,11 @@ interface AuthContextType {
    * @param displayName Nuevo nombre a mostrar.
    */
   updateProfile: (displayName: string) => Promise<boolean>;
+
+  /**
+   * Actualiza la URL del avatar localmente tras subir una nueva foto.
+   */
+  updateAvatarUrl: (url: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -233,9 +238,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateAvatarUrl = useCallback((url: string) => {
+    if (user) {
+      setUser({ ...user, avatar_url: url });
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, resetPassword, clearError, updateProfile }}
+      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, resetPassword, clearError, updateProfile, updateAvatarUrl }}
     >
       {children}
     </AuthContext.Provider>

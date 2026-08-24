@@ -68,8 +68,12 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-profile">
-          <div className="avatar">
-            {user?.display_name?.charAt(0).toUpperCase() || '?'}
+          <div className="avatar" style={{ overflow: 'hidden' }}>
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              user?.display_name?.charAt(0).toUpperCase() || '?'
+            )}
           </div>
           <div className="sidebar-profile-info">
             <div className="sidebar-profile-name">{user?.display_name || 'User'}</div>

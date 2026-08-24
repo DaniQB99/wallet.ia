@@ -11,6 +11,7 @@
 - **🎯 Metas de Ahorro Inteligentes:** Crea y visualiza el progreso de metas compartidas (ej. "Vacaciones", "Casa Nueva") o personales. Las transacciones y categorías se pueden vincular para calcular el progreso de forma automática.
 - **🌍 Soporte Multi-moneda Avanzado (i18n):** Adaptación automática de monedas según el país. Cálculos en tiempo real respaldados por triggers optimizados en PostgreSQL para prevenir distorsiones por tipos de cambio.
 - **✨ Onboarding Premium:** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion) y un diseño *glassmorphism* exquisito.
+- **🖼️ Avatares Personalizables:** Subida de fotos de perfil integradas con Supabase Storage (HTML5 nativo para cámara/galería) y sincronización automática de fotos de Google Auth.
 - **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página.
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.
 - **📱 PWA "Mobile-First":** Interacciones fluidas que se sienten nativas, navegación inferior (Bottom Nav) y compatibilidad total PWA para instalación offline en iOS y Android. El modal de transacciones incluye un **teclado numérico custom**, vistas deslizables y eliminación de transacciones in-place.

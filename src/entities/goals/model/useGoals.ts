@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useData } from "../../../app/providers/DataProvider";
-import type { Goal, GoalType, GoalCategory } from "../../../shared/types/database";
+import type { Goal, GoalCategory } from "../../../shared/types/database";
 
 export function useGoals(scope: 'personal' | 'shared') {
   const {

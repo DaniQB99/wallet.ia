@@ -276,8 +276,12 @@ export default function Settings() {
         {/* Profile */}
         <div className="card animate-in" style={{ marginBottom: '24px', background: 'rgba(30, 30, 30, 0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="avatar avatar-lg">
-              {user?.display_name?.charAt(0) || '?'}
+            <div className="avatar avatar-lg" style={{ overflow: 'hidden' }}>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                user?.display_name?.charAt(0).toUpperCase() || '?'
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
