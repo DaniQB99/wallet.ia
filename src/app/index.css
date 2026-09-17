@@ -679,8 +679,9 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  border-bottom: 1px solid var(--text-tertiary);
+  background: transparent;
   transition: var(--transition-fast);
 }
 
@@ -1424,8 +1425,8 @@ input::placeholder {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 24px;
   z-index: -1;
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.2), 
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px rgba(255, 255, 255, 0.05),
     0 4px 16px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1433,8 +1434,8 @@ input::placeholder {
 
 :root[data-theme="light"] .bottom-nav-bubble {
   background: rgba(255, 255, 255, 0.5);
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.8), 
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
     0 4px 16px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -2526,13 +2527,16 @@ input::placeholder {
 }
 
 @keyframes onboarding-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow:
       0 0 0 3px var(--accent-primary),
       0 0 0 7px rgba(99, 102, 241, 0.25),
       0 0 50px rgba(99, 102, 241, 0.12),
       0 0 0 9999px rgba(0, 0, 0, 0.7);
   }
+
   50% {
     box-shadow:
       0 0 0 3px var(--accent-primary-hover),
@@ -3148,9 +3152,9 @@ input::placeholder {
 
 /* Encabezado de grupo de mes de transacción */
 .tx-month-header {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-primary);
   text-transform: capitalize;
   padding: 16px 16px 8px;
 }
@@ -3292,15 +3296,17 @@ input::placeholder {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--text-tertiary);
+  background: transparent;
+  transition: background-color 0.2s, transform 0.2s;
   min-width: 0;
   content-visibility: auto;
   contain-intrinsic-size: 0 80px;
 }
 
 .transaction-item:hover {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
+  transform: translateY(-1px);
 }
 
 .transaction-list {

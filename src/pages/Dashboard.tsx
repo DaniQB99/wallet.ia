@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import TransactionModal from '../features/transactions/ui/TransactionModal';
 import AccountsSettings from '../features/settings/ui/AccountsSettings';
 import { ArrowDownRight, ArrowUpRight, ArrowLeftRight, Landmark } from 'lucide-react';
+import type { Transaction } from '../shared/types/database';
 
 /**
  * Dashboard.tsx
@@ -24,8 +25,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { prefetchRates, t, currency, loadingRates } = useLocaleCurrency();
   const [showModal, setShowModal] = useState(false);
+  const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [showAccounts, setShowAccounts] = useState(false);
+
+  const handleEditTransaction = (tx: Transaction) => {
+    setTxToEdit(tx);
+    setShowModal(true);
+  };
 
   // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
   const { transactions, loading: txLoading } = useTransactions('all');
@@ -140,40 +147,44 @@ export default function Dashboard() {
 
         <div className="dashboard-grid">
           {/* Recent transactions */}
-          <div className="card animate-in">
-            <div className="card-header">
+          <div className="animate-in">
+            <div className="card-header" style={{ padding: '0 0 1px 0', background: 'transparent' }}>
               <div>
-                <div className="card-title">{t('recentTransactions')}</div>
+                <div className="card-title" style={{ color: 'var(--text-primary)' }}>{t('recentTransactions')}</div>
                 <div className="card-subtitle">{t('latestMovements')}</div>
               </div>
               <span className="tx-ver-mas" onClick={() => navigate('/transactions')}>{t('viewMore')}</span>
             </div>
 
-            <div className="transaction-list">
-              {txLoading ? (
-                <div className="empty-state">
-                  <div className="loading-spinner" />
-                  <div className="loading-text">Cargando transacciones...</div>
-                </div>
-              ) : recentTransactions.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">💸</div>
-                  <div className="empty-state-title">{t('noTransactions')}</div>
-                  <div className="empty-state-desc" style={{ marginBottom: 16 }}>
-                    Añade tu primer ingreso o gasto para empezar a controlar tu dinero.
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="transaction-list">
+                {txLoading ? (
+                  <div className="empty-state">
+                    <div className="loading-spinner" />
+                    <div className="loading-text">Cargando transacciones...</div>
                   </div>
-                  <button className="kebo-button-primary" onClick={() => navigate('/transactions')}>
-                    Añadir transacción
-                  </button>
-                </div>
-              ) : (
-                recentTransactions.map(tx => (
-                  <TransactionItem 
-                    key={tx.id} 
-                    tx={tx} 
-                  />
-                ))
-              )}
+                ) : recentTransactions.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">💸</div>
+                    <div className="empty-state-title">{t('noTransactions')}</div>
+                    <div className="empty-state-desc" style={{ marginBottom: 16 }}>
+                      Añade tu primer ingreso o gasto para empezar a controlar tu dinero.
+                    </div>
+                    <button className="kebo-button-primary" onClick={() => navigate('/transactions')}>
+                      Añadir transacción
+                    </button>
+                  </div>
+                ) : (
+                  recentTransactions.map(tx => (
+                    <TransactionItem
+                      key={tx.id}
+                      tx={tx}
+                      isDashboard
+                      onClick={() => handleEditTransaction(tx)}
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -181,8 +192,9 @@ export default function Dashboard() {
 
       <TransactionModal
         open={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); setTxToEdit(null); }}
         initialFlowType={flowType}
+        editTransaction={txToEdit}
       />
       {showAccounts && <AccountsSettings onClose={() => setShowAccounts(false)} />}
 

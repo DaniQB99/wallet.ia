@@ -69,6 +69,13 @@ export default function Transactions() {
     setFilterFlow('all');
   };
 
+  const toggleFilter = (filter: 'account' | 'category' | 'month' | 'flow') => {
+    setShowFilterAccount(filter === 'account' ? !showFilterAccount : false);
+    setShowFilterCategory(filter === 'category' ? !showFilterCategory : false);
+    setShowFilterMonth(filter === 'month' ? !showFilterMonth : false);
+    setShowFilterFlow(filter === 'flow' ? !showFilterFlow : false);
+  };
+
   const hasFilters = filterAccount || filterCategory || filterMonth || filterFlow !== 'all';
 
   const filtered = useMemo(() => {
@@ -154,16 +161,43 @@ export default function Transactions() {
             </button>
           )}
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`tx-filter-chip ${filterAccount ? 'active' : ''}`}
-              onClick={() => setShowFilterAccount(!showFilterAccount)}
-            >
-              <Wallet size={14} />
-              {selectedAccount ? selectedAccount.name : t('account')}
-            </button>
+          <button
+            className={`tx-filter-chip ${filterAccount ? 'active' : ''}`}
+            onClick={() => toggleFilter('account')}
+          >
+            <Wallet size={14} />
+            {selectedAccount ? selectedAccount.name : t('account')}
+          </button>
+
+          <button
+            className={`tx-filter-chip ${filterMonth ? 'active' : ''}`}
+            onClick={() => toggleFilter('month')}
+          >
+            <CalendarDays size={14} />
+            {filterMonth ? formatMonthLabel(filterMonth) : t('month')}
+          </button>
+
+          <button
+            className={`tx-filter-chip ${filterCategory ? 'active' : ''}`}
+            onClick={() => toggleFilter('category')}
+          >
+            <Tag size={14} />
+            {selectedCatFilter ? `${selectedCatFilter.icon} ${selectedCatFilter.name}` : t('category')}
+          </button>
+
+          <button
+            className={`tx-filter-chip ${filterFlow !== 'all' ? 'active' : ''}`}
+            onClick={() => toggleFilter('flow')}
+          >
+            <ArrowUpDown size={14} />
+            {filterFlow === 'expense' ? t('expense') : filterFlow === 'income' ? t('income') : t('type')}
+          </button>
+        </div>
+
+        {(showFilterAccount || showFilterMonth || showFilterCategory || showFilterFlow) && (
+          <div className="card" style={{ marginBottom: '16px', marginTop: '-8px', padding: '8px', zIndex: 100 }}>
             {showFilterAccount && (
-              <div className="kebo-filter-dropdown">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button className="kebo-filter-option" onClick={() => { setFilterAccount(''); setShowFilterAccount(false); }}>
                   Todas las cuentas
                 </button>
@@ -178,18 +212,9 @@ export default function Transactions() {
                 ))}
               </div>
             )}
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`tx-filter-chip ${filterMonth ? 'active' : ''}`}
-              onClick={() => setShowFilterMonth(!showFilterMonth)}
-            >
-              <CalendarDays size={14} />
-              {filterMonth ? formatMonthLabel(filterMonth) : t('month')}
-            </button>
+            
             {showFilterMonth && (
-              <div className="kebo-filter-dropdown">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button className="kebo-filter-option" onClick={() => { setFilterMonth(''); setShowFilterMonth(false); }}>
                   Todos los meses
                 </button>
@@ -201,18 +226,9 @@ export default function Transactions() {
                 ))}
               </div>
             )}
-          </div>
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`tx-filter-chip ${filterCategory ? 'active' : ''}`}
-              onClick={() => setShowFilterCategory(!showFilterCategory)}
-            >
-              <Tag size={14} />
-              {selectedCatFilter ? `${selectedCatFilter.icon} ${selectedCatFilter.name}` : t('category')}
-            </button>
             {showFilterCategory && (
-              <div className="kebo-filter-dropdown">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button className="kebo-filter-option" onClick={() => { setFilterCategory(''); setShowFilterCategory(false); }}>
                   Todas las categorías
                 </button>
@@ -224,18 +240,9 @@ export default function Transactions() {
                 ))}
               </div>
             )}
-          </div>
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`tx-filter-chip ${filterFlow !== 'all' ? 'active' : ''}`}
-              onClick={() => setShowFilterFlow(!showFilterFlow)}
-            >
-              <ArrowUpDown size={14} />
-              {filterFlow === 'expense' ? t('expense') : filterFlow === 'income' ? t('income') : t('type')}
-            </button>
             {showFilterFlow && (
-              <div className="kebo-filter-dropdown">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button className={`kebo-filter-option ${filterFlow === 'all' ? 'active' : ''}`}
                   onClick={() => { setFilterFlow('all'); setShowFilterFlow(false); }}>
                   {t('all')}
@@ -251,7 +258,7 @@ export default function Transactions() {
               </div>
             )}
           </div>
-        </div>
+        )}
 
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <div className="toggle-group" style={{ flex: '1 1 auto' }}>
@@ -273,14 +280,14 @@ export default function Transactions() {
           </div>
         </div>
 
-        <div className="card">
+        <div>
           {txLoading ? (
-            <div className="empty-state">
+            <div className="card empty-state">
               <div className="loading-spinner" />
               <div className="loading-text">Cargando transacciones...</div>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="empty-state">
+            <div className="card empty-state">
               <div className="empty-state-icon">💸</div>
               <div className="empty-state-title">{t('noTransactions')}</div>
               <div className="empty-state-desc" style={{ marginBottom: 16 }}>{t('noTransactionsMatching')}</div>
@@ -290,17 +297,19 @@ export default function Transactions() {
             </div>
           ) : (
             Object.entries(grouped).map(([month, txs]) => (
-              <div key={month}>
+              <div key={month} style={{ marginBottom: '24px' }}>
                 <div className="tx-month-header">{month}</div>
-                <div className="transaction-list">
-                  {txs.map(tx => (
-                    <TransactionItem
-                      key={tx.id}
-                      tx={tx}
-                      onClick={() => handleEdit(tx)}
-                      showChevron
-                    />
-                  ))}
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div className="transaction-list">
+                    {txs.map(tx => (
+                      <TransactionItem
+                        key={tx.id}
+                        tx={tx}
+                        onClick={() => handleEdit(tx)}
+                        showChevron
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             ))

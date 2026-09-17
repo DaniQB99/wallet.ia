@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Plus, Edit2, Copy, Trash2, Trash } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../../../app/providers/DataProvider';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import type { Goal, Category } from '../../../shared/types/database';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 import CategoriesSettings from '../../settings/ui/CategoriesSettings';
+import CategoryDetailModal from './CategoryDetailModal';
 
 interface GoalDetailModalProps {
   goal: Goal;
@@ -15,12 +16,13 @@ interface GoalDetailModalProps {
 }
 
 export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: GoalDetailModalProps) {
-  const { categories, addGoalCategory, removeGoalCategory } = useData();
+  const { categories, addGoalCategory, removeGoalCategory, updateGoalCategory } = useData();
   const { formatMoney, locale } = useLocaleCurrency();
   const [addingCategory, setAddingCategory] = useState<Category | null>(null);
   const [targetInput, setTargetInput] = useState<string>('');
   const [categoryToRemove, setCategoryToRemove] = useState<string | null>(null);
   const [showCategoriesSettings, setShowCategoriesSettings] = useState(false);
+  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<{ gc: any, cat: Category } | null>(null);
 
   const percent = goal.target_amount && goal.target_amount > 0
     ? (goal.goal_type === 'budget'
@@ -39,32 +41,43 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
     const numTarget = parseFloat(targetInput);
     if (isNaN(numTarget) || numTarget <= 0) return;
 
-    await addGoalCategory({
-      goal_id: goal.id,
-      category_id: addingCategory.id,
-      target_amount: numTarget
-    });
+    const existingGc = goal.goal_categories?.find(gc => gc.category_id === addingCategory.id);
+    
+    if (existingGc) {
+      await updateGoalCategory(existingGc.id, { target_amount: numTarget });
+    } else {
+      await addGoalCategory({
+        goal_id: goal.id,
+        category_id: addingCategory.id,
+        target_amount: numTarget
+      });
+    }
+    
     setAddingCategory(null);
     setTargetInput('');
   };
 
+  const barColor = goal.goal_type === 'budget' ? '#ef4444' : '#10b981';
+
   return (
     <AnimatePresence>
-      <div className="modal-overlay" style={{ zIndex: 1000, background: 'var(--bg-primary)' }}>
+      <div className="modal-overlay" style={{ zIndex: 1000, padding: '20px' }} onClick={onClose}>
         <motion.div
-          className="modal-content"
+          className="modal-content card"
           style={{
             width: '100%',
-            height: '100%',
-            maxWidth: '100%',
-            borderRadius: '0',
-            background: 'var(--bg-primary)',
-            padding: '20px',
-            overflowY: 'auto'
+            height: 'auto',
+            maxHeight: '90vh',
+            maxWidth: '600px',
+            borderRadius: '20px',
+            background: 'var(--bg-secondary)',
+            padding: '24px',
+            overflowY: 'auto',
+            margin: '0 auto'
           }}
-          initial={{ opacity: 0, x: '100%' }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: '100%' }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -84,7 +97,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                 cursor: 'pointer'
               }}
             >
-              <ChevronLeft size={20} />
+              <X size={20} />
             </button>
             <h2 style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', margin: 0, paddingRight: '40px' }}>
               {goal.goal_type === 'budget' ? 'Detalle de presupuesto' : 'Detalle de ahorro'}
@@ -96,14 +109,13 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>{goal.name}</h3>
-                <div style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.85rem', color: goal.color || 'var(--accent-primary)', marginTop: '4px' }}>
                   {formatDate(goal.start_date)} a {formatDate(goal.deadline)}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)' }}>
-                <button onClick={onEdit} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}><Edit2 size={18} /></button>
-                <button style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}><Copy size={18} /></button>
-                <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}><Trash2 size={18} /></button>
+                <button onClick={onEdit} style={{ background: 'none', border: 'none', color: goal.color || 'var(--accent-primary)', cursor: 'pointer' }}><Edit2 size={18} /></button>
+                <button onClick={onDelete} style={{ background: 'none', border: 'none', color: goal.color || 'var(--accent-primary)', cursor: 'pointer' }}><Trash2 size={18} /></button>
               </div>
             </div>
 
@@ -113,7 +125,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
             </div>
 
             <div style={{ width: '100%', height: '8px', borderRadius: '4px', background: 'var(--bg-tertiary)', overflow: 'hidden', marginBottom: '12px' }}>
-              <div style={{ height: '100%', width: `${percent}%`, background: (goal.goal_type === 'budget' && (goal.current_amount || 0) > (goal.target_amount || 0)) ? '#ef4444' : 'var(--accent-primary)', borderRadius: '4px', transition: 'width 0.4s ease' }} />
+              <div style={{ height: '100%', width: `${percent}%`, background: barColor, borderRadius: '4px', transition: 'width 0.4s ease' }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -123,12 +135,14 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
           </div>
 
           {/* Categories Carousel */}
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>{goal.goal_type === 'budget' ? 'Categorías de gasto 💸📁' : 'Categorías de ingreso 💰📁'}</h3>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '12px' }}>{goal.goal_type === 'budget' ? 'Categorías de gasto 💸📁' : 'Categorías de ingreso 💰📁'}</h3>
           <div style={{
             display: 'flex',
             overflowX: 'auto',
             gap: '16px',
+            paddingTop: '4px',
             paddingBottom: '16px',
+            paddingRight: '20px',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'
           }}>
@@ -193,7 +207,9 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="Monto objetivo..."
+                    placeholder="0€"
+                    inputMode="decimal"
+                    pattern="[0-9]*"
                     value={targetInput}
                     onChange={(e) => setTargetInput(e.target.value)}
                     required
@@ -215,10 +231,15 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                   ? Math.max(0, Math.round(((gc.target_amount - currentGcAmount) / gc.target_amount) * 100))
                   : Math.min(100, Math.round((currentGcAmount / gc.target_amount) * 100)))
                 : (goal.goal_type === 'budget' ? 100 : 0);
-              const barColor = (goal.goal_type === 'budget' && currentGcAmount > gc.target_amount) ? '#ef4444' : 'var(--accent-primary)';
+              const barColor = goal.goal_type === 'budget' ? '#ef4444' : '#10b981';
 
               return (
-                <div key={gc.id} className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div 
+                  key={gc.id} 
+                  className="card" 
+                  onClick={() => setSelectedCategoryDetail({ gc, cat: cat! })}
+                  style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'background 0.2s' }}
+                >
                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
                     {cat?.icon || '📁'}
                   </div>
@@ -235,12 +256,9 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                       <span>{formatMoney(Math.max(0, gc.target_amount - currentGcAmount))}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setCategoryToRemove(gc.id)}
-                    style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', padding: '8px' }}
-                  >
-                    <Trash size={18} />
-                  </button>
+                  <div style={{ color: 'var(--text-tertiary)' }}>
+                    <ChevronRight size={20} />
+                  </div>
                 </div>
               );
             })}
@@ -269,6 +287,22 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
           onClose={() => setShowCategoriesSettings(false)}
           initialTab={goal.type as 'personal' | 'shared'}
           hideTabs
+        />
+      )}
+
+      {selectedCategoryDetail && (
+        <CategoryDetailModal
+          goal={goal}
+          goalCategory={selectedCategoryDetail.gc}
+          category={selectedCategoryDetail.cat}
+          onClose={() => setSelectedCategoryDetail(null)}
+          onRemoveCategory={() => removeGoalCategory(selectedCategoryDetail.gc.id)}
+          onEditTarget={() => {
+            // Cierra el detalle y prepara la adición
+            setSelectedCategoryDetail(null);
+            setAddingCategory(selectedCategoryDetail.cat);
+            setTargetInput(selectedCategoryDetail.gc.target_amount.toString());
+          }}
         />
       )}
     </AnimatePresence>

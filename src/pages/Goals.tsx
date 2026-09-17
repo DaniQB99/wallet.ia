@@ -1,6 +1,6 @@
 import { useState, useId } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Plus, Calendar, Trash2, ChevronLeft } from 'lucide-react';
+import { Plus, Calendar, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoals } from '../entities/goals/model/useGoals';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
@@ -27,6 +27,7 @@ export default function Goals() {
   // Form states
   const [name, setName] = useState('');
   const [goalType, setGoalType] = useState<'budget' | 'savings'>('budget');
+  const [targetAmount, setTargetAmount] = useState('');
   const [startDate, setStartDate] = useState('');
   const [deadline, setDeadline] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +37,7 @@ export default function Goals() {
     setEditingGoal(null);
     setName('');
     setGoalType('budget');
+    setTargetAmount('');
     const today = new Date().toISOString().slice(0, 10);
     setStartDate(today);
 
@@ -52,6 +54,7 @@ export default function Goals() {
     setEditingGoal(goal);
     setName(goal.name);
     setGoalType((goal.goal_type as 'budget' | 'savings') || 'budget');
+    setTargetAmount(goal.target_amount ? goal.target_amount.toString() : '');
     setStartDate(goal.start_date ? goal.start_date.slice(0, 10) : '');
     setDeadline(goal.deadline ? goal.deadline.slice(0, 10) : '');
     setErrorMsg(null);
@@ -90,6 +93,7 @@ export default function Goals() {
           deadline: deadline,
           type: tab,
           goal_type: goalType,
+          target_amount: parseFloat(targetAmount) || 0,
         });
         if (err) throw err;
       } else {
@@ -102,7 +106,7 @@ export default function Goals() {
           category_id: null,
           icon: goalType === 'budget' ? '🎯' : '💰',
           color: goalType === 'budget' ? '#ef4444' : '#10b981',
-          target_amount: 0,
+          target_amount: parseFloat(targetAmount) || 0,
         });
         if (err) throw err;
       }
@@ -226,7 +230,7 @@ export default function Goals() {
                 percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
               }
               const isOverBudget = goal.goal_type === 'budget' && current > target;
-              const catsCount = goal.goal_categories?.length || 0;
+
               const barColor = isOverBudget ? '#ef4444' : goal.color || 'var(--accent-primary)';
 
               return (
@@ -268,12 +272,12 @@ export default function Goals() {
                     </div>
                     <span
                       style={{
-                        fontSize: '0.85rem',
+                        fontSize: '0.9rem',
                         fontWeight: 700,
                         color: barColor,
                       }}
                     >
-                      {percent}%
+                      {formatMoney(target)}
                     </span>
                   </div>
 
@@ -304,7 +308,7 @@ export default function Goals() {
                       {goal.goal_type === 'budget' ? 'Gastado:' : 'Ahorrado:'} <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(current)}</strong>
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
-                      Objetivo ({catsCount} cats): <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(target)}</strong>
+                      <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(Math.max(0, target - current))}</strong> {goal.goal_type === 'budget' ? 'por gastar' : 'por ahorrar'}
                     </span>
                   </div>
                 </div>
@@ -317,27 +321,27 @@ export default function Goals() {
       {/* Modal para Crear / Editar Meta */}
       {showCreateModal && (
         <AnimatePresence>
-          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
             <motion.div
-              className="modal-content"
-              style={{ maxWidth: '480px', width: '100%', borderRadius: '20px' }}
+              className="modal animate-in"
+              style={{ maxWidth: '480px', width: '100%', margin: '0 20px' }}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="modal-header">
-                <button type="button" className="btn-icon" onClick={() => setShowCreateModal(false)}>
-                  <ChevronLeft size={20} />
+              <div className="modal-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                <button type="button" className="btn-icon" onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', padding: 0 }}>
+                  <X size={24} />
                 </button>
-                <h2 className="modal-title" style={{ flex: 1, textAlign: 'center', paddingRight: '32px' }}>
+                <h2 className="modal-title" style={{ flex: 1, textAlign: 'center', margin: 0, paddingRight: '24px' }}>
                   {editingGoal
                     ? (goalType === 'budget' ? 'Editar presupuesto' : 'Editar ahorro')
                     : (goalType === 'budget' ? 'Crear presupuesto' : 'Crear ahorro')}
                 </h2>
               </div>
 
-              <form onSubmit={handleSubmit} className="modal-body">
+              <form onSubmit={handleSubmit} className="card" style={{ padding: '20px', border: '1px solid var(--border)', position: 'relative', zIndex: 10, margin: 0 }}>
                 {errorMsg && (
                   <div style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', padding: '10px 14px', borderRadius: '10px', fontSize: '0.85rem', marginBottom: '14px' }}>
                     {errorMsg}
@@ -385,26 +389,32 @@ export default function Goals() {
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '20px' }}>
-                  <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem' }}>
+                  <label className="form-label" style={{ display: 'block', marginBottom: '10px', fontSize: '0.875rem' }}>
                     Período de tiempo
                   </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      id={startDateId}
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      required
-                      style={{ flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    />
-                    <input
-                      id={deadlineId}
-                      type="date"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      required
-                      style={{ flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ width: '100%' }}>
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Desde</span>
+                      <input
+                        id={startDateId}
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div style={{ width: '100%' }}>
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Hasta</span>
+                      <input
+                        id={deadlineId}
+                        type="date"
+                        value={deadline}
+                        onChange={(e) => setDeadline(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
