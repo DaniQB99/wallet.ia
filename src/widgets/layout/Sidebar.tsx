@@ -76,12 +76,13 @@ export default function Sidebar() {
             )}
           </div>
           <div className="sidebar-profile-info">
-            <div className="sidebar-profile-name">{user?.display_name || 'User'}</div>
+            <div className="sidebar-profile-name">{user?.display_name || t('user')}</div>
             <div className="sidebar-profile-email">{user?.email || ''}</div>
           </div>
           <button
             onClick={handleLogout}
             title={t('logout')}
+            aria-label={t('logout')}
             style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }}
           >
             <LogOut size={18} />

@@ -29,14 +29,19 @@ export default function DataPrivacyModal({ isOpen, onClose }: DataPrivacyModalPr
           exit={{ y: -20, opacity: 0, scale: 0.95 }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="modal-header" style={{ marginBottom: '24px' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: 0, color: 'var(--text-primary)' }}>
-              <Shield size={24} color="var(--accent-primary)" />
-              {t('dataPrivacy') || 'Privacidad de Datos'}
-            </h2>
-            <button onClick={onClose} className="modal-close-btn" aria-label="Close">
-              <X size={24} />
+          <div className="modal-header">
+            <button
+              type="button"
+              className="modal-close-btn"
+              onClick={onClose}
+              aria-label={t('close')}
+            >
+              <X size={20} />
             </button>
+            <h2 className="modal-title">
+              <Shield size={20} color="var(--accent-primary)" />
+              {t('dataPrivacy')}
+            </h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: 'var(--text-secondary)' }}>
@@ -45,9 +50,9 @@ export default function DataPrivacyModal({ isOpen, onClose }: DataPrivacyModalPr
                 <Shield size={20} />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>Datos recopilados</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{t('dataCollectedTitle')}</h3>
                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  Solo almacenamos la información estrictamente necesaria para que tu cuenta funcione: tu correo electrónico y tu nombre de perfil.
+                  {t('dataCollectedDesc')}
                 </p>
               </div>
             </div>
@@ -57,9 +62,9 @@ export default function DataPrivacyModal({ isOpen, onClose }: DataPrivacyModalPr
                 <Lock size={20} />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>Almacenamiento seguro</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{t('secureStorageTitle')}</h3>
                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  Tus contraseñas e inicio de sesión están fuertemente cifrados por nuestro proveedor de seguridad (Supabase Auth). Ni siquiera nosotros podemos ver tu contraseña real.
+                  {t('secureStorageDesc')}
                 </p>
               </div>
             </div>
@@ -69,9 +74,9 @@ export default function DataPrivacyModal({ isOpen, onClose }: DataPrivacyModalPr
                 <EyeOff size={20} />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>Privacidad Financiera Total</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{t('financialPrivacyTitle')}</h3>
                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  Tus transacciones, balances y movimientos son 100% privados. Están protegidos mediante <strong>RLS (Seguridad a Nivel de Fila)</strong>. Esto garantiza que solo tú (y tu pareja si la vinculas) tengan acceso a leer tus datos financieros. Nadie más, ni siquiera los desarrolladores de la plataforma, tiene permisos para leer esos datos.
+                  {t('financialPrivacyDesc')}
                 </p>
               </div>
             </div>
@@ -83,7 +88,7 @@ export default function DataPrivacyModal({ isOpen, onClose }: DataPrivacyModalPr
               onClick={onClose}
               style={{ padding: '10px 24px' }}
             >
-              {t('confirm') || 'Entendido'}
+              {t('understood')}
             </button>
           </div>
         </motion.div>

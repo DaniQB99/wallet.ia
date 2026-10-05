@@ -1,9 +1,11 @@
+import { X } from 'lucide-react';
+import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
+
 interface LegalDocumentModalProps {
   title: string;
   content: string;
   onClose: () => void;
 }
-import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 
 /**
  * Componente modal de solo lectura para la presentación estructurada de documentos legales,
@@ -16,7 +18,17 @@ export default function LegalDocumentModal({ title, content, onClose }: LegalDoc
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '760px' }}>
-        <div className="modal-title" style={{ marginBottom: '16px' }}>{title}</div>
+        <div className="modal-header">
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label={t('close')}
+          >
+            <X size={20} />
+          </button>
+          <h2 className="modal-title">{title}</h2>
+        </div>
         <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--text-secondary)', maxHeight: '60vh', overflowY: 'auto' }}>
           {content}
         </div>

@@ -21,7 +21,7 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({
   iconColor = 'var(--text-primary)',
   size = 'normal'
 }) => {
-  const { locale, currency } = useLocaleCurrency();
+  const { formatMoney } = useLocaleCurrency();
   
   const spring = useSpring(value, { mass: 0.8, stiffness: 100, damping: 15 });
   
@@ -30,12 +30,7 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({
   }, [value, spring]);
 
   const display = useTransform(spring, (current) => {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency || 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(current);
+    return formatMoney(current);
   });
 
   return (

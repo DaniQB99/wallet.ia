@@ -1,19 +1,117 @@
 import { useMemo } from "react";
-import { useData } from "../../../app/providers/DataProvider";
-import type { Goal, GoalCategory } from "../../../shared/types/database";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../../shared/api/supabase';
+import type { Goal, GoalCategory } from '../../../shared/types/database';
+import { useTransactions } from '../../transactions/model/useTransactions';
+
+export const GOALS_QUERY_KEY = ['goals'];
 
 export function useGoals(scope: 'personal' | 'shared') {
-  const {
-    goals: allGoals,
-    transactions,
-    loading,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-    addGoalCategory,
-    removeGoalCategory,
-    updateGoalCategory,
-  } = useData();
+  const queryClient = useQueryClient();
+  const { transactions, loading: loadingTx } = useTransactions(scope);
+
+  const { data: allGoals = [], isLoading: loadingGoals, error, refetch } = useQuery({
+    queryKey: GOALS_QUERY_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*, goal_categories(*, category:categories(*))');
+
+      if (error) throw error;
+      return data as Goal[];
+    },
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async (goal: Omit<Goal, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'current_amount' | 'created_by' | 'couple_id'>) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      let couple_id = null;
+      if (goal.type === 'shared') {
+        const { data: coupleLink } = await supabase
+          .from('couple_links')
+          .select('id')
+          .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
+          .eq('status', 'active')
+          .single();
+        couple_id = coupleLink?.id;
+      }
+
+      const { data, error } = await supabase
+        .from('goals')
+        .insert([{ ...goal, created_by: userId, user_id: userId, couple_id }])
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Goal> }) => {
+      const { data, error } = await supabase
+        .from('goals')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('goals')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
+
+  const addGoalCategoryMutation = useMutation({
+    mutationFn: async (goalCategory: { goal_id: string; category_id: string; target_amount: number }) => {
+      const { error } = await supabase.from('goal_categories').insert([goalCategory]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
+
+  const removeGoalCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('goal_categories').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
+
+  const updateGoalCategoryMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { target_amount: number } }) => {
+      const { error } = await supabase.from('goal_categories').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+    },
+  });
 
   const goals = useMemo(() => {
     const filtered = allGoals.filter((g) => g.type === scope);
@@ -58,13 +156,56 @@ export function useGoals(scope: 'personal' | 'shared') {
 
   return {
     goals,
-    loading: loading.goals || loading.transactions,
-    error: null,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-    addGoalCategory,
-    removeGoalCategory,
-    updateGoalCategory,
+    loading: loadingGoals || loadingTx,
+    error,
+    addGoal: async (goal: any) => {
+      try {
+        await addMutation.mutateAsync(goal);
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    updateGoal: async (id: string, updates: Partial<Goal>) => {
+      try {
+        await updateMutation.mutateAsync({ id, updates });
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    deleteGoal: async (id: string) => {
+      try {
+        await deleteMutation.mutateAsync(id);
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    addGoalCategory: async (gc: any) => {
+      try {
+        await addGoalCategoryMutation.mutateAsync(gc);
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    removeGoalCategory: async (id: string) => {
+      try {
+        await removeGoalCategoryMutation.mutateAsync(id);
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    updateGoalCategory: async (id: string, updates: { target_amount: number }) => {
+      try {
+        await updateGoalCategoryMutation.mutateAsync({ id, updates });
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    refetch,
   };
 }

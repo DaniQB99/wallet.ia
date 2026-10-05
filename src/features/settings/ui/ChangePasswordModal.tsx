@@ -51,20 +51,20 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
 
     // Frontend validations
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas nuevas no coinciden.');
+      setError(t('passwordsDoNotMatch'));
       return;
     }
     if (newPassword === currentPassword) {
-      setError('La nueva contraseña no puede ser igual a la actual.');
+      setError(t('newPasswordMustBeDifferent'));
       return;
     }
     if (!hasMinLength || !hasLower || !hasUpper || !hasNumber || !hasSymbol) {
-      setError('La nueva contraseña no cumple con todos los requisitos de seguridad.');
+      setError(t('passwordRequirementsNotMet'));
       return;
     }
 
     if (!user?.email) {
-      setError('No se pudo verificar el usuario actual.');
+      setError(t('couldNotVerifyUser'));
       return;
     }
 
@@ -77,7 +77,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       });
 
       if (signInError) {
-        throw new Error('La contraseña actual es incorrecta.');
+        throw new Error(t('currentPasswordIncorrect'));
       }
 
       // 2. Update to new password
@@ -89,13 +89,13 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
         throw updateError;
       }
 
-      setSuccess('Contraseña actualizada correctamente.');
+      setSuccess(t('passwordUpdatedSuccess'));
       setTimeout(() => {
         handleClose();
       }, 2000);
 
     } catch (err: any) {
-      setError(err.message || 'Error al cambiar la contraseña');
+      setError(err.message || t('updatePassword'));
     } finally {
       setLoading(false);
     }
@@ -120,20 +120,26 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
           exit={{ y: -20, opacity: 0, scale: 0.95 }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="modal-header" style={{ marginBottom: '24px' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: 0, color: 'var(--text-primary)' }}>
-              <Lock size={24} color="var(--accent-primary)" />
-              {t('changePassword') || 'Cambiar Contraseña'}
-            </h2>
-            <button onClick={handleClose} className="modal-close-btn" disabled={loading}>
-              <X size={24} />
+          <div className="modal-header">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="modal-close-btn"
+              disabled={loading}
+              aria-label={t('close')}
+            >
+              <X size={20} />
             </button>
+            <h2 className="modal-title">
+              <Lock size={20} color="var(--accent-primary)" />
+              {t('changePassword')}
+            </h2>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             <div className="form-group">
-              <label>Contraseña Actual</label>
+              <label>{t('currentPassword')}</label>
               <div className="input-with-icon" style={{ position: 'relative' }}>
                 <input
                   type={showCurrent ? "text" : "password"}
@@ -154,7 +160,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             </div>
 
             <div className="form-group">
-              <label>Nueva Contraseña</label>
+              <label>{t('newPassword')}</label>
               <div className="input-with-icon" style={{ position: 'relative' }}>
                 <input
                   type={showNew ? "text" : "password"}
@@ -177,29 +183,29 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
               <div style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-tertiary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ color: hasMinLength ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasMinLength ? 'var(--success)' : 'var(--text-tertiary)' }} />
-                  Mínimo 6 caracteres
+                  {t('passwordMinLength')}
                 </div>
                 <div style={{ color: hasUpper ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasUpper ? 'var(--success)' : 'var(--text-tertiary)' }} />
-                  Al menos una letra mayúscula
+                  {t('passwordAtLeastOneUpper')}
                 </div>
                 <div style={{ color: hasLower ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasLower ? 'var(--success)' : 'var(--text-tertiary)' }} />
-                  Al menos una letra minúscula
+                  {t('passwordAtLeastOneLower')}
                 </div>
                 <div style={{ color: hasNumber ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasNumber ? 'var(--success)' : 'var(--text-tertiary)' }} />
-                  Al menos un número
+                  {t('passwordAtLeastOneNumber')}
                 </div>
                 <div style={{ color: hasSymbol ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasSymbol ? 'var(--success)' : 'var(--text-tertiary)' }} />
-                  Al menos un símbolo (ej. !@#$)
+                  {t('passwordAtLeastOneSymbol')}
                 </div>
               </div>
             </div>
 
             <div className="form-group">
-              <label>Repetir Nueva Contraseña</label>
+              <label>{t('repeatNewPassword')}</label>
               <input
                 type={showNew ? "text" : "password"}
                 value={confirmPassword}
@@ -236,14 +242,14 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 onClick={handleClose}
                 disabled={loading || !!success}
               >
-                Cancelar
+                {t('cancel')}
               </button>
               <button 
                 type="submit"
                 className="btn btn-primary"
                 disabled={loading || !!success || !newPassword || !currentPassword || !confirmPassword}
               >
-                {loading ? 'Actualizando...' : 'Guardar'}
+                {loading ? t('updating') : t('save')}
               </button>
             </div>
           </form>

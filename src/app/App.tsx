@@ -5,14 +5,12 @@ import { AuthProvider } from './providers/AuthContext';
 import { AppearanceProvider } from './providers/AppearanceContext';
 import { LocaleCurrencyProvider } from './providers/LocaleCurrencyContext';
 import { useLocaleCurrency } from './providers/LocaleCurrencyContext';
-import { DataProvider } from './providers/DataProvider';
+import { QueryProvider } from './providers/QueryProvider';
 import ProtectedRoute from '../shared/ui/ProtectedRoute';
 import Sidebar from '../widgets/layout/Sidebar';
 import BottomNav from '../widgets/layout/BottomNav';
 import OnboardingOverlay from '../shared/ui/OnboardingOverlay';
 import CookieConsent from '../shared/components/CookieConsent';
-import SwipeWrapper from '../widgets/layout/SwipeWrapper';
-
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Analytics = lazy(() => import('../pages/Analytics'));
@@ -37,48 +35,46 @@ import { HelmetProvider } from 'react-helmet-async';
 export default function App() {
   return (
     <HelmetProvider>
-      <BrowserRouter>
-        <SpeedInsights />
-        <AppearanceProvider>
-          <AuthProvider>
-            <LocaleCurrencyProvider>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route
-                    path="/*"
-                    element={
-                      <ProtectedRoute>
-                        <DataProvider>
-                          <SwipeWrapper>
-                            <div className="app-layout">
-                              <CookieConsent />
-                              <OnboardingOverlay />
-                              <Sidebar />
-                              <main className="main-content">
-                                <Suspense fallback={<PageLoader />}>
-                                  <Routes>
-                                    <Route path="/" element={<Dashboard />} />
-                                    <Route path="/analytics" element={<Analytics />} />
-                                    <Route path="/transactions" element={<Transactions />} />
-                                    <Route path="/goals" element={<Goals />} />
-                                    <Route path="/settings" element={<Settings />} />
-                                  </Routes>
-                                </Suspense>
-                              </main>
-                              <BottomNav />
-                            </div>
-                          </SwipeWrapper>
-                        </DataProvider>
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </Suspense>
-            </LocaleCurrencyProvider>
-          </AuthProvider>
-        </AppearanceProvider>
-      </BrowserRouter>
+      <QueryProvider>
+        <BrowserRouter>
+          <SpeedInsights />
+          <AppearanceProvider>
+            <AuthProvider>
+              <LocaleCurrencyProvider>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route
+                      path="/*"
+                      element={
+                        <ProtectedRoute>
+                          <div className="app-layout">
+                            <CookieConsent />
+                            <OnboardingOverlay />
+                            <Sidebar />
+                            <main className="main-content">
+                              <Suspense fallback={<PageLoader />}>
+                                <Routes>
+                                  <Route path="/" element={<Dashboard />} />
+                                  <Route path="/analytics" element={<Analytics />} />
+                                  <Route path="/transactions" element={<Transactions />} />
+                                  <Route path="/goals" element={<Goals />} />
+                                  <Route path="/settings" element={<Settings />} />
+                                </Routes>
+                              </Suspense>
+                            </main>
+                            <BottomNav />
+                          </div>
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </Suspense>
+              </LocaleCurrencyProvider>
+            </AuthProvider>
+          </AppearanceProvider>
+        </BrowserRouter>
+      </QueryProvider>
     </HelmetProvider>
   );
 }

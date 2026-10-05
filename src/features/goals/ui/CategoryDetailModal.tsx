@@ -25,7 +25,7 @@ export default function CategoryDetailModal({
   onRemoveCategory,
   onEditTarget
 }: CategoryDetailModalProps) {
-  const { formatMoney } = useLocaleCurrency();
+  const { formatMoney, translateEntityName, t } = useLocaleCurrency();
   const { transactions } = useTransactions('all');
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -90,27 +90,18 @@ export default function CategoryDetailModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', padding: '20px', position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10 }}>
+          <div className="modal-header" style={{ padding: '20px 20px 0 20px', position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10, marginBottom: '20px' }}>
             <button
               type="button"
+              className="modal-close-btn"
               onClick={onClose}
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-primary)',
-                cursor: 'pointer'
-              }}
+              style={{ left: '20px' }}
+              aria-label={t('close')}
             >
               <X size={20} />
             </button>
-            <h2 style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', margin: 0, paddingRight: '40px' }}>
-              Detalle de categoría
+            <h2 className="modal-title">
+              {t('categoryDetail')}
             </h2>
           </div>
 
@@ -129,7 +120,7 @@ export default function CategoryDetailModal({
                   }}>
                     {category.icon}
                   </div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>{category.name}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>{translateEntityName(category.name, 'category')}</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)' }}>
                   <button onClick={onEditTarget} style={{ background: 'none', border: 'none', color: goal.color || 'var(--accent-secondary)', cursor: 'pointer' }}><Edit2 size={18} /></button>
@@ -147,17 +138,17 @@ export default function CategoryDetailModal({
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <span>{formatMoney(currentAmount)} {goal.goal_type === 'budget' ? 'gastado' : 'ahorrado'}</span>
-                <span>{formatMoney(Math.max(0, targetAmount - currentAmount))} {goal.goal_type === 'budget' ? 'por gastar' : 'por ahorrar'}</span>
+                <span>{formatMoney(currentAmount)} {goal.goal_type === 'budget' ? t('spent') : t('saved')}</span>
+                <span>{formatMoney(Math.max(0, targetAmount - currentAmount))} {goal.goal_type === 'budget' ? t('toSpend') : t('toSave')}</span>
               </div>
             </div>
 
             {/* Transactions List */}
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Transacciones recientes 💸👀</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>{t('recentTransactions')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {categoryTransactions.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 20px', color: 'var(--text-tertiary)' }}>
-                  No hay transacciones registradas para esta categoría en este período.
+                  {t('noTransactionsForCategory')}
                 </div>
               ) : (
                 categoryTransactions.map(tx => (
@@ -182,10 +173,10 @@ export default function CategoryDetailModal({
           setShowDeleteConfirm(false);
           onClose(); // Cerrar también este modal después de borrar
         }}
-        titleStep1="¿Quitar categoría?"
-        descStep1="Estás a punto de quitar esta categoría del presupuesto."
-        titleStep2="¿Estás seguro?"
-        descStep2="Esta acción eliminará el objetivo asociado a esta categoría."
+        titleStep1={t('removeCategoryTitle')}
+        descStep1={t('removeCategoryDesc1')}
+        titleStep2={t('deleteTransactionConfirmTitle')}
+        descStep2={t('removeCategoryDesc2')}
       />
 
       {/* Edición de Transacción */}

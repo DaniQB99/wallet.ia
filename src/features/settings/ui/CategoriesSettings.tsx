@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCategories } from '../../../entities/categories/model/useCategories';
-import { X, Edit, Trash2 } from 'lucide-react';
+import { X, Edit, Trash2, User, Users } from 'lucide-react';
 import type { TransactionType } from '../../../shared/types/database';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -22,7 +22,7 @@ const COLOR_PRESETS = [
  * @param props - Permite inyectar funciones de control como `onClose` para desmontar el modal.
  */
 export default function CategoriesSettings({ onClose, initialTab = 'shared', hideTabs = false }: { onClose: () => void, initialTab?: TransactionType, hideTabs?: boolean }) {
-  const { t } = useLocaleCurrency();
+  const { t, translateEntityName } = useLocaleCurrency();
   const [tab, setTab] = useState<TransactionType>(initialTab);
   const { categories, addCategory, updateCategory, deleteCategory, loading } = useCategories(tab);
 
@@ -96,84 +96,153 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 className="modal-title">{t('categoriesManagement')}</h2>
-          <button className="btn-icon" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)' }}>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label={t('close')}
+          >
             <X size={20} />
           </button>
+          <h2 className="modal-title">
+            {t('categoriesManagement')}
+          </h2>
         </div>
 
         {!hideTabs && (
-          <div className="toggle-group" style={{ marginBottom: '24px', display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              background: 'rgba(255, 255, 255, 0.04)',
+              padding: '4px',
+              borderRadius: '14px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              width: '100%',
+              marginBottom: '24px',
+            }}
+          >
             <button
-              className={`toggle-item ${tab === 'personal' ? 'active' : ''}`}
+              type="button"
               onClick={() => { setTab('personal'); resetForm(); }}
-              style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'personal' ? 'var(--bg-primary)' : 'transparent', color: tab === 'personal' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+              style={{
+                flex: '1 1 120px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: tab === 'personal' ? 'var(--accent-primary)' : 'transparent',
+                color: tab === 'personal' ? '#ffffff' : 'var(--text-secondary)',
+                boxShadow: tab === 'personal' ? '0 4px 14px var(--accent-primary-glow, rgba(99,102,241,0.35))' : 'none',
+                minWidth: 0,
+              }}
             >
-              {t('personal')}
+              <User size={16} style={{ flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('personalLabel')}
+              </span>
             </button>
             <button
-              className={`toggle-item ${tab === 'shared' ? 'active' : ''}`}
+              type="button"
               onClick={() => { setTab('shared'); resetForm(); }}
-              style={{ flex: 1, padding: '8px', border: 'none', borderRadius: 'var(--radius-sm)', background: tab === 'shared' ? 'var(--bg-primary)' : 'transparent', color: tab === 'shared' ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+              style={{
+                flex: '1 1 120px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: tab === 'shared' ? 'var(--accent-primary)' : 'transparent',
+                color: tab === 'shared' ? '#ffffff' : 'var(--text-secondary)',
+                boxShadow: tab === 'shared' ? '0 4px 14px var(--accent-primary-glow, rgba(99,102,241,0.35))' : 'none',
+                minWidth: 0,
+              }}
             >
-              {t('shared')}
+              <Users size={16} style={{ flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('sharedLabel')}
+              </span>
             </button>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="card" style={{ marginBottom: '24px', padding: '20px', border: '1px solid var(--border)', position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-            <div style={{ position: 'relative' }}>
-              <label className="form-label">{t('icon')}</label>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block', textAlign: 'center' }}>
+                {t('icon')}
+              </label>
               <button
                 type="button"
                 className="btn-icon"
                 onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowColorPicker(false); }}
-                style={{ width: '48px', height: '48px', fontSize: '1.5rem', background: `${color}15`, border: `2px solid ${color}30`, color: color, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: '44px', height: '44px', fontSize: '1.4rem', background: `${color}15`, border: `2px solid ${color}40`, color: color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.15s ease' }}
               >
                 {icon}
               </button>
 
               <AnimatePresence>
                 {showEmojiPicker && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1100, marginTop: '8px' }}
-                  >
-                    <div className="card" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-                      <Picker
-                        data={data}
-                        onEmojiSelect={(emoji: any) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
-                        theme="dark"
-                        locale="es"
-                        set="native"
-                      />
-                    </div>
-                  </motion.div>
+                  <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setShowEmojiPicker(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+                      animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                      exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+                      style={{ position: 'fixed', top: '50%', left: '50%', zIndex: 1100 }}
+                    >
+                      <div className="card" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '352px', maxWidth: 'calc(100vw - 32px)' }}>
+                        <Picker
+                          data={data}
+                          onEmojiSelect={(emoji: any) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
+                          theme="dark"
+                          locale="es"
+                          set="native"
+                        />
+                      </div>
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
 
-            <div style={{ flex: 1 }}>
-              <label className="form-label">{t('categoryName')}</label>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('categoryName')}
+              </label>
               <input
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
+                placeholder=""
                 className="form-input"
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '44px', borderRadius: '12px' }}
               />
             </div>
 
-            <div>
-              <label className="form-label">{t('color')}</label>
+            <div style={{ position: 'relative' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block', textAlign: 'center' }}>
+                {t('color')}
+              </label>
               <button
                 type="button"
                 className="btn-icon"
                 onClick={() => { setShowColorPicker(!showColorPicker); setShowEmojiPicker(false); }}
-                style={{ width: '40px', height: '40px', background: color, border: 'none', borderRadius: 'var(--radius-full)', padding: 0 }}
+                style={{ width: '44px', height: '44px', background: color, border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', padding: 0, cursor: 'pointer', boxShadow: `0 2px 8px ${color}40`, transition: 'transform 0.15s ease' }}
               />
 
               <AnimatePresence>
@@ -218,7 +287,7 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
 
           <div style={{ display: 'flex', gap: '12px' }}>
             {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>{t('replace')}</button>
+              <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ flex: 1 }}>{t('cancel')}</button>
             )}
             <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
               {editingId ? t('updateCategory') : t('createCategory')}
@@ -242,7 +311,7 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
                   {cat.icon}
                 </div>
                 <div className="transaction-details" style={{ flex: 1 }}>
-                  <div className="transaction-title" style={{ fontWeight: 600 }}>{cat.name}</div>
+                  <div className="transaction-title" style={{ fontWeight: 600 }}>{translateEntityName(cat.name, 'category')}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                     {cat.scope === 'shared' ? t('sharedLabel') : t('personalLabel')}
                   </div>
@@ -265,10 +334,10 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
         isOpen={!!categoryToDelete}
         onClose={() => setCategoryToDelete(null)}
         onConfirm={confirmDelete}
-        titleStep1={t('deleteCategoryTitle') || '¿Eliminar categoría?'}
-        descStep1={t('deleteCategoryDesc') || 'Se eliminará la categoría y todas las transacciones quedarán sin asignar. ¿Estás seguro?'}
-        titleStep2={t('finalConfirmation') || 'Confirmación final'}
-        descStep2={t('finalConfirmationDesc') || 'Esta acción no se puede deshacer. ¿Deseas proceder con la eliminación?'}
+        titleStep1={t('deleteCategoryTitle')}
+        descStep1={t('deleteCategoryDesc')}
+        titleStep2={t('finalConfirmation')}
+        descStep2={t('finalConfirmationDesc')}
         loading={deleting}
       />
     </div>

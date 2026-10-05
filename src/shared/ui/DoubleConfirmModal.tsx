@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 
 interface DoubleConfirmModalProps {
@@ -39,13 +39,22 @@ export default function DoubleConfirmModal({
       {isOpen && (
         <div className="modal-overlay" style={{ zIndex: 1200, background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
           <motion.div
-            className="card"
+            className="modal animate-in"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            style={{ maxWidth: '320px', width: '90%', textAlign: 'center', padding: '24px' }}
+            style={{ maxWidth: '340px', width: '90%', textAlign: 'center', padding: '24px', position: 'relative' }}
             onClick={e => e.stopPropagation()}
           >
+            <button
+              type="button"
+              className="modal-close-btn"
+              onClick={onClose}
+              style={{ left: '16px', top: '16px', transform: 'none' }}
+              aria-label={t('close')}
+            >
+              <X size={20} />
+            </button>
             {step === 1 ? (
               <motion.div
                 key="step1"
@@ -62,14 +71,14 @@ export default function DoubleConfirmModal({
                 </p>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>
-                    {t('no') || 'No'}
+                    {t('no')}
                   </button>
                   <button
                     className="btn btn-primary"
                     onClick={() => setStep(2)}
                     style={{ flex: 1 }}
                   >
-                    {t('yes') || 'Sí'}
+                    {t('yes')}
                   </button>
                 </div>
               </motion.div>
@@ -89,7 +98,7 @@ export default function DoubleConfirmModal({
                 </p>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>
-                    {t('cancel') || 'Cancelar'}
+                    {t('cancel')}
                   </button>
                   <button
                     className={`btn btn-danger ${loading ? 'disabled' : ''}`}
@@ -97,7 +106,7 @@ export default function DoubleConfirmModal({
                     style={{ flex: 1 }}
                     disabled={loading}
                   >
-                    {loading ? (t('deleting') || 'Eliminando...') : (t('confirm') || 'Confirmar')}
+                    {loading ? t('deleting') : t('confirm')}
                   </button>
                 </div>
               </motion.div>

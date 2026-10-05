@@ -1,7 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Heart,
-  Bell,
   Shield,
   Palette,
   Globe,
@@ -13,6 +12,7 @@ import {
   Smartphone,
   Monitor,
   Lock,
+  X,
 } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useAppearance } from '../app/providers/AppearanceContext';
@@ -25,11 +25,11 @@ import PartnerSettings from '../features/settings/ui/PartnerSettings';
 import DoubleConfirmModal from '../shared/ui/DoubleConfirmModal';
 import DataPrivacyModal from '../features/settings/ui/DataPrivacyModal';
 import ChangePasswordModal from '../features/settings/ui/ChangePasswordModal';
-import NotificationsModal from '../features/notifications/ui/NotificationsModal';
+import InstallAppModal from '../features/settings/ui/InstallAppModal';
 import LegalDocumentModal from '../shared/ui/LegalDocumentModal';
 import privacyPolicyText from '../../docs/privacy-policy.es.md?raw';
 import termsOfUseText from '../../docs/terms-of-use.es.md?raw';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '../shared/api/supabase';
 import { Download, Trash2 } from 'lucide-react';
@@ -74,7 +74,7 @@ export default function Settings() {
   const [showCategories, setShowCategories] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -101,9 +101,9 @@ export default function Settings() {
   };
 
   const themeOptions: { value: 'light' | 'dark' | 'system'; label: string }[] = [
-    { value: 'light', label: 'Claro' },
-    { value: 'dark', label: 'Oscuro' },
-    { value: 'system', label: 'Automático' },
+    { value: 'light', label: t('light') },
+    { value: 'dark', label: t('dark') },
+    { value: 'system', label: t('system') },
   ];
 
   const cycleAccentColor = () => {
@@ -116,25 +116,41 @@ export default function Settings() {
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [pendingCurrencyChange, setPendingCurrencyChange] = useState<SupportedCurrency | null>(null);
 
-  const localeOptions: { value: SupportedLocale; label: string; flag: string; native: string }[] = [
-    { value: 'es-ES', label: 'España', flag: '🇪🇸', native: 'Español' },
-    { value: 'en-US', label: 'United States', flag: '🇺🇸', native: 'English' },
-    { value: 'fr-FR', label: 'France', flag: '🇫🇷', native: 'Français' },
-    { value: 'de-DE', label: 'Deutschland', flag: '🇩🇪', native: 'Deutsch' },
-    { value: 'it-IT', label: 'Italia', flag: '🇮🇹', native: 'Italiano' },
-    { value: 'pt-PT', label: 'Portugal', flag: '🇵🇹', native: 'Português' },
+  const regionNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([locale], { type: 'region' });
+    } catch {
+      return null;
+    }
+  }, [locale]);
+
+  const currencyNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([locale], { type: 'currency' });
+    } catch {
+      return null;
+    }
+  }, [locale]);
+
+  const localeOptions: { value: SupportedLocale; regionCode: string; flag: string; native: string }[] = [
+    { value: 'es-ES', regionCode: 'ES', flag: '🇪🇸', native: 'Español' },
+    { value: 'en-US', regionCode: 'US', flag: '🇺🇸', native: 'English' },
+    { value: 'fr-FR', regionCode: 'FR', flag: '🇫🇷', native: 'Français' },
+    { value: 'de-DE', regionCode: 'DE', flag: '🇩🇪', native: 'Deutsch' },
+    { value: 'it-IT', regionCode: 'IT', flag: '🇮🇹', native: 'Italiano' },
+    { value: 'pt-PT', regionCode: 'PT', flag: '🇵🇹', native: 'Português' },
   ];
 
-  const currencyOptions: { value: SupportedCurrency; flag: string; country: string; name: string; symbol: string }[] = [
-    { value: 'EUR', flag: '🇪🇺', country: 'Europa', name: 'Euro', symbol: '€' },
-    { value: 'USD', flag: '🇺🇸', country: 'Estados Unidos', name: 'Dólar Estadounidense', symbol: '$' },
-    { value: 'GBP', flag: '🇬🇧', country: 'Reino Unido', name: 'Libra Esterlina', symbol: '£' },
-    { value: 'JPY', flag: '🇯🇵', country: 'Japón', name: 'Yen Japonés', symbol: '¥' },
-    { value: 'MXN', flag: '🇲🇽', country: 'México', name: 'Peso Mexicano', symbol: '$' },
-    { value: 'BRL', flag: '🇧🇷', country: 'Brasil', name: 'Real Brasileño', symbol: 'R$' },
-    { value: 'ARS', flag: '🇦🇷', country: 'Argentina', name: 'Peso Argentino', symbol: '$' },
-    { value: 'COP', flag: '🇨🇴', country: 'Colombia', name: 'Peso Colombiano', symbol: '$' },
-    { value: 'CLP', flag: '🇨🇱', country: 'Chile', name: 'Peso Chileno', symbol: '$' },
+  const currencyOptions: { value: SupportedCurrency; flag: string; regionCode: string; symbol: string }[] = [
+    { value: 'EUR', flag: '🇪🇺', regionCode: 'EU', symbol: '€' },
+    { value: 'USD', flag: '🇺🇸', regionCode: 'US', symbol: '$' },
+    { value: 'GBP', flag: '🇬🇧', regionCode: 'GB', symbol: '£' },
+    { value: 'JPY', flag: '🇯🇵', regionCode: 'JP', symbol: '¥' },
+    { value: 'MXN', flag: '🇲🇽', regionCode: 'MX', symbol: '$' },
+    { value: 'BRL', flag: '🇧🇷', regionCode: 'BR', symbol: 'R$' },
+    { value: 'ARS', flag: '🇦🇷', regionCode: 'AR', symbol: '$' },
+    { value: 'COP', flag: '🇨🇴', regionCode: 'CO', symbol: '$' },
+    { value: 'CLP', flag: '🇨🇱', regionCode: 'CL', symbol: '$' },
   ];
 
   // Prompt de instalación PWA
@@ -166,12 +182,12 @@ export default function Settings() {
       let rate = 1;
       if (currency !== newCurrency) {
         const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=${currency}&to=${newCurrency}`);
-        if (!res.ok) throw new Error('Error de red al obtener tasa de cambio');
+        if (!res.ok) throw new Error(t('networkErrorExchangeRate'));
         const data = await res.json();
         rate = Number(data?.rates?.[newCurrency]);
 
         if (!Number.isFinite(rate) || rate <= 0) {
-          throw new Error('Tasa de cambio inválida recibida');
+          throw new Error(t('invalidExchangeRate'));
         }
       }
 
@@ -187,36 +203,10 @@ export default function Settings() {
       setShowCurrencyPicker(false);
     } catch (err: unknown) {
       console.error('Error al cambiar la divisa:', err);
-      alert('Error cambiando divisa: ' + (err as Error).message);
+      alert(t('errorChangingCurrency') + (err as Error).message);
     } finally {
       setIsConvertingCurrency(false);
       setPendingCurrencyChange(null);
-    }
-  };
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      (deferredPrompt as any).prompt();
-      const { outcome } = await (deferredPrompt as any).userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    } else {
-      alert('La app ya está instalada o tu navegador no soporta esta función.');
-    }
-  };
-
-  // Notificaciones
-  const requestNotifications = async () => {
-    if (!('Notification' in window)) {
-      alert('Tu navegador no soporta notificaciones.');
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      alert('Notificaciones activadas con éxito.');
-    } else {
-      alert('Permiso de notificaciones denegado.');
     }
   };
 
@@ -226,7 +216,7 @@ export default function Settings() {
       const { data, error } = await supabase.rpc('export_user_data');
       if (error) throw error;
       if (!data) {
-        alert('No hay datos para exportar.');
+        alert(t('noDataToExport'));
         return;
       }
 
@@ -242,7 +232,7 @@ export default function Settings() {
       document.body.removeChild(link);
     } catch (error: unknown) {
       console.error('Error al exportar datos:', error);
-      alert('Error exportando datos: ' + (error as Error).message);
+      alert(t('errorExportingData') + (error as Error).message);
     }
   };
 
@@ -252,10 +242,10 @@ export default function Settings() {
       const { error } = await supabase.rpc('delete_user_account');
       if (error) throw error;
 
-      alert('Tu cuenta y todos tus datos han sido eliminados correctamente.');
+      alert(t('accountDeletedSuccess'));
       await handleLogout();
     } catch (err: unknown) {
-      alert('Error procesando la solicitud: ' + (err as Error).message);
+      alert(t('errorProcessingRequest') + (err as Error).message);
     }
   };
 
@@ -263,16 +253,16 @@ export default function Settings() {
     <>
       <Helmet>
         <title>{t('navSettings')} - Wallet.ia</title>
-        <meta name="description" content="Configura tu perfil, preferencias, moneda e integraciones en pareja." />
+        <meta name="description" content={t('settingsMetaDesc')} />
       </Helmet>
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1>{t('settings')}</h1>
-          <p>{t('configureExperience')}</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>{t('settings')}</h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>{t('configureExperience')}</p>
         </div>
       </div>
 
-      <div className="page-content" style={{ maxWidth: '640px' }}>
+      <div className="page-content" style={{ width: '100%' }}>
         {/* Profile */}
         <div className="card animate-in" style={{ marginBottom: '24px', background: 'rgba(30, 30, 30, 0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -285,13 +275,13 @@ export default function Settings() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                {user?.display_name || 'Usuario'}
+                {user?.display_name || t('user')}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 {user?.email || ''}
               </div>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowProfile(true)}>Editar</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowProfile(true)}>{t('edit')}</button>
           </div>
         </div>
 
@@ -309,7 +299,7 @@ export default function Settings() {
             <div onClick={() => setShowCategories(true)}>
               <SettingsItem
                 icon={<Tag size={20} color="var(--accent-primary)" />}
-                label={`${t('category')}s`}
+                label={t('categories')}
                 desc={t('categoriesManagement')}
               />
             </div>
@@ -337,7 +327,9 @@ export default function Settings() {
             <SettingsItem
               icon={theme === 'system' ? <Monitor size={20} /> : resolvedTheme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
               label={t('appearance')}
-              desc={theme === 'system' ? `Automático (${resolvedTheme === 'dark' ? 'oscuro' : 'claro'})` : `Modo ${theme === 'dark' ? 'oscuro' : 'claro'}`}
+              desc={theme === 'system' 
+                ? (resolvedTheme === 'dark' ? t('appearanceModeSystemDark') : t('appearanceModeSystemLight')) 
+                : (theme === 'dark' ? t('appearanceModeDark') : t('appearanceModeLight'))}
               action={
                 <div className="settings-theme-segmented" onClick={(e) => e.stopPropagation()}>
                   {themeOptions.map((option) => (
@@ -346,8 +338,12 @@ export default function Settings() {
                       type="button"
                       className={theme === option.value ? 'active' : ''}
                       onClick={() => setTheme(option.value)}
+                      title={option.label}
+                      style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      {option.label}
+                      {option.value === 'light' && <Sun size={18} />}
+                      {option.value === 'dark' && <Moon size={18} />}
+                      {option.value === 'system' && <Monitor size={18} />}
                     </button>
                   ))}
                 </div>
@@ -357,11 +353,11 @@ export default function Settings() {
             <div onClick={cycleAccentColor}>
               <SettingsItem
                 icon={<Palette size={20} />}
-                label={`${t('color')} de acento`}
+                label={t('accentColor')}
                 desc={
-                  accentColor === 'indigo' ? 'Índigo' :
-                    accentColor === 'emerald' ? 'Esmeralda' :
-                      accentColor === 'rose' ? 'Rosa' : 'Ámbar'
+                  accentColor === 'indigo' ? t('colorIndigo') :
+                    accentColor === 'emerald' ? t('colorEmerald') :
+                      accentColor === 'rose' ? t('colorRose') : t('colorAmber')
                 }
                 action={
                   <div style={{ display: 'flex', gap: '8px', pointerEvents: 'none' }}>
@@ -397,35 +393,21 @@ export default function Settings() {
               <SettingsItem
                 icon={<Wallet size={20} />}
                 label={t('currency')}
-                desc={`${currencyOptions.find(c => c.value === currency)?.flag} ${currencyOptions.find(c => c.value === currency)?.name} (${currencyOptions.find(c => c.value === currency)?.symbol} ${currency})`}
+                desc={`${currencyOptions.find(c => c.value === currency)?.flag} ${currencyNames?.of(currency) || currency} (${currencyOptions.find(c => c.value === currency)?.symbol} ${currency})`}
               />
             </div>
           </div>
         </div>
 
-        {/* Notificaciones */}
+        {/* Aplicación / Instalación */}
         <div className="settings-section">
-          <div className="settings-section-title">{t('notificationsApp')}</div>
+          <div className="settings-section-title">{t('appSection')}</div>
           <div className="card" style={{ padding: 0 }}>
-            <div onClick={() => setShowNotifications(true)}>
-              <SettingsItem
-                icon={<Bell size={20} />}
-                label={t('inbox')}
-                desc={t('notificationsDesc')}
-              />
-            </div>
-            <div onClick={requestNotifications}>
-              <SettingsItem
-                icon={<Smartphone size={20} />}
-                label={`${t('notificationsApp')} push`}
-                desc={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? t('activated') : t('tapToEnable')}
-              />
-            </div>
-            <div onClick={handleInstallClick}>
+            <div onClick={() => setShowInstallModal(true)} style={{ cursor: 'pointer' }}>
               <SettingsItem
                 icon={<Smartphone size={20} />}
                 label={t('installAsApp')}
-                desc={deferredPrompt ? t('available') : t('configured')}
+                desc={deferredPrompt ? t('available') : t('installAsAppDesc')}
               />
             </div>
           </div>
@@ -530,13 +512,18 @@ export default function Settings() {
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDeleteAccount}
-        titleStep1="Eliminar tu cuenta"
-        descStep1="¿Estás seguro de que quieres iniciar el proceso para eliminar tu cuenta y todos los datos asociados?"
-        titleStep2="Confirmación Final"
-        descStep2="Esta acción no se puede deshacer. ¿Eliminar definitivamente?"
+        titleStep1={t('deleteAccountConfirmStep1Title')}
+        descStep1={t('deleteAccountConfirmStep1Desc')}
+        titleStep2={t('deleteAccountConfirmStep2Title')}
+        descStep2={t('deleteAccountConfirmStep2Desc')}
       />
 
-      {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}
+      <InstallAppModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        deferredPrompt={deferredPrompt}
+        onInstallSuccess={() => setDeferredPrompt(null)}
+      />
       {legalDoc === 'privacy' && (
         <LegalDocumentModal
           title={t('privacyPolicy')}
@@ -556,9 +543,17 @@ export default function Settings() {
       {showLanguagePicker && (
         <div className="modal-overlay" onClick={() => setShowLanguagePicker(false)}>
           <div className="modal animate-in" style={{ maxWidth: '420px', padding: 0 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-              <button onClick={() => setShowLanguagePicker(false)} className="btn-icon" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginRight: '12px', fontSize: '0.9rem' }}>← {t('close')}</button>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'center', paddingRight: '40px' }}>{t('language')}</h3>
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowLanguagePicker(false)}
+                style={{ left: '20px' }}
+                aria-label={t('close')}
+              >
+                <X size={20} />
+              </button>
+              <h2 className="modal-title">{t('language')}</h2>
             </div>
             <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {localeOptions.map(item => (
@@ -575,7 +570,7 @@ export default function Settings() {
                   <span style={{ fontSize: '2rem', lineHeight: 1 }}>{item.flag}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.native}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{item.label}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{regionNames?.of(item.regionCode) || item.value}</div>
                   </div>
                   {locale === item.value && (
                     <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -593,9 +588,17 @@ export default function Settings() {
       {showCurrencyPicker && (
         <div className="modal-overlay" onClick={() => setShowCurrencyPicker(false)}>
           <div className="modal animate-in" style={{ maxWidth: '420px', padding: 0 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-              <button onClick={() => setShowCurrencyPicker(false)} className="btn-icon" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginRight: '12px', fontSize: '0.9rem' }}>← {t('close')}</button>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, flex: 1, textAlign: 'center', paddingRight: '40px' }}>{t('currency')}</h3>
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowCurrencyPicker(false)}
+                style={{ left: '20px' }}
+                aria-label={t('close')}
+              >
+                <X size={20} />
+              </button>
+              <h2 className="modal-title">{t('currency')}</h2>
             </div>
             <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {currencyOptions.map(item => (
@@ -611,8 +614,8 @@ export default function Settings() {
                 >
                   <span style={{ fontSize: '2rem', lineHeight: 1 }}>{item.flag}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.country}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{item.name} ({item.symbol} {item.value})</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.regionCode && regionNames ? regionNames.of(item.regionCode) : item.value}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{(currencyNames?.of(item.value) || item.value)} ({item.symbol} {item.value})</div>
                   </div>
                   {currency === item.value && (
                     <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -624,7 +627,7 @@ export default function Settings() {
             </div>
             {isConvertingCurrency && (
               <div style={{ padding: '12px 20px', fontSize: '0.85rem', color: 'var(--accent-primary)', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
-                Convirtiendo todos tus datos en la base de datos...
+                {t('convertingDataMessage')}
               </div>
             )}
           </div>
@@ -635,10 +638,10 @@ export default function Settings() {
         isOpen={!!pendingCurrencyChange}
         onClose={() => setPendingCurrencyChange(null)}
         onConfirm={confirmCurrencyChange}
-        titleStep1="¿Cambiar divisa global?"
-        descStep1={`¿Estás seguro de que quieres cambiar tu cuenta entera de ${currency} a ${pendingCurrencyChange}?`}
-        titleStep2="Conversión en progreso"
-        descStep2="Se convertirá todo tu saldo y el historial de transacciones usando el tipo de cambio actual. Esto no se puede deshacer."
+        titleStep1={t('changeCurrencyStep1Title')}
+        descStep1={t('changeCurrencyStep1Desc').replace('{old}', currency || '').replace('{new}', pendingCurrencyChange || '')}
+        titleStep2={t('changeCurrencyStep2Title')}
+        descStep2={t('changeCurrencyStep2Desc')}
         loading={isConvertingCurrency}
       />
     </>

@@ -3,6 +3,7 @@ import { X, Heart, Copy, Check, UserPlus, Unlink, Loader2 } from 'lucide-react';
 import { useCouple } from '../../auth/model/useCouple';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { getSupabaseErrorI18nKey } from '../../../shared/lib/supabaseErrors';
 
 interface PartnerSettingsProps {
   onClose: () => void;
@@ -76,7 +77,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
     setAcceptLoading(true);
     const result = await acceptInvite(fullCode);
     if (result.error) {
-      setAcceptError(result.error);
+      setAcceptError(t(getSupabaseErrorI18nKey(result.error)));
     } else {
       setShowAcceptModal(false);
       setAcceptCode(['', '', '', '', '', '']);
@@ -99,11 +100,18 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
       >
-        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="modal-title" style={{ margin: 0 }}>{t('partnerStatus')}</h2>
-          <button onClick={onClose} className="btn-icon" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+        <div className="modal-header">
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label={t('close')}
+          >
             <X size={20} />
           </button>
+          <h2 className="modal-title">
+            {t('partnerStatus')}
+          </h2>
         </div>
 
         {loading ? (
@@ -238,7 +246,17 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
-                <div className="modal-title" style={{ textAlign: 'center' }}>{t('invitationCodeTitle')}</div>
+                <div className="modal-header">
+                  <button
+                    type="button"
+                    className="modal-close-btn"
+                    onClick={() => setShowInviteModal(false)}
+                    aria-label={t('close')}
+                  >
+                    <X size={20} />
+                  </button>
+                  <h2 className="modal-title">{t('invitationCodeTitle')}</h2>
+                </div>
                 <p className="modal-subtitle" style={{ textAlign: 'center' }}>{t('invitationCodeDesc')}</p>
 
                 <div className="invite-code-display">
@@ -272,7 +290,17 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
-                <div className="modal-title" style={{ textAlign: 'center' }}>{t('enterCode')}</div>
+                <div className="modal-header">
+                  <button
+                    type="button"
+                    className="modal-close-btn"
+                    onClick={() => setShowAcceptModal(false)}
+                    aria-label={t('close')}
+                  >
+                    <X size={20} />
+                  </button>
+                  <h2 className="modal-title">{t('enterCode')}</h2>
+                </div>
                 <p className="modal-subtitle" style={{ textAlign: 'center' }}>{t('enterCodeDesc')}</p>
 
                 <div className="invite-code-input-group">
@@ -327,8 +355,18 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
+                <div className="modal-header" style={{ marginBottom: '16px' }}>
+                  <button
+                    type="button"
+                    className="modal-close-btn"
+                    onClick={() => setShowUnlinkConfirm(false)}
+                    aria-label={t('close')}
+                  >
+                    <X size={20} />
+                  </button>
+                  <h2 className="modal-title">{t('unlinkConfirmTitle')}</h2>
+                </div>
                 <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚠️</div>
-                <div className="modal-title">{t('unlinkConfirmTitle')}</div>
                 <p className="modal-subtitle" style={{ marginBottom: '24px' }}>{t('unlinkConfirmDesc')}</p>
 
                 <div style={{ display: 'flex', gap: '12px' }}>

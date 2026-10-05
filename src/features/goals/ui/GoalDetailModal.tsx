@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { X, Plus, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useData } from '../../../app/providers/DataProvider';
+import { useGoals } from '../../../entities/goals/model/useGoals';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import type { Goal, Category } from '../../../shared/types/database';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 import CategoriesSettings from '../../settings/ui/CategoriesSettings';
 import CategoryDetailModal from './CategoryDetailModal';
+import { useCategories } from '../../../entities/categories/model/useCategories';
 
 interface GoalDetailModalProps {
   goal: Goal;
@@ -16,8 +17,9 @@ interface GoalDetailModalProps {
 }
 
 export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: GoalDetailModalProps) {
-  const { categories, addGoalCategory, removeGoalCategory, updateGoalCategory } = useData();
-  const { formatMoney, locale } = useLocaleCurrency();
+  const { addGoalCategory, removeGoalCategory, updateGoalCategory } = useGoals(goal.type as 'personal' | 'shared');
+  const { categories } = useCategories();
+  const { formatMoney, formatDate, t, translateEntityName } = useLocaleCurrency();
   const [addingCategory, setAddingCategory] = useState<Category | null>(null);
   const [targetInput, setTargetInput] = useState<string>('');
   const [categoryToRemove, setCategoryToRemove] = useState<string | null>(null);
@@ -30,9 +32,9 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
       : Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100)))
     : (goal.goal_type === 'budget' ? 100 : 0);
 
-  const formatDate = (dateString: string | null) => {
+  const localFormatDate = (dateString: string | null) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDate(dateString, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -42,7 +44,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
     if (isNaN(numTarget) || numTarget <= 0) return;
 
     const existingGc = goal.goal_categories?.find(gc => gc.category_id === addingCategory.id);
-    
+
     if (existingGc) {
       await updateGoalCategory(existingGc.id, { target_amount: numTarget });
     } else {
@@ -52,7 +54,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
         target_amount: numTarget
       });
     }
-    
+
     setAddingCategory(null);
     setTargetInput('');
   };
@@ -82,25 +84,17 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', position: 'relative' }}>
+          <div className="modal-header">
             <button
               type="button"
+              className="modal-close-btn"
               onClick={onClose}
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '20px',
-                padding: '8px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                color: 'var(--text-primary)',
-                cursor: 'pointer'
-              }}
+              aria-label={t('close')}
             >
               <X size={20} />
             </button>
-            <h2 style={{ flex: 1, textAlign: 'center', fontSize: '1.2rem', margin: 0, paddingRight: '40px' }}>
-              {goal.goal_type === 'budget' ? 'Detalle de presupuesto' : 'Detalle de ahorro'}
+            <h2 className="modal-title">
+              {goal.goal_type === 'budget' ? t('budgetDetail') : t('savingsDetail')}
             </h2>
           </div>
 
@@ -110,7 +104,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>{goal.name}</h3>
                 <div style={{ fontSize: '0.85rem', color: goal.color || 'var(--accent-primary)', marginTop: '4px' }}>
-                  {formatDate(goal.start_date)} a {formatDate(goal.deadline)}
+                  {localFormatDate(goal.start_date)} - {localFormatDate(goal.deadline)}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)' }}>
@@ -129,13 +123,13 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              <span>{formatMoney(goal.current_amount || 0)} {goal.goal_type === 'budget' ? 'gastado' : 'ahorrado'}</span>
-              <span>{formatMoney(Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0)))} {goal.goal_type === 'budget' ? 'por gastar' : 'por ahorrar'}</span>
+              <span>{formatMoney(goal.current_amount || 0)} {goal.goal_type === 'budget' ? t('spent') : t('saved')}</span>
+              <span>{formatMoney(Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0)))} {goal.goal_type === 'budget' ? t('toSpend') : t('toSave')}</span>
             </div>
           </div>
 
           {/* Categories Carousel */}
-          <h3 style={{ fontSize: '0.95rem', marginBottom: '12px' }}>{goal.goal_type === 'budget' ? 'Categorías de gasto 💸📁' : 'Categorías de ingreso 💰📁'}</h3>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '12px' }}>{goal.goal_type === 'budget' ? `${t('expenseCategories')} 💸📁` : `${t('incomeCategories')} 💰📁`}</h3>
           <div style={{
             display: 'flex',
             overflowX: 'auto',
@@ -171,7 +165,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                   {cat.icon}
                 </div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  {cat.name}
+                  {translateEntityName(cat.name, 'category')}
                 </span>
               </div>
             ))}
@@ -188,7 +182,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
               }}>
                 <Plus size={24} />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px' }}>Nueva</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px' }}>{t('new')}</span>
             </div>
           </div>
 
@@ -202,12 +196,12 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                 onSubmit={handleAddCategory}
                 style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '16px', marginBottom: '24px', overflow: 'hidden' }}
               >
-                <h4 style={{ margin: '0 0 12px 0' }}>Añadir {addingCategory.name}</h4>
+                <h4 style={{ margin: '0 0 12px 0' }}>{t('add')} {translateEntityName(addingCategory.name, 'category')}</h4>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="0€"
+                    placeholder="0"
                     inputMode="decimal"
                     pattern="[0-9]*"
                     value={targetInput}
@@ -215,7 +209,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                     required
                     style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                   />
-                  <button type="submit" className="btn btn-primary" style={{ padding: '0 20px', borderRadius: '10px' }}>Añadir</button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '0 20px', borderRadius: '10px' }}>{t('add')}</button>
                 </div>
               </motion.form>
             )}
@@ -234,9 +228,9 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
               const barColor = goal.goal_type === 'budget' ? '#ef4444' : '#10b981';
 
               return (
-                <div 
-                  key={gc.id} 
-                  className="card" 
+                <div
+                  key={gc.id}
+                  className="card"
                   onClick={() => setSelectedCategoryDetail({ gc, cat: cat! })}
                   style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'background 0.2s' }}
                 >
@@ -245,7 +239,7 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{cat?.name || 'Categoría'}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{cat?.name ? translateEntityName(cat.name, 'category') : t('category')}</span>
                       <span style={{ fontWeight: 600 }}>{formatMoney(gc.target_amount)}</span>
                     </div>
                     <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: 'var(--bg-tertiary)', overflow: 'hidden', marginBottom: '6px' }}>
@@ -276,10 +270,10 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
             setCategoryToRemove(null);
           }
         }}
-        titleStep1="¿Quitar categoría?"
-        descStep1="Estás a punto de quitar esta categoría."
-        titleStep2="¿Estás seguro?"
-        descStep2="Esta acción eliminará el objetivo asociado a esta categoría permanentemente."
+        titleStep1={t('removeCategoryTitle')}
+        descStep1={t('removeCategoryDesc1')}
+        titleStep2={t('deleteTransactionConfirmTitle')}
+        descStep2={t('removeCategoryDesc2')}
       />
 
       {showCategoriesSettings && (

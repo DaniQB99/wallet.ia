@@ -109,6 +109,8 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -622,40 +624,69 @@ input::placeholder {
   font-size: 0.75rem;
 }
 
+.dashboard-actions-grid,
 .quick-actions-mobile {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto 28px auto;
 }
 
+.dashboard-action-item,
 .quick-action-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
 }
 
+.dashboard-action-btn,
 .quick-action-btn {
-  background: var(--accent-primary);
-  border: none;
-  border-radius: 18px;
-  width: 56px;
-  height: 56px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  width: 58px;
+  height: 58px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  position: relative;
 }
 
+.dashboard-action-btn:hover,
+.quick-action-btn:hover {
+  transform: translateY(-3px);
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--accent-primary-hover);
+  box-shadow: 0 12px 24px -6px rgba(99, 102, 241, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-action-btn:active,
 .quick-action-btn:active {
   transform: scale(0.95);
   opacity: 0.9;
 }
 
+.dashboard-action-label,
 .quick-action-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.dashboard-action-item:hover .dashboard-action-label,
+.quick-action-item:hover .quick-action-label {
   color: var(--text-primary);
 }
 
@@ -1037,7 +1068,8 @@ input::placeholder {
   padding: 20px;
 }
 
-.modal {
+.modal,
+.modal-content {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -1047,12 +1079,55 @@ input::placeholder {
   animation: slideUp var(--transition-base);
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.modal-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.modal-close-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .modal-title {
   font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin: 0;
+  text-align: center;
+  width: 100%;
+  padding: 0 40px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .modal-subtitle {
@@ -2819,24 +2894,35 @@ input::placeholder {
 }
 
 .kebo-sheet-header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px 16px;
+  justify-content: center;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .kebo-sheet-title {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 700;
+  text-align: center;
+  width: 100%;
+  padding: 0 40px;
 }
 
 .kebo-sheet-close {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Cuadrícula de categorías */
@@ -3503,3 +3589,41 @@ input::placeholder {
   opacity: 1;
   transform: scale(1);
 }
+
+/* Modal Transacción Moderno (Liquid Glass) */
+.keypad-btn-modern {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+  outline: none;
+}
+
+.keypad-btn-modern:active {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(0.96);
+}
+
+.tx-field-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tx-field-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+}

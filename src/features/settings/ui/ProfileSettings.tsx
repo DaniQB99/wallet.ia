@@ -53,11 +53,11 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
       
       // Basic validation
       if (!file.type.startsWith('image/')) {
-        setProfileMessage({ text: 'Por favor, selecciona una imagen válida.', type: 'error' });
+        setProfileMessage({ text: t('validImageRequired'), type: 'error' });
         return;
       }
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setProfileMessage({ text: 'La imagen no puede superar los 5MB.', type: 'error' });
+        setProfileMessage({ text: t('imageMaxLimit'), type: 'error' });
         return;
       }
 
@@ -89,10 +89,10 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
 
       // Update local state
       updateAvatarUrl(publicUrl);
-      setProfileMessage({ text: 'Foto de perfil actualizada correctamente.', type: 'success' });
+      setProfileMessage({ text: t('avatarUpdatedSuccess'), type: 'success' });
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      setProfileMessage({ text: error.message || 'Error al subir la imagen.', type: 'error' });
+      setProfileMessage({ text: error.message || t('avatarUploadError'), type: 'error' });
     } finally {
       setIsUploadingAvatar(false);
       // Reset input
@@ -104,7 +104,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
 
   const handleUpdatePassword = async () => {
     if (!currentPassword) {
-      setSecurityMessage({ text: 'Por favor, introduce tu contraseña actual.', type: 'error' });
+      setSecurityMessage({ text: t('currentPasswordRequired'), type: 'error' });
       return;
     }
     if (!newPassword || newPassword.length < 6) {
@@ -112,7 +112,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
       return;
     }
     if (currentPassword === newPassword) {
-      setSecurityMessage({ text: 'La nueva contraseña no puede ser igual a la actual.', type: 'error' });
+      setSecurityMessage({ text: t('newPasswordMustBeDifferent'), type: 'error' });
       return;
     }
 
@@ -126,7 +126,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
       });
 
       if (signInError) {
-        throw new Error('La contraseña actual es incorrecta.');
+        throw new Error(t('currentPasswordIncorrect'));
       }
 
       const { error } = await supabase.auth.updateUser({
@@ -145,7 +145,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1000, alignItems: 'flex-start', paddingTop: '10vh' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div
         className="modal animate-in"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -154,11 +154,19 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
         style={{ padding: 0, overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="modal-title" style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>{t('profileManagement')}</h2>
-          <button className="btn-icon" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', padding: 0 }}>
+        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            style={{ left: '20px' }}
+            aria-label={t('close')}
+          >
             <X size={20} />
           </button>
+          <h2 className="modal-title">
+            {t('profileManagement')}
+          </h2>
         </div>
 
         <div className="tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
@@ -248,12 +256,12 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
-                <label>Contraseña actual</label>
+                <label>{t('currentPassword')}</label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Introduce tu contraseña actual"
+                  placeholder={t('enterCurrentPassword')}
                   className="input"
                 />
               </div>

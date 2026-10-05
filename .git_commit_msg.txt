@@ -1,8 +1,0 @@
-feat: refinamiento UI/UX de listados de transacciones y dashboard
-
-- Rediseño de lista de transacciones (agrupación mensual, bloques de bordes curvos).
-- Menú unificado y excluyente para el sistema de filtros.
-- Habilitación de edición rápida de movimientos directamente desde el Dashboard.
-- Corrección de cálculo de iniciales de usuario en transacciones compartidas.
-- Optimización de separadores y modales para mantener estilo 'premium'.
-- Corrección de TypeScript warnings para asegurar despliegue exitoso en Vercel.

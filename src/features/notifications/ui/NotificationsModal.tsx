@@ -23,7 +23,7 @@ const typeColors: Record<string, string> = {
   couple_unlinked: 'var(--danger-bg)',
 };
 
-function timeAgo(dateStr: string, locale: string) {
+function timeAgo(dateStr: string, formatDate: (date: Date, options?: Intl.DateTimeFormatOptions) => string) {
   const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
@@ -34,7 +34,7 @@ function timeAgo(dateStr: string, locale: string) {
   if (diffMins < 60) return `${diffMins}m`;
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  return formatDate(date, { day: 'numeric', month: 'short' });
 }
 
 /**
@@ -45,29 +45,37 @@ function timeAgo(dateStr: string, locale: string) {
  */
 export default function NotificationsModal({ onClose }: NotificationsModalProps) {
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
-  const { locale, t } = useLocaleCurrency();
+  const { formatDate, t } = useLocaleCurrency();
 
   return (
     <AnimatePresence>
       <div className="modal-overlay" onClick={onClose}>
         <motion.div
-          className="modal-content fullscreen"
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="modal animate-in"
+          style={{ maxWidth: '520px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           onClick={e => e.stopPropagation()}
         >
           <div className="modal-header">
-            <div className="modal-header-left">
-              <button className="btn-icon" onClick={onClose}>
-                <X size={24} />
-              </button>
-              <h2 className="modal-title">{t('inbox')}</h2>
-            </div>
+            <button
+              type="button"
+              className="modal-close-btn"
+              onClick={onClose}
+              aria-label={t('close')}
+            >
+              <X size={20} />
+            </button>
+            <h2 className="modal-title">{t('inbox')}</h2>
             {unreadCount > 0 && (
-              <button className="btn btn-secondary btn-sm" onClick={markAllAsRead}>
-                <CheckCheck size={16} /> {t('markAllRead')}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={markAllAsRead}
+                style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                <CheckCheck size={14} /> {t('markAllRead')}
               </button>
             )}
           </div>
@@ -104,11 +112,13 @@ export default function NotificationsModal({ onClose }: NotificationsModalProps)
                     <div className="notification-content">
                       <div className="notification-title">{notif.title}</div>
                       <div className="notification-message">{notif.message}</div>
-                      <div className="notification-time">{timeAgo(notif.created_at, locale)}</div>
+                      <div className="notification-time">{timeAgo(notif.created_at, formatDate)}</div>
                     </div>
                     {!notif.is_read && (
                       <button
                         className="btn btn-sm btn-secondary btn-icon"
+                        title={t('markAsRead')}
+                        aria-label={t('markAsRead')}
                         onClick={e => {
                           e.stopPropagation();
                           markAsRead(notif.id);

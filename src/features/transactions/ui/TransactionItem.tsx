@@ -2,7 +2,7 @@ import React from 'react';
 import type { Transaction } from '../../../shared/types/database';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import { useAuthContext } from '../../../app/providers/AuthContext';
-import { useData } from '../../../app/providers/DataProvider';
+import { useCouple } from '../../auth/model/useCouple';
 
 interface TransactionItemProps {
   tx: Transaction;
@@ -12,9 +12,9 @@ interface TransactionItemProps {
 }
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, showChevron, isDashboard }) => {
-  const { formatMoney, locale } = useLocaleCurrency();
+  const { formatMoney, formatDate, t, translateEntityName } = useLocaleCurrency();
   const { user } = useAuthContext();
-  const { partner } = useData();
+  const { partner } = useCouple();
 
   const isIncome = tx.amount > 0;
   const originalAmount = Math.abs(Number(tx.amount));
@@ -70,16 +70,16 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
 
       <div className="transaction-info">
         <div className="transaction-desc" style={{ fontWeight: 'bold' }}>
-          {tx.category?.name || 'Otros'}
+          {tx.category?.name ? translateEntityName(tx.category.name, 'category') : t('others')}
         </div>
 
         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
           {tx.currency && tx.currency !== 'EUR' ? (
             <span>
-              {originalAmount.toFixed(2)} {tx.currency} (a tasa {tx.exchange_rate_used?.toFixed(4) || 1.0})
+              {originalAmount.toFixed(2)} {tx.currency} {t('exchangeRateInfo').replace('{rate}', `${tx.exchange_rate_used?.toFixed(4) || 1.0}`)}
             </span>
           ) : (
-            tx.account && (<span>{tx.account.icon} {tx.account.name}</span>)
+            tx.account && (<span>{tx.account.icon} {translateEntityName(tx.account.name, 'account')}</span>)
           )}
         </div>
       </div>
@@ -92,7 +92,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
           {isDashboard ? (isIncome ? '+' : '-') : isIncome ? '+' : '-'}{formatMoney(baseAmount, tx.date)}
         </div>
         <div className="transaction-user" style={{ textAlign: 'right', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-          {new Date(tx.date).toLocaleDateString(locale, { month: 'short', day: '2-digit' }).replace('.', '').replace(/^\w/, c => c.toUpperCase())}
+          {formatDate(tx.date, { month: 'short', day: '2-digit' }).replace('.', '').replace(/^\w/, c => c.toUpperCase())}
         </div>
       </div>
 

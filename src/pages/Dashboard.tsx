@@ -1,181 +1,242 @@
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Users, Wallet, BarChart3 } from 'lucide-react';
+import { PieChart, ArrowDownRight, ArrowUpRight, ArrowLeftRight, Landmark, Plus } from 'lucide-react';
 import { TransactionItem } from '../features/transactions/ui/TransactionItem';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 import { useTransactions } from '../entities/transactions/model/useTransactions';
 import { useAccounts } from '../entities/accounts/model/useAccounts';
-import { TotalBalance } from '../shared/ui/TotalBalance';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import TransactionModal from '../features/transactions/ui/TransactionModal';
 import AccountsSettings from '../features/settings/ui/AccountsSettings';
-import { ArrowDownRight, ArrowUpRight, ArrowLeftRight, Landmark } from 'lucide-react';
+import BankCardCarousel from '../entities/accounts/ui/BankCardCarousel';
 import type { Transaction } from '../shared/types/database';
 
 /**
  * Dashboard.tsx
- * Página principal de la aplicación que ofrece una vista panorámica del estado financiero.
- * Muestra métricas clave (balance compartido, contribuciones, balance personal) y
- * una lista de las transacciones más recientes.
+ * Página principal inspirada en aplicaciones bancarias modernas de alta gama.
+ * Presenta un carrusel central de tarjetas bancarias tipo Liquid Glass / 3D con indicador
+ * de paginación interactivo, acceso directo a configuración de cuentas, acciones rápidas
+ * pre-vinculadas a la tarjeta activa y listado contextual de transacciones recientes.
  */
-
 export default function Dashboard() {
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const { prefetchRates, t, currency, loadingRates } = useLocaleCurrency();
+  const { prefetchRates, t, currency, loadingRates, translateEntityName } = useLocaleCurrency();
+
+  // Estados de navegación y modales
   const [showModal, setShowModal] = useState(false);
   const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [showAccounts, setShowAccounts] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
-  const handleEditTransaction = (tx: Transaction) => {
-    setTxToEdit(tx);
-    setShowModal(true);
-  };
+  // Estado del carrusel de tarjetas bancarias
+  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
-  // Hook personalizado para obtener todas las transacciones vinculadas al usuario (personales y compartidas)
+  // Obtención de datos
+  const { accounts } = useAccounts();
   const { transactions, loading: txLoading } = useTransactions('all');
 
-  // Obtener el nombre del usuario para el saludo
+  // Tarjeta activa en el carrusel
+  const currentAccount = accounts.length > 0
+    ? (selectedCardIndex < accounts.length ? accounts[selectedCardIndex] : accounts[0])
+    : null;
+
+  // Filtrado reactivo de transacciones recientes asociadas a la tarjeta activa
+  const accountTransactions = useMemo(() => {
+    if (!currentAccount) return transactions.slice(0, 5);
+    return transactions
+      .filter(tx => tx.account_id === currentAccount.id)
+      .slice(0, 5);
+  }, [transactions, currentAccount]);
+
+  // Saludo al usuario
   const userName = user?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
-  const { accounts } = useAccounts();
-  const totalAccountsShared = accounts.filter(a => a.scope === 'shared').reduce((acc, curr) => acc + (curr.balance || 0), 0);
-  const totalAccountsPersonal = accounts.filter(a => a.scope === 'personal').reduce((acc, curr) => acc + (curr.balance || 0), 0);
-
-  // Limitamos la vista a los 5 movimientos más recientes para el resumen del Dashboard
-  const recentTransactions = transactions.slice(0, 5);
-
-  // Precarga de tasas: todas las transacciones (para totales correctos) en una sola petición de rango
+  // Precarga de tasas de cambio
   useEffect(() => {
     if (transactions.length === 0) return;
     void prefetchRates(transactions.map((tx) => tx.date));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions.length, currency]);
 
+  // Manejador para abrir modal de transacción vinculado a la tarjeta activa
+  const handleQuickAction = (type: 'expense' | 'income' | 'transfer') => {
+    setFlowType(type);
+    setTxToEdit(null);
+    setShowModal(true);
+  };
 
+  const handleEditTransaction = (tx: Transaction) => {
+    setTxToEdit(tx);
+    setShowModal(true);
+  };
+
+  // Manejador del engranaje en la tarjeta para editar la cuenta activa
+  const handleEditAccount = (accountId: string) => {
+    setEditingAccountId(accountId);
+    setShowAccounts(true);
+  };
+
+  // Manejador para añadir una nueva tarjeta
+  const handleAddAccount = () => {
+    setEditingAccountId(null);
+    setShowAccounts(true);
+  };
 
   return (
     <>
       <Helmet>
-        <title>{t('navDashboard')} - Wallet.ia</title>
-        <meta name="description" content="Vista general de tus finanzas personales y en pareja." />
+        <title>{t('dashboard')} - Wallet.ia</title>
+        <meta name="description" content={t('dashboardMetaDesc')} />
       </Helmet>
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1>¡Hola {userName}!</h1>
-          <p>{t('financialSummary')} —</p>
+
+      {/* Cabecera del Dashboard */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }} />
+
+        <div style={{ flex: '0 1 auto', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
+            {t('helloUser').replace('{name}', userName)}
+          </h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>{t('financialSummary')} —</p>
         </div>
-        <div className="page-header-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
           {currency !== 'EUR' && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '4px 10px', borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-primary-glow)',
-              border: '1px solid var(--border-accent)',
-              fontSize: '0.75rem', fontWeight: 600,
-              color: 'var(--accent-primary-hover)',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--accent-primary-glow)',
+                border: '1px solid var(--border-accent)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--accent-primary-hover)',
+              }}
+            >
               {loadingRates ? (
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-              ) : '💱'}
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    border: '2px solid currentColor',
+                    borderTopColor: 'transparent',
+                    display: 'inline-block',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+              ) : (
+                '💱'
+              )}
               {currency}
             </div>
           )}
           <button
             className="notification-shortcut-btn"
             onClick={() => navigate('/analytics')}
-            aria-label="Ver analítica"
+            aria-label={t('viewAnalytics')}
             title={t('analytics')}
           >
-            <BarChart3 size={24} />
+            <PieChart size={22} />
           </button>
         </div>
       </div>
 
-      <div className="page-content">
-        {/* Stats */}
-        <div className="stats-grid">
-          <TotalBalance
-            size="small"
-            value={totalAccountsPersonal}
-            label="Balance personal"
-            color="linear-gradient(90deg, #10B981, #34D399)"
-            iconBg="var(--success-bg)"
-            iconColor="var(--success)"
-            icon={<Wallet size={18} />}
-          />
+      <div className="page-content" style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}>
+        {/* 1. Carrusel de Tarjetas Bancarias Modernas (Liquid Glass 3D) */}
+        <BankCardCarousel
+          accounts={accounts}
+          selectedIndex={selectedCardIndex}
+          onSelectIndex={setSelectedCardIndex}
+          onEditAccount={handleEditAccount}
+          onAddAccount={handleAddAccount}
+        />
 
-          <TotalBalance
-            size="small"
-            value={totalAccountsShared}
-            label="Balance compartido"
-            color="var(--accent-gradient)"
-            iconBg="var(--accent-primary-glow)"
-            iconColor="var(--accent-primary-hover)"
-            icon={<Users size={18} />}
-          />
-        </div>
+        {/* 2. Las 4 Acciones Rápidas (Gasto, Ingreso, Transferencia, Cuentas) */}
+        <div className="dashboard-actions-grid">
+          <div className="dashboard-action-item" onClick={() => handleQuickAction('expense')}>
+            <button className="dashboard-action-btn" aria-label={t('newExpense')}>
+              <ArrowDownRight size={24} style={{ color: '#ef4444' }} />
+            </button>
+            <span className="dashboard-action-label">{t('expenseFlow')}</span>
+          </div>
 
-        <div className="quick-actions-mobile">
-          <div className="quick-action-item" onClick={() => { setFlowType('expense'); setShowModal(true); }}>
-            <button className="quick-action-btn">
-              <ArrowDownRight size={26} />
+          <div className="dashboard-action-item" onClick={() => handleQuickAction('income')}>
+            <button className="dashboard-action-btn" aria-label={t('newIncome')}>
+              <ArrowUpRight size={24} style={{ color: '#10b981' }} />
             </button>
-            <span className="quick-action-label">Gasto</span>
+            <span className="dashboard-action-label">{t('incomeFlow')}</span>
           </div>
-          <div className="quick-action-item" onClick={() => { setFlowType('income'); setShowModal(true); }}>
-            <button className="quick-action-btn">
-              <ArrowUpRight size={26} />
+
+          <div className="dashboard-action-item" onClick={() => handleQuickAction('transfer')}>
+            <button className="dashboard-action-btn" aria-label={t('newTransfer')}>
+              <ArrowLeftRight size={24} style={{ color: '#6366f1' }} />
             </button>
-            <span className="quick-action-label">Ingreso</span>
+            <span className="dashboard-action-label">{t('transferFlow')}</span>
           </div>
-          <div className="quick-action-item" onClick={() => { setFlowType('transfer'); setShowModal(true); }}>
-            <button className="quick-action-btn">
-              <ArrowLeftRight size={26} />
+
+          <div className="dashboard-action-item" onClick={() => handleAddAccount()}>
+            <button className="dashboard-action-btn" aria-label={t('accounts')}>
+              <Landmark size={24} style={{ color: '#f59e0b' }} />
             </button>
-            <span className="quick-action-label">Transferencia</span>
-          </div>
-          <div className="quick-action-item" onClick={() => setShowAccounts(true)}>
-            <button className="quick-action-btn">
-              <Landmark size={26} />
-            </button>
-            <span className="quick-action-label">Cuentas</span>
+            <span className="dashboard-action-label">{t('accounts')}</span>
           </div>
         </div>
 
-        <div className="dashboard-grid">
-          {/* Recent transactions */}
+        {/* 3. Listado Contextual de Transacciones Recientes de la Tarjeta Seleccionada */}
+        <div className="dashboard-grid" style={{ marginTop: '8px' }}>
           <div className="animate-in">
-            <div className="card-header" style={{ padding: '0 0 1px 0', background: 'transparent' }}>
+            <div className="card-header" style={{ padding: '0 0 10px 0', background: 'transparent' }}>
               <div>
-                <div className="card-title" style={{ color: 'var(--text-primary)' }}>{t('recentTransactions')}</div>
-                <div className="card-subtitle">{t('latestMovements')}</div>
+                <div className="card-title" style={{ color: 'var(--text-primary)', fontSize: '1.15rem' }}>
+                  {t('recentTransactions')}
+                </div>
+                <div className="card-subtitle">
+                  {currentAccount
+                    ? `${t('account')}: ${translateEntityName(currentAccount.name, 'account')}`
+                    : t('latestMovements')}
+                </div>
               </div>
-              <span className="tx-ver-mas" onClick={() => navigate('/transactions')}>{t('viewMore')}</span>
+              <span
+                className="tx-ver-mas"
+                style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', color: 'var(--accent-primary-hover)' }}
+                onClick={() => navigate(currentAccount ? `/transactions?account=${currentAccount.id}` : '/transactions')}
+              >
+                {t('viewMore')}
+              </span>
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card" style={{ padding: 0, overflow: 'hidden', borderRadius: '20px' }}>
               <div className="transaction-list">
                 {txLoading ? (
                   <div className="empty-state">
                     <div className="loading-spinner" />
-                    <div className="loading-text">Cargando transacciones...</div>
+                    <div className="loading-text">{t('loadingModule')}</div>
                   </div>
-                ) : recentTransactions.length === 0 ? (
-                  <div className="empty-state">
+                ) : accountTransactions.length === 0 ? (
+                  <div className="empty-state" style={{ padding: '32px 20px' }}>
                     <div className="empty-state-icon">💸</div>
                     <div className="empty-state-title">{t('noTransactions')}</div>
                     <div className="empty-state-desc" style={{ marginBottom: 16 }}>
-                      Añade tu primer ingreso o gasto para empezar a controlar tu dinero.
+                      {currentAccount ? t('noTransactionsForAccount') : t('latestMovements')}
                     </div>
-                    <button className="kebo-button-primary" onClick={() => navigate('/transactions')}>
-                      Añadir transacción
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleQuickAction('expense')}
+                      style={{ padding: '10px 20px', borderRadius: '12px' }}
+                    >
+                      <Plus size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                      {t('newExpense')}
                     </button>
                   </div>
                 ) : (
-                  recentTransactions.map(tx => (
+                  accountTransactions.map((tx) => (
                     <TransactionItem
                       key={tx.id}
                       tx={tx}
@@ -190,13 +251,28 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Modal de Transacción preseleccionando automáticamente la tarjeta activa del dashboard */}
       <TransactionModal
         open={showModal}
-        onClose={() => { setShowModal(false); setTxToEdit(null); }}
+        onClose={() => {
+          setShowModal(false);
+          setTxToEdit(null);
+        }}
         initialFlowType={flowType}
         editTransaction={txToEdit}
+        initialAccountId={currentAccount?.id}
       />
-      {showAccounts && <AccountsSettings onClose={() => setShowAccounts(false)} />}
+
+      {/* Modal de Ajustes de Cuentas, abriendo en edición si se pulsó el engranaje */}
+      {showAccounts && (
+        <AccountsSettings
+          onClose={() => {
+            setShowAccounts(false);
+            setEditingAccountId(null);
+          }}
+          initialEditingAccountId={editingAccountId}
+        />
+      )}
 
       <style>{`
         @keyframes spin {
@@ -206,8 +282,8 @@ export default function Dashboard() {
           position: relative;
           background: var(--bg-card);
           border: 1px solid var(--border-subtle);
-          width: 44px;
-          height: 44px;
+          width: 42px;
+          height: 42px;
           border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
@@ -223,7 +299,6 @@ export default function Dashboard() {
           background: var(--bg-hover);
           box-shadow: var(--shadow-md);
         }
-
       `}</style>
     </>
   );

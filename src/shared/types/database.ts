@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -64,6 +64,7 @@ export type Database = {
       audit_log: {
         Row: {
           action: string
+          actor_id: string | null
           changed_fields: string[] | null
           created_at: string
           id: string
@@ -76,6 +77,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_id?: string | null
           changed_fields?: string[] | null
           created_at?: string
           id?: string
@@ -88,6 +90,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_id?: string | null
           changed_fields?: string[] | null
           created_at?: string
           id?: string
@@ -198,7 +201,7 @@ export type Database = {
           requested_at: string
           scheduled_for: string
           status: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           id?: string
@@ -207,7 +210,7 @@ export type Database = {
           requested_at?: string
           scheduled_for?: string
           status?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           id?: string
@@ -216,34 +219,52 @@ export type Database = {
           requested_at?: string
           scheduled_for?: string
           status?: string
-          user_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      exchange_rates_cache: {
+        Row: {
+          base_currency: Database["public"]["Enums"]["supported_currency"]
+          rates: Json
+          updated_at: string | null
+        }
+        Insert: {
+          base_currency: Database["public"]["Enums"]["supported_currency"]
+          rates: Json
+          updated_at?: string | null
+        }
+        Update: {
+          base_currency?: Database["public"]["Enums"]["supported_currency"]
+          rates?: Json
+          updated_at?: string | null
         }
         Relationships: []
       }
       goal_categories: {
         Row: {
           category_id: string
-          created_at: string
+          created_at: string | null
           goal_id: string
           id: string
           target_amount: number
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           category_id: string
-          created_at?: string
+          created_at?: string | null
           goal_id: string
           id?: string
           target_amount: number
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           category_id?: string
-          created_at?: string
+          created_at?: string | null
           goal_id?: string
           id?: string
           target_amount?: number
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -259,58 +280,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "goals"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       goals: {
         Row: {
           category_id: string | null
           color: string | null
+          couple_id: string | null
           created_at: string | null
           created_by: string | null
           current_amount: number | null
           deadline: string | null
+          goal_type: string
           icon: string | null
           id: string
           name: string
           start_date: string | null
           target_amount: number | null
           type: string
-          goal_type: string
           updated_at: string
           user_id: string
         }
         Insert: {
           category_id?: string | null
           color?: string | null
+          couple_id?: string | null
           created_at?: string | null
           created_by?: string | null
           current_amount?: number | null
           deadline?: string | null
+          goal_type?: string
           icon?: string | null
           id?: string
           name: string
           start_date?: string | null
           target_amount?: number | null
           type: string
-          goal_type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           category_id?: string | null
           color?: string | null
+          couple_id?: string | null
           created_at?: string | null
           created_by?: string | null
           current_amount?: number | null
           deadline?: string | null
+          goal_type?: string
           icon?: string | null
           id?: string
           name?: string
           start_date?: string | null
           target_amount?: number | null
           type?: string
-          goal_type?: string
           updated_at?: string
           user_id?: string
         }
@@ -320,6 +344,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couple_links"
             referencedColumns: ["id"]
           },
         ]
@@ -467,7 +498,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       shared_categories: {
@@ -502,13 +533,14 @@ export type Database = {
           category_id: string | null
           couple_id: string | null
           created_at: string
-          currency: string
+          currency: Database["public"]["Enums"]["supported_currency"]
           date: string
           description: string
           exchange_rate_used: number
           goal_id: string | null
           id: string
           is_recurring: boolean
+          recurring_id: string | null
           transfer_group_id: string | null
           type: string
           updated_at: string
@@ -521,13 +553,14 @@ export type Database = {
           category_id?: string | null
           couple_id?: string | null
           created_at?: string
-          currency?: string
+          currency?: Database["public"]["Enums"]["supported_currency"]
           date?: string
           description?: string
           exchange_rate_used?: number
           goal_id?: string | null
           id?: string
           is_recurring?: boolean
+          recurring_id?: string | null
           transfer_group_id?: string | null
           type?: string
           updated_at?: string
@@ -540,13 +573,14 @@ export type Database = {
           category_id?: string | null
           couple_id?: string | null
           created_at?: string
-          currency?: string
+          currency?: Database["public"]["Enums"]["supported_currency"]
           date?: string
           description?: string
           exchange_rate_used?: number
           goal_id?: string | null
           id?: string
           is_recurring?: boolean
+          recurring_id?: string | null
           transfer_group_id?: string | null
           type?: string
           updated_at?: string
@@ -572,6 +606,13 @@ export type Database = {
             columns: ["couple_id"]
             isOneToOne: false
             referencedRelation: "couple_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -617,6 +658,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation: { Args: { p_code: string }; Returns: Json }
       convert_user_currency:
         | {
             Args: { p_exchange_rate: number; p_new_currency: string }
@@ -630,13 +672,25 @@ export type Database = {
             }
             Returns: undefined
           }
+      create_invitation: { Args: never; Returns: Json }
+      delete_user_account: { Args: never; Returns: undefined }
       export_user_data: { Args: never; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
       get_partner_id: { Args: never; Returns: string }
       process_deletion_requests: { Args: never; Returns: undefined }
+      process_recurring_transactions: { Args: never; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      supported_currency:
+        | "USD"
+        | "EUR"
+        | "MXN"
+        | "GBP"
+        | "JPY"
+        | "BRL"
+        | "ARS"
+        | "COP"
+        | "CLP"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -652,12 +706,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -681,11 +735,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -706,11 +760,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -731,11 +785,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -748,11 +802,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -763,9 +817,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      supported_currency: [
+        "USD",
+        "EUR",
+        "MXN",
+        "GBP",
+        "JPY",
+        "BRL",
+        "ARS",
+        "COP",
+        "CLP",
+      ],
+    },
   },
-} as const;
+} as const
 
 export type Transaction = Tables<'transactions'> & {
   category?: Category | null;
@@ -782,9 +848,8 @@ export type Goal = Tables<'goals'> & {
 export type UserProfile = Tables<'profiles'> & { email?: string };
 export type CoupleLink = Tables<'couple_links'>;
 export type Notification = Tables<'notifications'>;
+export type RecurringTransaction = Tables<'recurring_transactions'>;
 
 export type TransactionType = 'personal' | 'shared';
 export type CategoryScope = 'personal' | 'shared';
 export type GoalType = 'budget' | 'savings';
-
-

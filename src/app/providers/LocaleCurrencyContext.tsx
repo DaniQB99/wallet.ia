@@ -13,6 +13,9 @@ interface LocaleCurrencyContextType {
   currency: SupportedCurrency;
   setCurrency: (currency: SupportedCurrency) => void;
   formatMoney: (amount: number, date?: string) => string;
+  formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => string;
+  getCurrencySymbol: () => string;
+  translateEntityName: (name: string, type: 'category' | 'account') => string;
   convertAmount: (amount: number) => number; // Kept for backwards compatibility
   prefetchRates: (dates: string[]) => Promise<void>; // Dummy for backwards compatibility
   loadingRates?: boolean;
@@ -107,6 +110,26 @@ export function LocaleCurrencyProvider({ children }: { children: React.ReactNode
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(amount);
+    },
+    formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => {
+      const d = new Date(date);
+      return new Intl.DateTimeFormat(locale, options).format(d);
+    },
+    getCurrencySymbol: () => {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency }).formatToParts(0).find(x => x.type === 'currency')?.value || currency;
+    },
+    translateEntityName: (name: string, type: 'category' | 'account') => {
+      const msgs = getLoadedMessages(locale);
+      let key = '';
+      if (type === 'category') {
+        key = `defaults.categories.${name}`;
+      } else if (type === 'account' && name === 'Efectivo principal') {
+        key = 'defaults.account.main';
+      }
+      if (key && (msgs[key] || (defaultMessages as Record<string, string>)[key])) {
+        return msgs[key] ?? (defaultMessages as Record<string, string>)[key];
+      }
+      return name;
     },
     t: (key: string) => {
       const msgs = getLoadedMessages(locale);

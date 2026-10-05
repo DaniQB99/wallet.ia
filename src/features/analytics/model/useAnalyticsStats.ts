@@ -107,41 +107,41 @@ export function useAnalyticsStats(
 
     let incomeTotal = 0;
     let expenseTotal = 0;
-    const categoryMap = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        icon: string;
-        total: number;
-        movements: number;
-      }
-    >();
+    const expenseCategoryMap = new Map<string, any>();
+    const incomeCategoryMap = new Map<string, any>();
 
     for (const tx of filtered) {
       const amount = Number(tx.amount);
-      if (amount >= 0) {
+      const isIncome = amount >= 0;
+      
+      if (isIncome) {
         incomeTotal += amount;
       } else {
         expenseTotal += Math.abs(amount);
       }
 
       const key = tx.category_id || tx.category?.id || "unknown";
-      const current = categoryMap.get(key) ?? {
+      const targetMap = isIncome ? incomeCategoryMap : expenseCategoryMap;
+      
+      const current = targetMap.get(key) ?? {
         id: key,
         name: tx.category?.name || "Sin categoría",
         icon: tx.category?.icon || "🏷️",
+        color: tx.category?.color || "#8E8E93",
         total: 0,
         movements: 0,
       };
+      
       current.total += Math.abs(amount);
       current.movements += 1;
-      categoryMap.set(key, current);
+      targetMap.set(key, current);
     }
 
-    const categories = Array.from(categoryMap.values()).sort(
-      (a, b) => b.total - a.total,
-    );
+    const expenseCategories = Array.from(expenseCategoryMap.values()).sort((a, b) => b.total - a.total);
+    const incomeCategories = Array.from(incomeCategoryMap.values()).sort((a, b) => b.total - a.total);
+    
+    // For backwards compatibility, keep returning all combined in `categories` just in case, but prefer the new ones.
+    const categories = [...expenseCategories, ...incomeCategories].sort((a, b) => b.total - a.total);
 
     return {
       rangeStart: start,
@@ -150,6 +150,8 @@ export function useAnalyticsStats(
       incomeTotal,
       expenseTotal,
       categories,
+      expenseCategories,
+      incomeCategories,
     };
   }, [transactions, period, referenceDate]);
 }

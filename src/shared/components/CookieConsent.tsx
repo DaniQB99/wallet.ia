@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../app/providers/AuthContext';
 import { supabase } from '../api/supabase';
+import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 
 /**
  * Banner de Consentimiento (Cookies y Privacidad) - RGPD / LSSI-CE
@@ -10,6 +11,7 @@ import { supabase } from '../api/supabase';
 export default function CookieConsent() {
   const { user } = useAuthContext();
   const [show, setShow] = useState(false);
+  const { t } = useLocaleCurrency();
 
   useEffect(() => {
     const hasConsented = localStorage.getItem('wallet_ia_consent');
@@ -61,16 +63,15 @@ export default function CookieConsent() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <div style={{ fontSize: '1.5rem' }}>🍪</div>
         <div>
-          <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 600 }}>Privacidad y Cookies</h4>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 600 }}>{t('privacyAndCookies')}</h4>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Utilizamos almacenamiento local y cookies técnicas esenciales para el funcionamiento de la app.
-            Al continuar usando wallet.ia, aceptas nuestra <a href="/settings?legal=privacy" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Política de Privacidad</a> y Términos de Servicio.
+            {t('cookieConsentDesc')} <a href="/settings?legal=privacy" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>{t('privacyPolicy')}</a> {t('and')} {t('termsOfUse')}.
           </p>
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
         <button className="btn btn-primary btn-sm" onClick={handleAccept}>
-          Aceptar y Continuar
+          {t('acceptAndContinue')}
         </button>
       </div>
     </div>

@@ -14,7 +14,8 @@
 - **🖼️ Avatares Personalizables:** Subida de fotos de perfil integradas con Supabase Storage (HTML5 nativo para cámara/galería) y sincronización automática de fotos de Google Auth.
 - **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página.
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.
-- **📱 PWA "Mobile-First":** Interacciones fluidas que se sienten nativas, navegación inferior (Bottom Nav) y compatibilidad total PWA para instalación offline en iOS y Android. El modal de transacciones incluye un **teclado numérico custom**, vistas deslizables y eliminación de transacciones in-place.
+- **💳 Experiencia Bancaria de Última Generación:** Nuevo Dashboard con carrusel visual de tarjetas bancarias estilo *Liquid Glass* y efecto 3D, reflejando el color y saldo de cada cuenta, botón de configuración rápida, paginación interactiva y cuadrícula de acciones (Gasto, Ingreso, Transferencia, Cuentas) con vinculación automática de cuenta activa y transacciones contextuales.
+- **📱 Modal de Transacciones de Alta Gama:** Ventana de nueva transacción rediseñada con estética *Liquid Glass*, cursor dinámico, pestañas con píldoras translúcidas, tarjetas de campo con saldo en tiempo real, reconocimiento de voz y teclado numérico estilo iOS / banca con sub-letras telefónicas.
 - **🔁 Transferencias y Recurrencias:** Gestión de traspasos entre cuentas y automatización de cobros/pagos recurrentes integrados directamente en Base de Datos para evitar bloqueos del frontend.
 
 ## 🏗️ Arquitectura y Tecnologías
@@ -26,6 +27,7 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 - **Vite** para una compilación ultra rápida.
 - **Framer Motion** para micro-interacciones, físicas de rebote y transiciones de UI de gama alta.
 - **Lucide React** para iconografía minimalista.
+- **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 431 claves (`npm run i18n:check`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
 
 **Backend & Datos:**
 - **Supabase (PostgreSQL):** Base de datos en la nube en tiempo real.
