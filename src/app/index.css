@@ -3626,4 +3626,137 @@ input::placeholder {
 .tx-field-card:hover {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.14);
-}
+}
+
+/* ==========================================
+   Cookie Policy Header & Navigation Responsive
+   ========================================== */
+
+.policy-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.policy-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.policy-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.policy-back-btn:hover {
+  border-color: var(--accent-primary);
+}
+
+.policy-brand-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  background: var(--bg-glass);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.policy-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--accent-primary-glow);
+  border: 1px solid var(--border-accent);
+  border-radius: 9999px;
+  padding: 8px 16px;
+  color: var(--accent-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.policy-settings-btn:hover {
+  opacity: 0.88;
+}
+
+.policy-btn-label-desktop {
+  display: inline;
+}
+
+.policy-btn-label-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .policy-header {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .policy-back-btn {
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .policy-back-btn-text {
+    display: none;
+  }
+
+  .policy-brand-tag {
+    font-size: 0.6rem;
+    padding: 1px 5px;
+  }
+
+  .policy-settings-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+
+  .policy-btn-label-desktop {
+    display: none;
+  }
+
+  .policy-btn-label-mobile {
+    display: inline;
+  }
+}
+
+@media (max-width: 380px) {
+  .policy-brand-tag {
+    display: none;
+  }
+}
+

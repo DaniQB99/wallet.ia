@@ -55,15 +55,45 @@ const accentVariables: Record<AccentColor, { primary: string, primaryHover: stri
   }
 };
 
+const getInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'system';
+  try {
+    const savedTheme = localStorage.getItem(THEME_KEY) as Theme;
+    if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+      return savedTheme;
+    }
+  } catch {}
+  return 'system';
+};
+
+const getInitialResolvedTheme = (prefTheme: Theme): 'dark' | 'light' => {
+  if (typeof window === 'undefined') return 'dark';
+  if (prefTheme === 'light') return 'light';
+  if (prefTheme === 'dark') return 'dark';
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
+    }
+  } catch {}
+  return 'dark';
+};
+
 /**
  * Proveedor que inyecta la lógica de diseño en el árbol de componentes.
  */
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
-  const [accentColor, setAccentColorState] = useState<AccentColor>('indigo');
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => getInitialResolvedTheme(getInitialTheme()));
+  const [accentColor, setAccentColorState] = useState<AccentColor>(() => {
+    if (typeof window === 'undefined') return 'indigo';
+    try {
+      const savedAccent = localStorage.getItem(ACCENT_KEY) as AccentColor;
+      if (savedAccent && accentVariables[savedAccent]) return savedAccent;
+    } catch {}
+    return 'indigo';
+  });
 
-  // Inicialización: Recuperar preferencias guardadas del usuario
+  // Inicialización: Sincronizar cambios externos de localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) as Theme;
     const savedAccent = localStorage.getItem(ACCENT_KEY) as AccentColor;

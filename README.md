@@ -16,6 +16,8 @@
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.
 - **💳 Experiencia Bancaria de Última Generación:** Nuevo Dashboard con carrusel visual de tarjetas bancarias estilo *Liquid Glass* y efecto 3D, reflejando el color y saldo de cada cuenta, botón de configuración rápida, paginación interactiva y cuadrícula de acciones (Gasto, Ingreso, Transferencia, Cuentas) con vinculación automática de cuenta activa y transacciones contextuales.
 - **📱 Modal de Transacciones de Alta Gama:** Ventana de nueva transacción rediseñada con estética *Liquid Glass*, cursor dinámico, pestañas con píldoras translúcidas, tarjetas de campo con saldo en tiempo real, reconocimiento de voz y teclado numérico estilo iOS / banca con sub-letras telefónicas.
+- **📊 Analíticas Financieras Interactivas de Última Generación:** Gráfica Donut ultra-moderna con segmentación matemática perfecta (sin solapamiento de quesitos), micro-animaciones dinámicas al pasar el cursor (glow temático, foco de categoría, detalles y porcentajes animados en el centro), selector desplegable de cuenta a ancho completo y propagación automática de filtros (cuenta, periodo, tipo de flujo y categoría) hacia el listado de transacciones.
+- **🛡️ Consentimiento de Cookies & Privacidad (RGPD / ePrivacy):** Banner flotante moderno con badge circular e interfaz minimalista (`Aceptar`, `Rechazar`, `Ajustes`). Configuración granular con switches animados para cookies técnicas obligatorias, analíticas y preferencias, persistidas de forma segura en `localStorage`, cookies de primer nivel y auditoría en Supabase.
 - **🔁 Transferencias y Recurrencias:** Gestión de traspasos entre cuentas y automatización de cobros/pagos recurrentes integrados directamente en Base de Datos para evitar bloqueos del frontend.
 
 ## 🏗️ Arquitectura y Tecnologías
@@ -37,6 +39,7 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 
 - **Row Level Security (RLS):** Las políticas estrictas en la base de datos garantizan que un usuario solo pueda leer/escribir su propia información o la de su pareja, incluso si la API Key queda expuesta.
 - **Optimización de Bundle:** Implementación avanzada de code-splitting mediante `React.lazy` y `Suspense`. Los módulos de configuración y analíticas se cargan en paralelo solo cuando el usuario los solicita.
+- **Privacidad y Cumplimiento Normativo (RGPD / ePrivacy / AEPD):** Gestión transparente de cookies multinivel (`localStorage`, cookies first-party y base de datos) con panel interactivo granular y página pública completa de Política de Cookies (`/cookies`).
 - **Despliegue en Vercel:** Integración CI/CD directa con Vercel para latencia ultrabaja.
 
 ## 🚀 Despliegue Local

@@ -37,6 +37,7 @@ export default function Transactions() {
   const [filterAccount, setFilterAccount] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterDateRange, setFilterDateRange] = useState<{ start: string; end: string } | null>(null);
   const [filterFlow, setFilterFlow] = useState<'all' | 'expense' | 'income'>('all');
   const [showFilterAccount, setShowFilterAccount] = useState(false);
   const [showFilterCategory, setShowFilterCategory] = useState(false);
@@ -54,6 +55,10 @@ export default function Transactions() {
     const editParam = searchParams.get('edit');
     const catParam = searchParams.get('category');
     const dateParam = searchParams.get('date');
+    const accParam = searchParams.get('account') || searchParams.get('accountId');
+    const flowParam = searchParams.get('flow') || searchParams.get('type');
+    const startParam = searchParams.get('startDate');
+    const endParam = searchParams.get('endDate');
 
     let shouldUpdateParams = false;
     const newParams = new URLSearchParams(searchParams);
@@ -67,6 +72,27 @@ export default function Transactions() {
     if (dateParam) {
       setFilterMonth(dateParam);
       newParams.delete('date');
+      shouldUpdateParams = true;
+    }
+
+    if (accParam) {
+      setFilterAccount(accParam);
+      newParams.delete('account');
+      newParams.delete('accountId');
+      shouldUpdateParams = true;
+    }
+
+    if (flowParam === 'expense' || flowParam === 'income') {
+      setFilterFlow(flowParam);
+      newParams.delete('flow');
+      newParams.delete('type');
+      shouldUpdateParams = true;
+    }
+
+    if (startParam && endParam) {
+      setFilterDateRange({ start: startParam, end: endParam });
+      newParams.delete('startDate');
+      newParams.delete('endDate');
       shouldUpdateParams = true;
     }
 
@@ -93,6 +119,7 @@ export default function Transactions() {
     setFilterAccount('');
     setFilterCategory('');
     setFilterMonth('');
+    setFilterDateRange(null);
     setFilterFlow('all');
   };
 
@@ -103,7 +130,7 @@ export default function Transactions() {
     setShowFilterFlow(filter === 'flow' ? !showFilterFlow : false);
   };
 
-  const hasFilters = filterAccount || filterCategory || filterMonth || filterFlow !== 'all';
+  const hasFilters = Boolean(filterAccount || filterCategory || filterMonth || filterDateRange || filterFlow !== 'all');
 
   const filtered = useMemo(() => {
     return transactions
@@ -115,12 +142,16 @@ export default function Transactions() {
           const txDateStr = new Date(t.date).toISOString();
           if (!txDateStr.startsWith(filterMonth)) return false;
         }
+        if (filterDateRange) {
+          const txDay = t.date.split('T')[0];
+          if (txDay < filterDateRange.start || txDay > filterDateRange.end) return false;
+        }
         if (filterFlow === 'expense' && t.amount >= 0) return false;
         if (filterFlow === 'income' && t.amount < 0) return false;
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, search, filterAccount, filterCategory, filterMonth, filterFlow]);
+  }, [transactions, search, filterAccount, filterCategory, filterMonth, filterDateRange, filterFlow]);
 
   useEffect(() => {
     void prefetchRates(filtered.map((tx) => tx.date));
@@ -146,6 +177,9 @@ export default function Transactions() {
   }, [transactions]);
 
   const formatMonthLabel = (m: string) => {
+    if (/^\d{4}$/.test(m)) {
+      return m;
+    }
     const d = new Date(m + '-01');
     return formatDate(d, { month: 'long', year: 'numeric' });
   };
@@ -218,12 +252,16 @@ export default function Transactions() {
           </button>
 
           <button
-            className={`tx-filter-chip ${filterMonth ? 'active' : ''}`}
+            className={`tx-filter-chip ${filterMonth || filterDateRange ? 'active' : ''}`}
             onClick={() => toggleFilter('month')}
             style={isDesktop ? { flex: 1, justifyContent: 'center' } : {}}
           >
             <CalendarDays size={14} />
-            {filterMonth ? formatMonthLabel(filterMonth) : t('month')}
+            {filterMonth
+              ? formatMonthLabel(filterMonth)
+              : filterDateRange
+              ? `${filterDateRange.start.slice(5)} ~ ${filterDateRange.end.slice(5)}`
+              : t('month')}
           </button>
 
           <button

@@ -13,11 +13,13 @@ import {
   Monitor,
   Lock,
   X,
+  Cookie,
 } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useAppearance } from '../app/providers/AppearanceContext';
 import { useLocaleCurrency, type SupportedCurrency, type SupportedLocale } from '../app/providers/LocaleCurrencyContext';
 import { Wallet, Tag } from 'lucide-react';
+import { openCookieSettings } from '../shared/lib/cookieConsent';
 import AccountsSettings from '../features/settings/ui/AccountsSettings';
 import CategoriesSettings from '../features/settings/ui/CategoriesSettings';
 import ProfileSettings from '../features/settings/ui/ProfileSettings';
@@ -422,6 +424,13 @@ export default function Settings() {
                 icon={<Shield size={20} />}
                 label={t('dataPrivacy')}
                 desc={t('personalBalance')}
+              />
+            </div>
+            <div onClick={() => openCookieSettings()}>
+              <SettingsItem
+                icon={<Cookie size={20} />}
+                label={t('cookiePreferencesTitle')}
+                desc={t('cookieSettings')}
               />
             </div>
             <div onClick={() => navigate('/settings?legal=privacy')}>

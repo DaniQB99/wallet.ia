@@ -18,6 +18,7 @@ const Transactions = lazy(() => import('../pages/Transactions'));
 const Goals = lazy(() => import('../pages/Goals'));
 const Settings = lazy(() => import('../pages/Settings'));
 const AuthPage = lazy(() => import('../pages/AuthPage'));
+const CookiePolicyPage = lazy(() => import('../pages/CookiePolicyPage'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
@@ -41,15 +42,16 @@ export default function App() {
           <AppearanceProvider>
             <AuthProvider>
               <LocaleCurrencyProvider>
+                <CookieConsent />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/cookies" element={<CookiePolicyPage />} />
                     <Route
                       path="/*"
                       element={
                         <ProtectedRoute>
                           <div className="app-layout">
-                            <CookieConsent />
                             <OnboardingOverlay />
                             <Sidebar />
                             <main className="main-content">
