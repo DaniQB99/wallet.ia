@@ -2,17 +2,11 @@ import { useState } from 'react';
 import { useCategories } from '../../../entities/categories/model/useCategories';
 import { X, Edit, Trash2, User, Users } from 'lucide-react';
 import type { TransactionType } from '../../../shared/types/database';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import EmojiPickerModal from '../../../shared/ui/EmojiPickerModal';
+import ColorPickerModal from '../../../shared/ui/ColorPickerModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
-
-const COLOR_PRESETS = [
-  '#6366F1', '#EC4899', '#10B981', '#F59E0B',
-  '#EF4444', '#3B82F6', '#8B5CF6', '#F97316',
-  '#06B6D4', '#84CC16', '#64748B', '#000000'
-];
 
 /**
  * Componente modal que administra y personaliza el listado de categorías transaccionales de la base de datos.
@@ -21,7 +15,17 @@ const COLOR_PRESETS = [
  *
  * @param props - Permite inyectar funciones de control como `onClose` para desmontar el modal.
  */
-export default function CategoriesSettings({ onClose, initialTab = 'shared', hideTabs = false }: { onClose: () => void, initialTab?: TransactionType, hideTabs?: boolean }) {
+export default function CategoriesSettings({
+  onClose,
+  initialTab = 'shared',
+  hideTabs = false,
+  zIndex = 1300,
+}: {
+  onClose: () => void;
+  initialTab?: TransactionType;
+  hideTabs?: boolean;
+  zIndex?: number;
+}) {
   const { t, translateEntityName } = useLocaleCurrency();
   const [tab, setTab] = useState<TransactionType>(initialTab);
   const { categories, addCategory, updateCategory, deleteCategory, loading } = useCategories(tab);
@@ -87,7 +91,7 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" style={{ zIndex }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div
         className="modal animate-in"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -195,29 +199,13 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
                 {icon}
               </button>
 
-              <AnimatePresence>
-                {showEmojiPicker && (
-                  <>
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setShowEmojiPicker(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-                      animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                      exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-                      style={{ position: 'fixed', top: '50%', left: '50%', zIndex: 1100 }}
-                    >
-                      <div className="card" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '352px', maxWidth: 'calc(100vw - 32px)' }}>
-                        <Picker
-                          data={data}
-                          onEmojiSelect={(emoji: any) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
-                          theme="dark"
-                          locale="es"
-                          set="native"
-                        />
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              <EmojiPickerModal
+                isOpen={showEmojiPicker}
+                onClose={() => setShowEmojiPicker(false)}
+                onSelect={(selectedEmoji) => setIcon(selectedEmoji)}
+                currentEmoji={icon}
+                zIndex={1500}
+              />
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -245,28 +233,13 @@ export default function CategoriesSettings({ onClose, initialTab = 'shared', hid
                 style={{ width: '44px', height: '44px', background: color, border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', padding: 0, cursor: 'pointer', boxShadow: `0 2px 8px ${color}40`, transition: 'transform 0.15s ease' }}
               />
 
-              <AnimatePresence>
-                {showColorPicker && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    style={{ position: 'absolute', top: '100%', right: 0, zIndex: 1100, marginTop: '8px' }}
-                  >
-                    <div className="card" style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', boxShadow: 'var(--shadow-lg)' }}>
-                      {COLOR_PRESETS.map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`kebo-color-dot ${color === c ? 'selected' : ''}`}
-                          style={{ background: c, width: '24px', height: '24px' }}
-                          onClick={() => { setColor(c); setShowColorPicker(false); }}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <ColorPickerModal
+                isOpen={showColorPicker}
+                onClose={() => setShowColorPicker(false)}
+                onSelect={(newColor) => setColor(newColor)}
+                initialColor={color}
+                zIndex={1500}
+              />
             </div>
           </div>
 

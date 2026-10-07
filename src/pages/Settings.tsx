@@ -29,6 +29,7 @@ import DataPrivacyModal from '../features/settings/ui/DataPrivacyModal';
 import ChangePasswordModal from '../features/settings/ui/ChangePasswordModal';
 import InstallAppModal from '../features/settings/ui/InstallAppModal';
 import LegalDocumentModal from '../shared/ui/LegalDocumentModal';
+import ColorPickerModal from '../shared/ui/ColorPickerModal';
 import privacyPolicyText from '../../docs/privacy-policy.es.md?raw';
 import termsOfUseText from '../../docs/terms-of-use.es.md?raw';
 import { useState, useEffect, useMemo } from 'react';
@@ -108,12 +109,7 @@ export default function Settings() {
     { value: 'system', label: t('system') },
   ];
 
-  const cycleAccentColor = () => {
-    const colors: ('indigo' | 'emerald' | 'rose' | 'amber')[] = ['indigo', 'emerald', 'rose', 'amber'];
-    const currentIndex = colors.indexOf(accentColor);
-    setAccentColor(colors[(currentIndex + 1) % colors.length]);
-  };
-
+  const [showAccentPicker, setShowAccentPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [pendingCurrencyChange, setPendingCurrencyChange] = useState<SupportedCurrency | null>(null);
@@ -329,8 +325,8 @@ export default function Settings() {
             <SettingsItem
               icon={theme === 'system' ? <Monitor size={20} /> : resolvedTheme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
               label={t('appearance')}
-              desc={theme === 'system' 
-                ? (resolvedTheme === 'dark' ? t('appearanceModeSystemDark') : t('appearanceModeSystemLight')) 
+              desc={theme === 'system'
+                ? (resolvedTheme === 'dark' ? t('appearanceModeSystemDark') : t('appearanceModeSystemLight'))
                 : (theme === 'dark' ? t('appearanceModeDark') : t('appearanceModeLight'))}
               action={
                 <div className="settings-theme-segmented" onClick={(e) => e.stopPropagation()}>
@@ -352,32 +348,24 @@ export default function Settings() {
               }
             />
 
-            <div onClick={cycleAccentColor}>
+            <div onClick={() => setShowAccentPicker(true)}>
               <SettingsItem
                 icon={<Palette size={20} />}
                 label={t('accentColor')}
-                desc={
-                  accentColor === 'indigo' ? t('colorIndigo') :
-                    accentColor === 'emerald' ? t('colorEmerald') :
-                      accentColor === 'rose' ? t('colorRose') : t('colorAmber')
-                }
+                desc={accentColor.toUpperCase()}
                 action={
-                  <div style={{ display: 'flex', gap: '8px', pointerEvents: 'none' }}>
-                    {['indigo', 'emerald', 'rose', 'amber'].map(color => (
-                      <div key={color} style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: 'var(--radius-full)',
-                        background: color === 'indigo' ? 'var(--accent-gradient)' :
-                          color === 'emerald' ? 'linear-gradient(135deg, #10B981, #059669)' :
-                            color === 'rose' ? 'linear-gradient(135deg, #F43F5E, #E11D48)' :
-                              'linear-gradient(135deg, #FBBF24, #F59E0B)',
-                        opacity: accentColor === color ? 1 : 0.3,
-                        border: accentColor === color ? '2px solid var(--border-accent)' : 'none',
-                        transform: accentColor === color ? 'scale(1.1)' : 'scale(1)',
-                        transition: 'var(--transition-fast)'
-                      }} />
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: accentColor,
+                        border: '2px solid rgba(255, 255, 255, 0.4)',
+                        boxShadow: `0 2px 10px ${accentColor}60`,
+                      }}
+                    />
+                    <ChevronRight size={18} color="rgba(255, 255, 255, 0.3)" />
                   </div>
                 }
               />
@@ -652,6 +640,15 @@ export default function Settings() {
         titleStep2={t('changeCurrencyStep2Title')}
         descStep2={t('changeCurrencyStep2Desc')}
         loading={isConvertingCurrency}
+      />
+
+      <ColorPickerModal
+        isOpen={showAccentPicker}
+        onClose={() => setShowAccentPicker(false)}
+        onSelect={(newHex) => setAccentColor(newHex)}
+        initialColor={accentColor}
+        title={t('accentColor')}
+        zIndex={1400}
       />
     </>
   );

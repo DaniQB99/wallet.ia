@@ -99,6 +99,7 @@ export default function TransactionModal({
   const [shakeField, setShakeField] = useState<'amount' | 'account' | 'destination' | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
 
   const activeCategories = scope === 'shared' ? sharedCategories : personalCategories;
@@ -108,6 +109,7 @@ export default function TransactionModal({
   // Inicialización y sincronización
   useEffect(() => {
     if (open) {
+      setSubmitError(null);
       if (editTransaction) {
         setAmountStr(Math.abs(editTransaction.amount).toString().replace('.', ','));
         setFlowType(
@@ -263,12 +265,15 @@ export default function TransactionModal({
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     const finalAmount = flowType === 'expense' ? -Math.abs(numAmount) : Math.abs(numAmount);
 
     try {
       if (editTransaction) {
         const err = await updateTransaction(editTransaction.id, {
           amount: finalAmount,
+          base_amount: finalAmount,
+          currency: editTransaction.currency || currency || 'EUR',
           description: description.trim(),
           category_id: categoryId || null,
           account_id: accountId || null,
@@ -333,8 +338,9 @@ export default function TransactionModal({
         }
       }
       onClose();
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error(err);
+      setSubmitError(err?.message || t('saveError') || 'Error al guardar');
     } finally {
       setSubmitting(false);
     }
@@ -1227,7 +1233,29 @@ export default function TransactionModal({
       </div>
 
       {/* Botón de Confirmación Principal (Guardar Transacción) */}
-      <div style={{ marginTop: 'auto', paddingTop: '10px', flexShrink: 0 }}>
+      <div style={{ marginTop: 'auto', paddingTop: '10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <AnimatePresence>
+          {submitError && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: 10, height: 0 }}
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '12px',
+                color: '#ef4444',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                overflow: 'hidden',
+              }}
+            >
+              {submitError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <button
           type="button"
           onClick={handleSubmit}
@@ -1266,7 +1294,7 @@ export default function TransactionModal({
             {submitting
               ? '...'
               : editTransaction
-                ? t('save')
+                ? t('saveChanges')
                 : flowType === 'expense'
                   ? t('saveExpense')
                   : flowType === 'income'
@@ -1412,13 +1440,15 @@ export default function TransactionModal({
             transform: 'translateY(-50%)',
             background: 'transparent',
             border: 'none',
-            color: 'var(--text-secondary)',
+            color: isEditingCategories ? '#ef4444' : 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: '0.9rem',
+            fontWeight: isEditingCategories ? 600 : 500,
             padding: '6px',
+            transition: 'color 0.2s ease',
           }}
         >
-          {isEditingCategories ? t('done') : t('edit')}
+          {isEditingCategories ? t('done') : t('delete')}
         </button>
       </div>
 
@@ -1681,8 +1711,19 @@ export default function TransactionModal({
       </AnimatePresence>
 
       {/* Modales complementarios de configuración y eliminación */}
-      {showAddAccount && <AccountsSettings onClose={() => setShowAddAccount(false)} />}
-      {showCategoriesSettings && <CategoriesSettings onClose={() => setShowCategoriesSettings(false)} />}
+      {showAddAccount && (
+        <AccountsSettings
+          onClose={() => setShowAddAccount(false)}
+          zIndex={1300}
+        />
+      )}
+      {showCategoriesSettings && (
+        <CategoriesSettings
+          onClose={() => setShowCategoriesSettings(false)}
+          initialTab={scope}
+          zIndex={1300}
+        />
+      )}
 
       <DoubleConfirmModal
         isOpen={showDeleteConfirm}

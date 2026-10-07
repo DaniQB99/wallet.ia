@@ -10,7 +10,7 @@ import { defineConfig } from "react-doctor/api";
  * The anon key is designed to be public; knowing table/field names grants
  * nothing when server-side rules enforce the boundary.
  *
- * Verified against: supabase/migration.sql (2026-07-22)
+ * Verified against: supabase/migrations/ (2026-10-07)
  */
 export default defineConfig({
   rules: {

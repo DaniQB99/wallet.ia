@@ -37,7 +37,7 @@ export default function DoubleConfirmModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1200, background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
+        <div className="modal-overlay" style={{ zIndex: 1400, background: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
           <motion.div
             className="modal animate-in"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart } from 'lucide-react';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
@@ -16,7 +16,7 @@ interface ModernDonutChartProps {
   categories: CategorySlice[];
   total: number;
   viewType: 'expense' | 'income';
-  onCategoryClick: (categoryId: string) => void;
+  onCategoryClick?: (categoryId: string) => void;
   activeCategoryId?: string | null;
   onHoverCategory?: (categoryId: string | null) => void;
   loading?: boolean;
@@ -26,21 +26,23 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
   categories,
   total,
   viewType,
-  onCategoryClick,
   activeCategoryId,
   onHoverCategory,
   loading = false,
 }) => {
   const { t, formatMoney, translateEntityName } = useLocaleCurrency();
   const [internalHoveredId, setInternalHoveredId] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  // Active category is either externally selected/hovered or internally hovered
-  const currentActiveId = activeCategoryId !== undefined ? activeCategoryId : internalHoveredId;
+  // Active category is either externally hovered/selected or internally hovered/selected
+  const currentActiveId = activeCategoryId !== undefined && activeCategoryId !== null
+    ? activeCategoryId
+    : internalHoveredId;
 
   // Geometry configuration
   const radius = 82;
-  const strokeWidthBase = 16;
-  const strokeWidthActive = 22;
+  const strokeWidthBase = 18;
+  const strokeWidthActive = 24;
   const circumference = 2 * Math.PI * radius; // ~515.22 px
   const center = 110;
 
@@ -49,13 +51,15 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
     return [...categories].sort((a, b) => b.total - a.total);
   }, [categories]);
 
-  // Slices with mathematically guaranteed perimeter spacing (Zero overlap)
+  // Slices with mathematically guaranteed perimeter spacing:
+  // Each category is a single, solid arc with strokeLinecap='butt'.
+  // Separation between categories is created solely by the clean natural gap (no interior lines).
   const segments = useMemo(() => {
     if (total <= 0 || sortedCategories.length === 0) return [];
 
     const numCategories = sortedCategories.length;
 
-    // Single category: clean 100% full ring
+    // Single category: clean 100% full ring without gaps
     if (numCategories === 1) {
       const cat = sortedCategories[0];
       return [
@@ -69,13 +73,13 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
       ];
     }
 
-    // Modern dynamic gap along the circle perimeter (4px to 6px)
-    const gap = numCategories > 8 ? 3.5 : numCategories > 5 ? 5 : 6;
+    // Clean single division between distinct categories (2.5px gap along perimeter)
+    const gap = 2.5;
     const totalGap = numCategories * gap;
     const availableCircumference = Math.max(0, circumference - totalGap);
 
-    // Ensure even tiny percentages have a minimal clickable pill length (min 8px)
-    const minLength = 8;
+    // Ensure even tiny percentages have a minimal visible pill length (min 6px)
+    const minLength = 6;
     const rawLengths = sortedCategories.map((c) => (c.total / total) * availableCircumference);
 
     let reservedForMin = 0;
@@ -121,6 +125,7 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
   // Dominant color for the subtle ambient aura glow behind the chart
   const dominantColor = activeSlice?.color || segments[0]?.color || (viewType === 'expense' ? '#ef4444' : '#10b981');
 
+  // Desktop Mouse interactions: expands on hover, never triggers navigation
   const handleSliceMouseEnter = (id: string) => {
     setInternalHoveredId(id);
     onHoverCategory?.(id);
@@ -131,8 +136,81 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
     onHoverCategory?.(null);
   };
 
+  // Mobile Touch interactions (Touch start / Drag scrubbing around the ring to inspect percentages)
+  const getCategoryAtCoordinates = (clientX: number, clientY: number): string | null => {
+    if (!svgRef.current || segments.length === 0) return null;
+    const rect = svgRef.current.getBoundingClientRect();
+    const dx = clientX - (rect.left + rect.width / 2);
+    const dy = clientY - (rect.top + rect.height / 2);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Check if within donut ring radius zone (+/- margin)
+    const scale = 220 / rect.width;
+    const distSvg = dist * scale;
+    if (distSvg < radius - 26 || distSvg > radius + 28) {
+      return null;
+    }
+
+    // Angle starting from top (0 at 12 o'clock in standard orientation)
+    let angleRad = Math.atan2(dy, dx) + Math.PI / 2;
+    if (angleRad < 0) angleRad += 2 * Math.PI;
+
+    const touchDistance = (angleRad / (2 * Math.PI)) * circumference;
+
+    for (const seg of segments) {
+      if (touchDistance >= seg.offset && touchDistance <= seg.offset + seg.length + 3) {
+        return seg.id;
+      }
+    }
+    return null;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const catId = getCategoryAtCoordinates(touch.clientX, touch.clientY);
+    if (catId) {
+      if (internalHoveredId === catId) {
+        // Tap on already active slice deselects back to total
+        setInternalHoveredId(null);
+        onHoverCategory?.(null);
+      } else {
+        setInternalHoveredId(catId);
+        onHoverCategory?.(catId);
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const catId = getCategoryAtCoordinates(touch.clientX, touch.clientY);
+    if (catId && catId !== internalHoveredId) {
+      setInternalHoveredId(catId);
+      onHoverCategory?.(catId);
+    }
+  };
+
+  // Toggle selection on click/tap without navigating
+  const handleCircleClick = (segId: string) => {
+    if (internalHoveredId === segId) {
+      setInternalHoveredId(null);
+      onHoverCategory?.(null);
+    } else {
+      setInternalHoveredId(segId);
+      onHoverCategory?.(segId);
+    }
+  };
+
   return (
     <div
+      onClick={(e) => {
+        // Clicking container background deselects active slice
+        if (e.target === e.currentTarget) {
+          setInternalHoveredId(null);
+          onHoverCategory?.(null);
+        }
+      }}
       style={{
         position: 'relative',
         borderRadius: '24px',
@@ -146,6 +224,7 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
         boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
         overflow: 'hidden',
         minHeight: '260px',
+        userSelect: 'none',
       }}
     >
       {/* Luz ambiental sutil interactiva de fondo */}
@@ -187,10 +266,17 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
           }}
         >
           <svg
+            ref={svgRef}
             viewBox="0 0 220 220"
             width="220"
             height="220"
-            style={{ overflow: 'visible', transform: 'rotate(-90deg)' }}
+            style={{
+              overflow: 'visible',
+              transform: 'rotate(-90deg)',
+              touchAction: 'none',
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
           >
             {/* Pista circular sutil de guía de fondo */}
             <circle
@@ -202,7 +288,7 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
               strokeWidth={strokeWidthBase}
             />
 
-            {/* Segmentos de la gráfica Donut */}
+            {/* Segmentos de la gráfica Donut con strokeLinecap='butt': un único arco continuo por color */}
             {segments.map((seg) => {
               const isSelected = currentActiveId === seg.id;
               const hasActiveOther = currentActiveId !== null && !isSelected;
@@ -222,7 +308,7 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
                       : `${Math.max(1, seg.length)} ${Math.max(1, circumference - seg.length)}`
                   }
                   strokeDashoffset={-seg.offset}
-                  strokeLinecap={segments.length > 8 ? 'butt' : 'round'}
+                  strokeLinecap="butt"
                   initial={{ strokeDashoffset: circumference, opacity: 0 }}
                   animate={{
                     strokeDashoffset: -seg.offset,
@@ -230,31 +316,39 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
                     strokeWidth: isSelected ? strokeWidthActive : strokeWidthBase,
                   }}
                   transition={{
-                    duration: 0.5,
+                    duration: 0.45,
                     ease: [0.16, 1, 0.3, 1],
                   }}
                   style={{
                     cursor: 'pointer',
-                    filter: isSelected ? `drop-shadow(0 0 10px ${seg.color}90)` : undefined,
+                    filter: isSelected ? `drop-shadow(0 0 12px ${seg.color}a0)` : undefined,
                     transition: 'filter 0.2s ease, opacity 0.2s ease',
                   }}
                   onMouseEnter={() => handleSliceMouseEnter(seg.id)}
                   onMouseLeave={handleSliceMouseLeave}
-                  onClick={() => onCategoryClick(seg.id)}
+                  onClick={() => handleCircleClick(seg.id)}
                 />
               );
             })}
           </svg>
 
-          {/* Información dinámica animada en el centro del Donut */}
+          {/* Información dinámica en el centro del Donut (Solo lectura e inspección, no abre transacciones) */}
           <div
+            onClick={() => {
+              // Tocar el centro deselecciona y vuelve a la vista de total
+              if (internalHoveredId) {
+                setInternalHoveredId(null);
+                onHoverCategory?.(null);
+              }
+            }}
             style={{
               position: 'absolute',
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
               textAlign: 'center',
-              pointerEvents: 'none',
+              cursor: internalHoveredId ? 'pointer' : 'default',
+              pointerEvents: 'auto',
               width: '130px',
               display: 'flex',
               flexDirection: 'column',
@@ -325,7 +419,7 @@ export const ModernDonutChart: React.FC<ModernDonutChartProps> = ({
                     {formatMoney(activeSlice.total)}
                   </div>
 
-                  {/* Porcentaje en píldora */}
+                  {/* Porcentaje en píldora interactiva */}
                   <div
                     style={{
                       fontSize: '0.68rem',

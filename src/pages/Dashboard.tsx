@@ -58,7 +58,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (transactions.length === 0) return;
     void prefetchRates(transactions.map((tx) => tx.date));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions.length, currency]);
 
   // Manejador para abrir modal de transacción vinculado a la tarjeta activa

@@ -15,10 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowUpDown
 } from 'lucide-react';
 import type { Account } from '../../../shared/types/database';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { useAccounts } from '../model/useAccounts';
+import ReorderCardsModal from './ReorderCardsModal';
 
 interface BankCardCarouselProps {
   accounts: Account[];
@@ -44,6 +47,8 @@ export default function BankCardCarousel({
 }: BankCardCarouselProps) {
   const { formatMoney, t, translateEntityName } = useLocaleCurrency();
   const swiperRef = useRef<SwiperCore | null>(null);
+  const { reorderAccounts } = useAccounts();
+  const [showReorderModal, setShowReorderModal] = useState(false);
 
   const [isBalanceHidden, setIsBalanceHidden] = useState<boolean>(() => {
     try {
@@ -126,37 +131,44 @@ export default function BankCardCarousel({
   // Total de elementos = cuentas + 1 tarjeta final para añadir nueva cuenta
   const totalSlides = accounts.length + 1;
 
+  const canSlidePrev = selectedIndex > 0;
+  const canSlideNext = selectedIndex < totalSlides - 1;
+
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canSlidePrev) return;
     if (swiperRef.current) {
       swiperRef.current.slidePrev();
     } else {
-      onSelectIndex(selectedIndex > 0 ? selectedIndex - 1 : totalSlides - 1);
+      onSelectIndex(selectedIndex - 1);
     }
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canSlideNext) return;
     if (swiperRef.current) {
       swiperRef.current.slideNext();
     } else {
-      onSelectIndex(selectedIndex < totalSlides - 1 ? selectedIndex + 1 : 0);
+      onSelectIndex(selectedIndex + 1);
     }
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto', position: 'relative' }}>
-      {/* Contenedor del Carrusel con Swiper */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          minHeight: '200px',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.5)',
-        }}
-      >
+    <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto' }}>
+      {/* Contenedor relativo enfocado exclusivamente en la tarjeta para centrar las flechas */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        {/* Contenedor del Carrusel con Swiper */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: '200px',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px -15px rgba(0,0,0,0.5)',
+          }}
+        >
         <Swiper
           modules={[EffectCreative]}
           effect="creative"
@@ -255,6 +267,36 @@ export default function BankCardCarousel({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Botón de Reordenar Tarjetas (si hay más de 1 tarjeta) */}
+                      {accounts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowReorderModal(true);
+                          }}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            backdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s ease, background 0.2s ease',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                          }}
+                          aria-label={t('reorderCards')}
+                          title={t('reorderCards')}
+                        >
+                          <ArrowUpDown size={17} />
+                        </button>
+                      )}
+
                       {/* Botón de Visibilidad (Ojo para ocultar / mostrar saldo) */}
                       <button
                         type="button"
@@ -423,63 +465,69 @@ export default function BankCardCarousel({
         </Swiper>
       </div>
 
-      {/* Flechas de navegación rápida para escritorio */}
+      {/* Flechas de navegación centradas matemáticamente sobre la tarjeta */}
       {totalSlides > 1 && (
         <>
-          <button
-            type="button"
-            onClick={handlePrev}
-            style={{
-              position: 'absolute',
-              left: '-14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: 'rgba(20, 24, 38, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              cursor: 'pointer',
-              zIndex: 10,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            }}
-            aria-label={t('previousCard') || 'Tarjeta anterior'}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            style={{
-              position: 'absolute',
-              right: '-14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: 'rgba(20, 24, 38, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              cursor: 'pointer',
-              zIndex: 10,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            }}
-            aria-label={t('nextCard') || 'Tarjeta siguiente'}
-          >
-            <ChevronRight size={18} />
-          </button>
+          {canSlidePrev && (
+            <button
+              type="button"
+              onClick={handlePrev}
+              style={{
+                position: 'absolute',
+                left: '-14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'rgba(20, 24, 38, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                cursor: 'pointer',
+                zIndex: 10,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              }}
+              aria-label={t('previousCard') || 'Tarjeta anterior'}
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+
+          {canSlideNext && (
+            <button
+              type="button"
+              onClick={handleNext}
+              style={{
+                position: 'absolute',
+                right: '-14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'rgba(20, 24, 38, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                cursor: 'pointer',
+                zIndex: 10,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              }}
+              aria-label={t('nextCard') || 'Tarjeta siguiente'}
+            >
+              <ChevronRight size={18} />
+            </button>
+          )}
         </>
       )}
+      </div>
 
       {/* Indicadores de paginación (dots interactivos tipo banking app) */}
       <div
@@ -522,6 +570,28 @@ export default function BankCardCarousel({
           );
         })}
       </div>
+
+      {/* Modal para Reordenar Tarjetas al antojo del usuario */}
+      {showReorderModal && (
+        <ReorderCardsModal
+          isOpen={showReorderModal}
+          onClose={() => setShowReorderModal(false)}
+          accounts={accounts}
+          onSave={async (reordered) => {
+            const currentAccount = accounts[selectedIndex];
+            await reorderAccounts(reordered);
+            if (currentAccount) {
+              const newIdx = reordered.findIndex((a) => a.id === currentAccount.id);
+              if (newIdx !== -1) {
+                onSelectIndex(newIdx);
+                if (swiperRef.current) {
+                  swiperRef.current.slideTo(newIdx, 0);
+                }
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

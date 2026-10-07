@@ -1,19 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
-import { X, Edit, Trash2, CreditCard, Users, User } from 'lucide-react';
+import { X, Edit, Trash2, CreditCard, Users, User, ArrowUpDown } from 'lucide-react';
 import { useCouple } from '../../auth/model/useCouple';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import EmojiPickerModal from '../../../shared/ui/EmojiPickerModal';
+import ColorPickerModal from '../../../shared/ui/ColorPickerModal';
+import { motion } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import type { Account } from '../../../shared/types/database';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
-
-const COLOR_PRESETS = [
-  '#6366F1', '#EC4899', '#10B981', '#F59E0B',
-  '#EF4444', '#3B82F6', '#8B5CF6', '#F97316',
-  '#06B6D4', '#84CC16', '#64748B', '#000000'
-];
+import ReorderCardsModal from '../../../entities/accounts/ui/ReorderCardsModal';
 
 /**
  * Componente modal interactivo para gestionar (crear, editar, eliminar) cuentas y tarjetas financieras.
@@ -25,12 +20,14 @@ const COLOR_PRESETS = [
 interface AccountsSettingsProps {
   onClose: () => void;
   initialEditingAccountId?: string | null;
+  zIndex?: number;
 }
 
-export default function AccountsSettings({ onClose, initialEditingAccountId }: AccountsSettingsProps) {
-  const { accounts, addAccount, updateAccount, deleteAccount, loading } = useAccounts();
+export default function AccountsSettings({ onClose, initialEditingAccountId, zIndex = 1300 }: AccountsSettingsProps) {
+  const { accounts, addAccount, updateAccount, deleteAccount, reorderAccounts, loading } = useAccounts();
   const { currency, formatMoney, t, translateEntityName } = useLocaleCurrency();
 
+  const [showReorder, setShowReorder] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('0');
@@ -114,7 +111,7 @@ export default function AccountsSettings({ onClose, initialEditingAccountId }: A
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" style={{ zIndex }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div
         className="modal animate-in"
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -151,29 +148,13 @@ export default function AccountsSettings({ onClose, initialEditingAccountId }: A
                 {icon}
               </button>
 
-              <AnimatePresence>
-                {showEmojiPicker && (
-                  <>
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setShowEmojiPicker(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-                      animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                      exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-                      style={{ position: 'fixed', top: '50%', left: '50%', zIndex: 1100 }}
-                    >
-                      <div className="card" style={{ padding: 0, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '352px', maxWidth: 'calc(100vw - 32px)' }}>
-                        <Picker
-                          data={data}
-                          onEmojiSelect={(emoji: { native: string }) => { setIcon(emoji.native); setShowEmojiPicker(false); }}
-                          theme="dark"
-                          locale="es"
-                          set="native"
-                        />
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              <EmojiPickerModal
+                isOpen={showEmojiPicker}
+                onClose={() => setShowEmojiPicker(false)}
+                onSelect={(selectedEmoji) => setIcon(selectedEmoji)}
+                currentEmoji={icon}
+                zIndex={1500}
+              />
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -201,28 +182,13 @@ export default function AccountsSettings({ onClose, initialEditingAccountId }: A
                 style={{ width: '44px', height: '44px', background: color, border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', padding: 0, cursor: 'pointer', boxShadow: `0 2px 8px ${color}40`, transition: 'transform 0.15s ease' }}
               />
 
-              <AnimatePresence>
-                {showColorPicker && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    style={{ position: 'absolute', top: '100%', right: 0, zIndex: 1100, marginTop: '8px' }}
-                  >
-                    <div className="card" style={{ padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', boxShadow: 'var(--shadow-lg)', border: `2px solid ${color}` }}>
-                      {COLOR_PRESETS.map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`kebo-color-dot ${color === c ? 'selected' : ''}`}
-                          style={{ background: c, width: '24px', height: '24px' }}
-                          onClick={() => { setColor(c); setShowColorPicker(false); }}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <ColorPickerModal
+                isOpen={showColorPicker}
+                onClose={() => setShowColorPicker(false)}
+                onSelect={(newColor) => setColor(newColor)}
+                initialColor={color}
+                zIndex={1500}
+              />
             </div>
           </div>
 
@@ -337,6 +303,27 @@ export default function AccountsSettings({ onClose, initialEditingAccountId }: A
           </div>
         </form>
 
+        {accounts.length > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowReorder(true)}
+              style={{
+                fontSize: '0.8rem',
+                padding: '6px 14px',
+                borderRadius: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <ArrowUpDown size={14} />
+              <span>{t('reorderCards')}</span>
+            </button>
+          </div>
+        )}
+
         <div className="transaction-list" style={{ maxHeight: '350px', overflowY: 'auto' }}>
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -385,6 +372,17 @@ export default function AccountsSettings({ onClose, initialEditingAccountId }: A
           descStep2={t('finalConfirmationDesc')}
           loading={deleting}
         />
+
+        {/* Modal para Reordenar Tarjetas */}
+        {showReorder && (
+          <ReorderCardsModal
+            isOpen={showReorder}
+            onClose={() => setShowReorder(false)}
+            accounts={accounts}
+            onSave={reorderAccounts}
+            zIndex={zIndex + 100}
+          />
+        )}
       </motion.div>
     </div>
   );

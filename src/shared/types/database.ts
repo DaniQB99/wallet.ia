@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -23,6 +23,7 @@ export type Database = {
           icon: string
           id: string
           name: string
+          position: number
           scope: string
           updated_at: string
           user_id: string
@@ -35,6 +36,7 @@ export type Database = {
           icon?: string
           id?: string
           name: string
+          position?: number
           scope?: string
           updated_at?: string
           user_id: string
@@ -47,6 +49,7 @@ export type Database = {
           icon?: string
           id?: string
           name?: string
+          position?: number
           scope?: string
           updated_at?: string
           user_id?: string

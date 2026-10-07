@@ -13,6 +13,7 @@ export function useAccounts() {
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
+        .order('position', { ascending: true })
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -25,9 +26,17 @@ export function useAccounts() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
+      const nextPosition = accounts.length > 0
+        ? Math.max(...accounts.map(a => a.position ?? 0)) + 1
+        : 0;
+
       const { data, error } = await supabase
         .from('accounts')
-        .insert([{ ...account, user_id: userId }])
+        .insert([{
+          ...account,
+          position: account.position !== undefined ? account.position : nextPosition,
+          user_id: userId,
+        }])
         .select()
         .single();
         
@@ -52,6 +61,45 @@ export function useAccounts() {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedItems: { id: string; position: number }[]) => {
+      const updates = orderedItems.map(({ id, position }) =>
+        supabase
+          .from('accounts')
+          .update({ position })
+          .eq('id', id)
+      );
+
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onMutate: async (orderedItems) => {
+      await queryClient.cancelQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+      const previousAccounts = queryClient.getQueryData<Account[]>(ACCOUNTS_QUERY_KEY);
+
+      if (previousAccounts) {
+        const posMap = new Map(orderedItems.map(item => [item.id, item.position]));
+        const optimistic = [...previousAccounts].sort((a, b) => {
+          const posA = posMap.get(a.id) ?? a.position ?? 0;
+          const posB = posMap.get(b.id) ?? b.position ?? 0;
+          return posA - posB;
+        });
+        queryClient.setQueryData(ACCOUNTS_QUERY_KEY, optimistic);
+      }
+
+      return { previousAccounts };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousAccounts) {
+        queryClient.setQueryData(ACCOUNTS_QUERY_KEY, context.previousAccounts);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
     },
   });
@@ -85,6 +133,18 @@ export function useAccounts() {
     updateAccount: async (id: string, updates: Partial<Account>) => {
       try {
         await updateMutation.mutateAsync({ id, updates });
+        return null;
+      } catch (err) {
+        return err as Error;
+      }
+    },
+    reorderAccounts: async (orderedAccounts: Account[]) => {
+      try {
+        const payload = orderedAccounts.map((acc, index) => ({
+          id: acc.id,
+          position: index,
+        }));
+        await reorderMutation.mutateAsync(payload);
         return null;
       } catch (err) {
         return err as Error;
