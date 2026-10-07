@@ -80,6 +80,9 @@ export default function ColorPickerModal({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '16px',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
         }}
       >
         {/* Backdrop oscuro con desenfoque suave */}
@@ -108,13 +111,16 @@ export default function ColorPickerModal({
             position: 'relative',
             width: '100%',
             maxWidth: '360px',
-            background: 'rgba(18, 22, 34, 0.96)',
+            maxHeight: 'min(90vh, 90dvh, 600px)',
+            minHeight: 0,
+            margin: 'auto',
+            background: 'var(--bg-card)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            border: '1px solid var(--border)',
             borderRadius: '26px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-            color: '#ffffff',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            color: 'var(--text-primary)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -127,25 +133,25 @@ export default function ColorPickerModal({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '16px 20px 12px 20px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              borderBottom: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
               {title || t('color') || 'Color'}
             </h3>
             <button
               type="button"
               onClick={onClose}
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'background 0.15s ease',
               }}
@@ -162,8 +168,8 @@ export default function ColorPickerModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
                 borderRadius: '14px',
                 padding: '10px 14px',
               }}
@@ -180,7 +186,7 @@ export default function ColorPickerModal({
                     transition: 'all 0.15s ease',
                   }}
                 />
-                <span style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   HEX
                 </span>
               </div>
@@ -190,7 +196,7 @@ export default function ColorPickerModal({
                   fontSize: '0.98rem',
                   fontWeight: 700,
                   letterSpacing: '0.05em',
-                  color: '#ffffff',
+                  color: 'var(--text-primary)',
                 }}
               >
                 {color.hex.toUpperCase()}
@@ -202,9 +208,9 @@ export default function ColorPickerModal({
               style={{
                 borderRadius: '16px',
                 overflow: 'hidden',
-                background: 'rgba(0, 0, 0, 0.3)',
+                background: 'var(--bg-input)',
                 padding: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border)',
                 ['--rcp-background-color' as any]: 'transparent',
               }}
             >
@@ -239,7 +245,7 @@ export default function ColorPickerModal({
                     height: '24px',
                     borderRadius: '50%',
                     background: swatch,
-                    border: activeHex.toLowerCase() === swatch.toLowerCase() ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.2)',
+                    border: activeHex.toLowerCase() === swatch.toLowerCase() ? '2px solid var(--text-primary)' : '1px solid var(--border)',
                     cursor: 'pointer',
                     transform: activeHex.toLowerCase() === swatch.toLowerCase() ? 'scale(1.2)' : 'scale(1)',
                     transition: 'transform 0.15s ease',

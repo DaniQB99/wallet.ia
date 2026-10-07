@@ -31,7 +31,13 @@ function getAllSourceFiles(dir) {
     const stat = fs.statSync(fullPath);
     if (stat.isDirectory()) {
       results = results.concat(getAllSourceFiles(fullPath));
-    } else if (file.endsWith('.ts') || file.endsWith('.tsx')) {
+    } else if (
+      (file.endsWith('.ts') || file.endsWith('.tsx')) &&
+      !file.endsWith('.test.ts') &&
+      !file.endsWith('.test.tsx') &&
+      !file.endsWith('.spec.ts') &&
+      !file.endsWith('.spec.tsx')
+    ) {
       results.push(fullPath);
     }
   }
@@ -98,6 +104,16 @@ if (unknownScripts.length > 0) {
   issuesCount++;
 } else {
   console.log('✅ Directorio scripts/ limpio (únicamente scripts oficiales del pipeline).');
+}
+
+// 4. Ejecución de Pruebas Unitarias (Vitest)
+console.log('\n4️⃣  Ejecución de Pruebas Unitarias (Vitest):');
+try {
+  execSync('npx vitest run', { cwd: ROOT, stdio: 'inherit' });
+  console.log('✅ Todas las pruebas unitarias pasaron con éxito.');
+} catch (e) {
+  issuesCount++;
+  console.error('❌ Fallaron las pruebas unitarias.');
 }
 
 console.log('\n--------------------------------------------------');

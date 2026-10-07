@@ -9,7 +9,10 @@
 - **🔐 Autenticación Segura (Supabase Auth):** Sistema de inicio de sesión completo. Protección de rutas en el frontend para evitar que usuarios no autenticados accedan a la app.
 - **👥 Gestión Financiera Dual:** Rastrea tanto los gastos personales como los conjuntos en tiempo real. Vincula cuentas con tu pareja mediante códigos de invitación seguros.
 - **🎯 Metas de Ahorro Inteligentes:** Crea y visualiza el progreso de metas compartidas (ej. "Vacaciones", "Casa Nueva") o personales. Las transacciones y categorías se pueden vincular para calcular el progreso de forma automática.
-- **🌍 Soporte Multi-moneda Avanzado (i18n):** Adaptación automática de monedas según el país. Cálculos en tiempo real respaldados por triggers optimizados en PostgreSQL para prevenir distorsiones por tipos de cambio.
+- **🌍 Soporte Multi-moneda con Divisa Inmutable por Cuenta:** Cuentas y tarjetas independientes con sus propias divisas nativas (EUR, USD, GBP, JPY, etc.), inmutabilidad estricta blindada por triggers PostgreSQL en Supabase y suite de pruebas de precisión matemática.
+- **🧙 Asistente Interactivo de Tarjetas (Liquid Glass 3D):** Proceso guiado en 3 pasos con previsualización tridimensional en tiempo real que muta instantáneamente con el icono, color, divisa, saldo y ámbito de la tarjeta.
+- **✉️ Experiencia Táctil Minimalista Estilo iOS (Cuentas y Categorías):** Edición rápida al pulsar directamente sobre la tarjeta, indicador de ámbito integrado en línea, divisa nativa sobria y eliminación segura mediante deslizamiento suave (`swipe-to-action`) con cajón atenuado sin sangrado cromático.
+- **📱 Ventanas Modales 100% Responsivas y Desplazables (100dvh):** Todas las pantallas emergentes cuentan con cabeceras estandarizadas, soporte de altura dinámica para móviles (`100dvh`), desplazamiento vertical ultra-suave sin bloqueos y botones de acción siempre al alcance en cualquier dispositivo.
 - **✨ Onboarding Premium:** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion) y un diseño *glassmorphism* exquisito.
 - **🖼️ Avatares Personalizables:** Subida de fotos de perfil integradas con Supabase Storage (HTML5 nativo para cámara/galería) y sincronización automática de fotos de Google Auth.
 - **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página.
@@ -18,7 +21,8 @@
 - **📱 Modal de Transacciones de Alta Gama:** Ventana de nueva transacción rediseñada con estética *Liquid Glass*, cursor dinámico, pestañas con píldoras translúcidas, tarjetas de campo con saldo en tiempo real, reconocimiento de voz y teclado numérico estilo iOS / banca con sub-letras telefónicas.
 - **📊 Analíticas Financieras Interactivas de Última Generación:** Gráfica Donut ultra-moderna con segmentación matemática perfecta (sin solapamiento de quesitos), micro-animaciones dinámicas al pasar el cursor (glow temático, foco de categoría, detalles y porcentajes animados en el centro), selector desplegable de cuenta a ancho completo y propagación automática de filtros (cuenta, periodo, tipo de flujo y categoría) hacia el listado de transacciones.
 - **🛡️ Consentimiento de Cookies & Privacidad (RGPD / ePrivacy):** Banner flotante moderno con badge circular e interfaz minimalista (`Aceptar`, `Rechazar`, `Ajustes`). Configuración granular con switches animados para cookies técnicas obligatorias, analíticas y preferencias, persistidas de forma segura en `localStorage`, cookies de primer nivel y auditoría en Supabase.
-- **🎨 Paleta de Colores y Personalización Total:** Selector de color flotante con escala continua gradiente (`react-color-palette`), muestras rápidas, previsualización HEX y botón de confirmación («Aceptar») para personalizar categorías, cuentas o el color de acento global de toda la aplicación.
+- **🎨 Paleta de Colores y Personalización Dinámica:** Acento base predeterminado extraído con precisión del logotipo oficial (`#F71E5D`), conectado de forma 100% reactiva al selector de colores en Ajustes para propagar armoniosamente cualquier color por toda la interfaz.
+- **☀️/🌙 Experiencia Bimodal Estricta (Modo Claro & Modo Oscuro):** Adaptación integral de cada ventana, modal y componente a temas claro y oscuro con estética *iOS Liquid Glass*, efecto gota translúcido y contraste tipográfico óptimo.
 - **🔁 Transferencias y Recurrencias:** Gestión de traspasos entre cuentas y automatización de cobros/pagos recurrentes integrados directamente en Base de Datos para evitar bloqueos del frontend.
 
 ## 🏗️ Arquitectura y Tecnologías
@@ -29,6 +33,7 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 
 - **React 19** & **TypeScript** para un tipado estricto y seguro.
 - **Vite** para una compilación ultra rápida.
+- **Vitest & JSDOM** para pruebas unitarias de alta velocidad y blindaje de lógica de dominio.
 - **Framer Motion** para micro-interacciones, físicas de rebote y transiciones de UI de gama alta.
 - **Lucide React** para iconografía minimalista.
 - **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 415 claves 100% activas (`npm run i18n:check` y `npm run audit`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
@@ -43,9 +48,10 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 - **Row Level Security (RLS):** Las políticas estrictas en la base de datos garantizan que un usuario solo pueda leer/escribir su propia información o la de su pareja, incluso si la API Key queda expuesta.
 - **Optimización de Bundle:** Implementación avanzada de code-splitting mediante `React.lazy` y `Suspense`. Los módulos de configuración y analíticas se cargan en paralelo solo cuando el usuario los solicita.
 - **Privacidad y Cumplimiento Normativo (RGPD / ePrivacy / AEPD):** Gestión transparente de cookies multinivel (`localStorage`, cookies first-party y base de datos) con panel interactivo granular y página pública completa de Política de Cookies (`/cookies`).
+- **Control de Calidad Automatizado:** Pipeline pre-commit (`npm run audit`) que ejecuta tests con Vitest, valida integridad estructural y garantiza paridad exacta en los 6 idiomas.
 - **Despliegue en Vercel:** Integración CI/CD directa con Vercel para latencia ultrabaja.
 
-## 🚀 Despliegue Local
+## 🚀 Despliegue Local & Comandos
 
 1. Clonar el repositorio y configurar variables de entorno:
 
@@ -59,6 +65,14 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
    ```bash
    npm install
    npm run dev
+   ```
+
+3. Pruebas y auditoría de calidad:
+
+   ```bash
+   npm run test        # Ejecutar suite de pruebas unitarias con Vitest
+   npm run test:watch  # Modo observador interactivo de pruebas
+   npm run audit       # Auditoría completa pre-commit (i18n, huérfanos, tests)
    ```
 
 ---

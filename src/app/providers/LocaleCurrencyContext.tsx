@@ -12,9 +12,9 @@ interface LocaleCurrencyContextType {
   setLocale: (locale: SupportedLocale) => void;
   currency: SupportedCurrency;
   setCurrency: (currency: SupportedCurrency) => void;
-  formatMoney: (amount: number, date?: string) => string;
+  formatMoney: (amount: number, date?: string, currencyOverride?: SupportedCurrency) => string;
   formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => string;
-  getCurrencySymbol: () => string;
+  getCurrencySymbol: (currencyOverride?: SupportedCurrency) => string;
   translateEntityName: (name: string, type: 'category' | 'account') => string;
   convertAmount: (amount: number) => number; // Kept for backwards compatibility
   prefetchRates: (dates: string[]) => Promise<void>; // Dummy for backwards compatibility
@@ -103,20 +103,22 @@ export function LocaleCurrencyProvider({ children }: { children: React.ReactNode
     convertAmount: (amount: number) => amount,
     prefetchRates: async () => { }, // Dummy function for components that still call it
     loadingRates: false,
-    formatMoney: (amount: number, _date?: string) => {
+    formatMoney: (amount: number, _date?: string, currencyOverride?: SupportedCurrency) => {
+      const activeCurr = currencyOverride || currency;
       return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        currency: activeCurr,
+        minimumFractionDigits: activeCurr === 'JPY' ? 0 : 2,
+        maximumFractionDigits: activeCurr === 'JPY' ? 0 : 2,
       }).format(amount);
     },
     formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => {
       const d = new Date(date);
       return new Intl.DateTimeFormat(locale, options).format(d);
     },
-    getCurrencySymbol: () => {
-      return new Intl.NumberFormat(locale, { style: 'currency', currency }).formatToParts(0).find(x => x.type === 'currency')?.value || currency;
+    getCurrencySymbol: (currencyOverride?: SupportedCurrency) => {
+      const targetCurr = currencyOverride || currency;
+      return new Intl.NumberFormat(locale, { style: 'currency', currency: targetCurr }).formatToParts(0).find(x => x.type === 'currency')?.value || targetCurr;
     },
     translateEntityName: (name: string, type: 'category' | 'account') => {
       const msgs = getLoadedMessages(locale);

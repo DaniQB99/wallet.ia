@@ -177,6 +177,8 @@ export default function CookieConsent() {
           justifyContent: 'center',
           padding: '16px',
           paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+          overflowY: showPreferences ? 'auto' : 'hidden',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {/* Backdrop suave cuando el modal de ajustes está abierto */}
@@ -201,6 +203,7 @@ export default function CookieConsent() {
         {showPreferences ? (
           <motion.div
             key="cookie-preferences-modal"
+            className="modal-scroll-area"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -208,8 +211,13 @@ export default function CookieConsent() {
             style={{
               width: '100%',
               maxWidth: '520px',
-              maxHeight: '90vh',
+              maxHeight: 'min(92vh, 92dvh, 720px)',
+              minHeight: 0,
+              margin: 'auto',
               overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              touchAction: 'pan-y',
               background: themeStyles.modalBg,
               border: themeStyles.modalBorder,
               borderRadius: '24px',

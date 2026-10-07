@@ -66,7 +66,7 @@ export default function InstallAppModal({
       >
         <motion.div
           className="modal animate-in"
-          style={{ maxWidth: '480px', width: '100%', margin: '0 16px' }}
+          style={{ maxWidth: '480px', width: '100%', margin: 'auto' }}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}

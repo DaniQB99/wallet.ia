@@ -19,7 +19,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import type { Account } from '../../../shared/types/database';
-import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import { useAccounts } from '../model/useAccounts';
 import ReorderCardsModal from './ReorderCardsModal';
 
@@ -378,7 +378,7 @@ export default function BankCardCarousel({
                         userSelect: isBalanceHidden ? 'none' : 'text',
                       }}
                     >
-                      {formatMoney(account.balance || 0)}
+                      {formatMoney(account.balance || 0, undefined, account.currency as SupportedCurrency)}
                     </div>
                   </div>
 

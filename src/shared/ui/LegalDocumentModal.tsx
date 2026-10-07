@@ -29,7 +29,7 @@ export default function LegalDocumentModal({ title, content, onClose }: LegalDoc
           </button>
           <h2 className="modal-title">{title}</h2>
         </div>
-        <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--text-secondary)', maxHeight: '60vh', overflowY: 'auto' }}>
+        <div className="modal-scroll-area" style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--text-secondary)', maxHeight: '60vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', paddingRight: '4px' }}>
           {content}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>

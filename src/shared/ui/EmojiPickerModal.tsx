@@ -212,7 +212,9 @@ export default function EmojiPickerModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '16px',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
         }}
       >
         {/* Backdrop oscuro con blur suave */}
@@ -241,14 +243,16 @@ export default function EmojiPickerModal({
             position: 'relative',
             width: '100%',
             maxWidth: '380px',
-            maxHeight: '85vh',
-            background: 'rgba(18, 22, 34, 0.96)',
+            maxHeight: 'min(90vh, 90dvh, 600px)',
+            minHeight: 0,
+            margin: 'auto',
+            background: 'var(--bg-card)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            border: '1px solid var(--border)',
             borderRadius: '24px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-            color: '#ffffff',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            color: 'var(--text-primary)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -261,25 +265,25 @@ export default function EmojiPickerModal({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '16px 18px 12px 18px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              borderBottom: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
               {t('icon') || 'Icono'}
             </h3>
             <button
               type="button"
               onClick={onClose}
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 transition: 'background 0.15s ease',
               }}
@@ -295,13 +299,13 @@ export default function EmojiPickerModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 padding: '8px 12px',
               }}
             >
-              <Search size={16} color="rgba(255, 255, 255, 0.4)" style={{ flexShrink: 0 }} />
+              <Search size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               <input
                 type="text"
                 value={searchQuery}
@@ -311,7 +315,7 @@ export default function EmojiPickerModal({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#ffffff',
+                  color: 'var(--text-primary)',
                   fontSize: '0.88rem',
                   width: '100%',
                 }}
@@ -323,7 +327,7 @@ export default function EmojiPickerModal({
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: 'rgba(255, 255, 255, 0.4)',
+                    color: 'var(--text-tertiary)',
                     cursor: 'pointer',
                     padding: 0,
                     display: 'flex',
@@ -354,14 +358,14 @@ export default function EmojiPickerModal({
                     type="button"
                     onClick={() => setActiveCategory(cat.id)}
                     style={{
-                      background: isActive ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.04)',
-                      border: `1px solid ${isActive ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.08)'}`,
+                      background: isActive ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                      border: `1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border)'}`,
                       borderRadius: '10px',
                       padding: '6px 10px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '5px',
-                      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
                       fontSize: '0.78rem',
                       fontWeight: isActive ? 600 : 400,
                       cursor: 'pointer',
@@ -406,8 +410,8 @@ export default function EmojiPickerModal({
                       width: '100%',
                       aspectRatio: '1 / 1',
                       minHeight: '48px',
-                      background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                      border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.06)'}`,
+                      background: isSelected ? 'var(--accent-primary-glow)' : 'var(--bg-tertiary)',
+                      border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border)'}`,
                       borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
@@ -415,16 +419,6 @@ export default function EmojiPickerModal({
                       fontSize: '1.65rem',
                       cursor: 'pointer',
                       transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.15)';
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.background = isSelected
-                        ? 'rgba(99, 102, 241, 0.25)'
-                        : 'rgba(255, 255, 255, 0.03)';
                     }}
                   >
                     {item.emoji}

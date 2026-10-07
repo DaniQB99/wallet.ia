@@ -99,7 +99,7 @@ const getInitialResolvedTheme = (prefTheme: Theme): 'dark' | 'light' => {
 };
 
 const getInitialAccent = (): AccentColor => {
-  if (typeof window === 'undefined') return '#6366F1';
+  if (typeof window === 'undefined') return '#F71E5D';
   try {
     const savedAccent = localStorage.getItem(ACCENT_KEY);
     if (savedAccent) {
@@ -109,7 +109,7 @@ const getInitialAccent = (): AccentColor => {
   } catch {
     // Fallback al color de acento predeterminado
   }
-  return '#6366F1';
+  return '#F71E5D';
 };
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Transaction } from '../../../shared/types/database';
-import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import { useAuthContext } from '../../../app/providers/AuthContext';
 import { useCouple } from '../../auth/model/useCouple';
 
@@ -12,13 +12,15 @@ interface TransactionItemProps {
 }
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, showChevron, isDashboard }) => {
-  const { formatMoney, formatDate, t, translateEntityName } = useLocaleCurrency();
+  const { formatMoney, formatDate, t, translateEntityName, currency } = useLocaleCurrency();
   const { user } = useAuthContext();
   const { partner } = useCouple();
 
   const isIncome = tx.amount > 0;
-  const originalAmount = Math.abs(Number(tx.amount));
-  const baseAmount = Math.abs(Number(tx.base_amount || tx.amount));
+  const accCurrency = (tx.account?.currency as SupportedCurrency) || (tx.currency as SupportedCurrency) || currency;
+  const isCrossCurrency = Boolean(tx.currency && tx.currency !== accCurrency && tx.exchange_rate_used && tx.exchange_rate_used !== 1.0);
+  const displayAmount = Math.abs(Number(tx.amount));
+  const foreignAmount = Math.abs(Number(tx.base_amount || tx.amount));
 
   let initial = 'U';
   if (tx.user_id === user?.id) {
@@ -74,9 +76,9 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
         </div>
 
         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-          {tx.currency && tx.currency !== 'EUR' ? (
+          {isCrossCurrency ? (
             <span>
-              {originalAmount.toFixed(2)} {tx.currency} {t('exchangeRateInfo').replace('{rate}', `${tx.exchange_rate_used?.toFixed(4) || 1.0}`)}
+              {foreignAmount.toFixed(2)} {tx.currency} {t('exchangeRateInfo').replace('{rate}', `${tx.exchange_rate_used?.toFixed(4) || 1.0}`)}
             </span>
           ) : (
             tx.account && (<span>{tx.account.icon} {translateEntityName(tx.account.name, 'account')}</span>)
@@ -89,7 +91,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
           className={isDashboard ? "transaction-amount" : isIncome ? "transaction-amount income" : "transaction-amount expense"}
           style={isDashboard ? { color: 'var(--text-primary)' } : {}}
         >
-          {isDashboard ? (isIncome ? '+' : '-') : isIncome ? '+' : '-'}{formatMoney(baseAmount, tx.date)}
+          {isDashboard ? (isIncome ? '+' : '-') : isIncome ? '+' : '-'}{formatMoney(displayAmount, tx.date, accCurrency)}
         </div>
         <div className="transaction-user" style={{ textAlign: 'right', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
           {formatDate(tx.date, { month: 'short', day: '2-digit' }).replace('.', '').replace(/^\w/, c => c.toUpperCase())}

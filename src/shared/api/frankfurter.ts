@@ -154,3 +154,32 @@ export async function fetchRateRange(
   inFlightRange.set(url, promise);
   return promise;
 }
+
+/**
+ * Obtiene la tasa de cambio entre cualquier par de divisas (from → to).
+ */
+export async function fetchPairRate(from: string, to: string, dateISO?: string): Promise<number | null> {
+  if (from === to) return 1.0;
+  const endpoint = dateISO ? dateISO.slice(0, 10) : 'latest';
+  const url = `${BASE_URL}/${endpoint}?from=${from}&to=${to}`;
+
+  if (inFlight.has(url)) return inFlight.get(url)!;
+
+  const promise = (async (): Promise<number | null> => {
+    try {
+      const res = await fetch(url, { signal: withTimeout(TIMEOUT_MS) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const rate = Number(data?.rates?.[to]);
+      return Number.isFinite(rate) && rate > 0 ? rate : null;
+    } catch {
+      return null;
+    } finally {
+      inFlight.delete(url);
+    }
+  })();
+
+  inFlight.set(url, promise);
+  return promise;
+}
+

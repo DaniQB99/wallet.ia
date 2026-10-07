@@ -473,7 +473,7 @@ export default function Goals() {
           <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
             <motion.div
               className="modal animate-in"
-              style={{ maxWidth: '480px', width: '100%', margin: '0 20px' }}
+              style={{ maxWidth: '480px', width: '100%', margin: 'auto' }}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}

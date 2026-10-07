@@ -20,6 +20,7 @@ export type Database = {
           color: string
           couple_id: string | null
           created_at: string
+          currency: Database["public"]["Enums"]["supported_currency"]
           icon: string
           id: string
           name: string
@@ -33,6 +34,7 @@ export type Database = {
           color?: string
           couple_id?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["supported_currency"]
           icon?: string
           id?: string
           name: string
@@ -46,6 +48,7 @@ export type Database = {
           color?: string
           couple_id?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["supported_currency"]
           icon?: string
           id?: string
           name?: string
@@ -856,3 +859,4 @@ export type RecurringTransaction = Tables<'recurring_transactions'>;
 export type TransactionType = 'personal' | 'shared';
 export type CategoryScope = 'personal' | 'shared';
 export type GoalType = 'budget' | 'savings';
+export type SupportedCurrency = Database['public']['Enums']['supported_currency'];

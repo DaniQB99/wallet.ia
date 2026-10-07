@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "i18n:check": "node scripts/check-i18n.mjs",
     "audit": "node scripts/audit-project.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "memory:search": "engram search",
     "memory:context": "engram context wallet.ia",
     "memory:stats": "engram stats",
@@ -47,10 +49,12 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "react-doctor": "^0.9.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
     "vite": "^8.0.1",
-    "vite-plugin-pwa": "^1.3.0"
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^5.0.3"
   }
 }

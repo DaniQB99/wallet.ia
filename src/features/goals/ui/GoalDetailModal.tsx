@@ -69,13 +69,13 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
           style={{
             width: '100%',
             height: 'auto',
-            maxHeight: '90vh',
+            maxHeight: 'min(92vh, 92dvh, 760px)',
             maxWidth: '600px',
             borderRadius: '20px',
             background: 'var(--bg-secondary)',
             padding: '24px',
             overflowY: 'auto',
-            margin: '0 auto'
+            margin: 'auto'
           }}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

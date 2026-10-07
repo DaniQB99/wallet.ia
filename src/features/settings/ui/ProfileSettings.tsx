@@ -151,10 +151,18 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        style={{ padding: 0, overflow: 'hidden' }}
+        style={{
+          padding: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'min(92vh, 92dvh, 720px)',
+          minHeight: 0,
+          margin: 'auto',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border)', marginBottom: 0, flexShrink: 0 }}>
           <button
             type="button"
             className="modal-close-btn"
@@ -169,7 +177,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
           </h2>
         </div>
 
-        <div className="tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
           <button
             className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
@@ -186,7 +194,7 @@ export default function ProfileSettings({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div style={{ padding: '24px' }}>
+        <div className="modal-scroll-area" style={{ padding: '24px', flex: 1, overflowY: 'auto', minHeight: 0, touchAction: 'pan-y', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
           {activeTab === 'profile' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center' }}>

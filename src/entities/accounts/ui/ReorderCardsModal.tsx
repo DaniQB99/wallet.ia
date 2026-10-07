@@ -64,13 +64,14 @@ export default function ReorderCardsModal({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '16px',
+          overflowY: 'auto',
         }}
         onClick={(e) => {
           if (e.target === e.currentTarget && !isSaving) onClose();
         }}
       >
         <motion.div
-          className="modal animate-in"
+          className="card card-modal animate-in"
           initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
@@ -79,19 +80,19 @@ export default function ReorderCardsModal({
           style={{
             maxWidth: '440px',
             width: '100%',
-            background: 'var(--bg-card, #141826)',
-            borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+            maxHeight: 'min(92vh, 92dvh, 720px)',
+            minHeight: 0,
             padding: '24px',
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'hidden',
+            margin: 'auto',
             gap: '16px',
           }}
         >
           {/* Cabecera del Modal con X a la izquierda y Título centrado */}
-          <div style={{ width: '100%', position: 'relative' }}>
+          <div style={{ width: '100%', position: 'relative', flexShrink: 0 }}>
             <div
               className="modal-header"
               style={{
@@ -118,12 +119,12 @@ export default function ReorderCardsModal({
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--text-secondary, #cbd5e1)',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: 0,
                 }}
@@ -138,7 +139,7 @@ export default function ReorderCardsModal({
                   fontWeight: 700,
                   margin: 0,
                   textAlign: 'center',
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   width: '100%',
                   padding: '0 44px',
                 }}
@@ -167,6 +168,7 @@ export default function ReorderCardsModal({
             axis="y"
             values={items}
             onReorder={setItems}
+            className="modal-scroll-area"
             style={{
               listStyle: 'none',
               padding: '2px',
@@ -174,9 +176,11 @@ export default function ReorderCardsModal({
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
-              maxHeight: '380px',
+              flex: '1 1 auto',
+              minHeight: 0,
               overflowY: 'auto',
-              scrollbarWidth: 'thin',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             {items.map((acc) => {
@@ -199,8 +203,8 @@ export default function ReorderCardsModal({
                     gap: '12px',
                     padding: '12px 16px',
                     borderRadius: '16px',
-                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.04))',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border)',
                     backdropFilter: 'blur(8px)',
                     userSelect: 'none',
                     position: 'relative',
@@ -211,7 +215,7 @@ export default function ReorderCardsModal({
                     style={{
                       cursor: 'grab',
                       touchAction: 'none',
-                      color: 'var(--text-tertiary, #64748b)',
+                      color: 'var(--text-tertiary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -229,14 +233,13 @@ export default function ReorderCardsModal({
                       width: '42px',
                       height: '42px',
                       borderRadius: '12px',
-                      background: `linear-gradient(135deg, ${cardBg}ee 0%, rgba(15, 23, 42, 0.9) 100%)`,
+                      background: `linear-gradient(135deg, ${cardBg}dd 0%, #0b0f19 100%)`,
                       border: '1px solid rgba(255, 255, 255, 0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '1.25rem',
                       flexShrink: 0,
-                      boxShadow: `0 4px 10px ${cardBg}30`,
                     }}
                   >
                     {acc.icon || '🏦'}
@@ -249,7 +252,7 @@ export default function ReorderCardsModal({
                         style={{
                           fontWeight: 600,
                           fontSize: '0.95rem',
-                          color: '#fff',
+                          color: 'var(--text-primary)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -258,15 +261,15 @@ export default function ReorderCardsModal({
                         {translateEntityName(acc.name, 'account')}
                       </span>
                       {acc.scope === 'shared' ? (
-                        <Users size={13} style={{ color: '#a5b4fc', flexShrink: 0 }} />
+                        <Users size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
                       ) : (
-                        <User size={13} style={{ color: '#86efac', flexShrink: 0 }} />
+                        <User size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
                       )}
                     </div>
                     <div
                       style={{
                         fontSize: '0.8rem',
-                        color: 'var(--text-secondary, #cbd5e1)',
+                        color: 'var(--text-secondary)',
                         fontWeight: 500,
                         marginTop: '2px',
                       }}
@@ -280,7 +283,7 @@ export default function ReorderCardsModal({
           </Reorder.Group>
 
           {/* Botones de Acción */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexShrink: 0 }}>
             <button
               type="button"
               className="btn btn-secondary"

@@ -73,13 +73,13 @@ export default function CategoryDetailModal({
           style={{
             width: '100%',
             height: 'auto',
-            maxHeight: '90vh',
+            maxHeight: 'min(92vh, 92dvh, 760px)',
             maxWidth: '600px',
             borderRadius: '20px',
             background: 'var(--bg-primary)',
             padding: '0', // Removing padding here to handle header manually
             overflowY: 'auto',
-            margin: '0 auto',
+            margin: 'auto',
             display: 'flex',
             flexDirection: 'column'
           }}

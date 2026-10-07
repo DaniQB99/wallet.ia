@@ -20,10 +20,11 @@ import type { Transaction } from '../../../shared/types/database';
 import { useTransactions } from '../../../entities/transactions/model/useTransactions';
 import { useCategories } from '../../../entities/categories/model/useCategories';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
-import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import AccountsSettings from '../../settings/ui/AccountsSettings';
 import CategoriesSettings from '../../settings/ui/CategoriesSettings';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
+import { parseCurrencyInput } from '../../../shared/lib/financialMath';
 
 // Helpers para manejo de fechas de calendario sin sesgo por zona horaria (UTC vs Local)
 const toLocalDateString = (d: Date = new Date()): string => {
@@ -206,7 +207,7 @@ export default function TransactionModal({
     }
   };
 
-  const parseAmount = (str: string) => parseFloat(str.replace(',', '.'));
+  const parseAmount = (str: string) => parseCurrencyInput(str);
 
   const handleDelete = () => {
     if (!editTransaction) return;
@@ -269,11 +270,14 @@ export default function TransactionModal({
     const finalAmount = flowType === 'expense' ? -Math.abs(numAmount) : Math.abs(numAmount);
 
     try {
+      const selectedAcc = accounts.find(a => a.id === accountId);
+      const accCurrency = (selectedAcc?.currency as SupportedCurrency) || currency || 'EUR';
       if (editTransaction) {
         const err = await updateTransaction(editTransaction.id, {
           amount: finalAmount,
           base_amount: finalAmount,
-          currency: editTransaction.currency || currency || 'EUR',
+          currency: accCurrency,
+          exchange_rate_used: 1.0,
           description: description.trim(),
           category_id: categoryId || null,
           account_id: accountId || null,
@@ -303,23 +307,30 @@ export default function TransactionModal({
             return;
           }
           const t_group_id = crypto.randomUUID();
+          const destAcc = accounts.find(a => a.id === destinationAccountId);
+          const destCurrency = (destAcc?.currency as SupportedCurrency) || currency || 'EUR';
+
           const err = await addTransaction([
             {
               amount: -Math.abs(numAmount),
+              base_amount: -Math.abs(numAmount),
               description: description.trim(),
               account_id: accountId,
               type: scope,
               date,
-              currency: currency || 'EUR',
+              currency: accCurrency,
+              exchange_rate_used: 1.0,
               transfer_group_id: t_group_id
             },
             {
               amount: Math.abs(numAmount),
+              base_amount: Math.abs(numAmount),
               description: description.trim(),
               account_id: destinationAccountId,
               type: scope,
               date,
-              currency: currency || 'EUR',
+              currency: destCurrency,
+              exchange_rate_used: 1.0,
               transfer_group_id: t_group_id
             }
           ]);
@@ -327,12 +338,14 @@ export default function TransactionModal({
         } else {
           const err = await addTransaction({
             amount: finalAmount,
+            base_amount: finalAmount,
+            currency: accCurrency,
+            exchange_rate_used: 1.0,
             description: description.trim(),
             category_id: categoryId || null,
             account_id: accountId || null,
             type: scope,
             date,
-            currency: currency || 'EUR',
           });
           if (err) throw err;
         }
@@ -399,6 +412,7 @@ export default function TransactionModal({
 
   const selectedAccount = accounts.find(a => a.id === accountId);
   const selectedDestAccount = accounts.find(a => a.id === destinationAccountId);
+
   const selectedCategory = activeCategories.find(c => c.id === categoryId);
 
   // Título modal centrado según flujo
@@ -916,18 +930,27 @@ export default function TransactionModal({
               flowType === 'expense' ? '#ef4444' : flowType === 'income' ? '#10b981' : '#6366f1',
           }}
         />
-        <span
-          style={{
-            fontSize: '2rem',
-            fontWeight: 500,
-            color: 'rgba(255, 255, 255, 0.75)',
-            marginLeft: '8px',
-            lineHeight: 1,
-            userSelect: 'none',
-          }}
-        >
-          {getCurrencySymbol()}
-        </span>
+        <div style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>
+          <div
+            title={`Divisa fija de la cuenta: ${selectedAccount?.currency || currency}`}
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: 'var(--accent-primary)',
+              background: 'rgba(99, 102, 241, 0.14)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '12px',
+              padding: '6px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              userSelect: 'none',
+            }}
+          >
+            <span>{getCurrencySymbol((selectedAccount?.currency as SupportedCurrency) || currency)}</span>
+            <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>{(selectedAccount?.currency as SupportedCurrency) || currency}</span>
+          </div>
+        </div>
       </motion.div>
 
       {/* Campos de Transacción con encabezados en mayúsculas estilo Imagen 2 */}
@@ -990,7 +1013,7 @@ export default function TransactionModal({
                   {selectedAccount ? translateEntityName(selectedAccount.name, 'account') : t('selectAccount')}
                 </span>
                 <span style={{ fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.5)' }}>
-                  {t('balanceStr')}: {formatMoney(selectedAccount?.balance || 0)}
+                  {t('balanceStr')}: {formatMoney(selectedAccount?.balance || 0, undefined, selectedAccount?.currency as SupportedCurrency)}
                 </span>
               </div>
             </div>
@@ -1049,7 +1072,7 @@ export default function TransactionModal({
                       : t('selectAccount')}
                   </span>
                   <span style={{ fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    {t('balanceStr')}: {formatMoney(selectedDestAccount?.balance || 0)}
+                    {t('balanceStr')}: {formatMoney(selectedDestAccount?.balance || 0, undefined, selectedDestAccount?.currency as SupportedCurrency)}
                   </span>
                 </div>
               </div>
@@ -1368,11 +1391,16 @@ export default function TransactionModal({
                   {acc.icon || '🏦'}
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.98rem', fontWeight: 600, marginBottom: '2px' }}>
-                    {translateEntityName(acc.name, 'account')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '0.98rem', fontWeight: 600 }}>
+                      {translateEntityName(acc.name, 'account')}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      {acc.currency || 'EUR'}
+                    </span>
                   </div>
                   <div style={{ fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    {t('balanceStr')}: {formatMoney(acc.balance || 0)}
+                    {t('balanceStr')}: {formatMoney(acc.balance || 0, undefined, acc.currency as SupportedCurrency)}
                   </div>
                 </div>
               </div>
@@ -1657,6 +1685,9 @@ export default function TransactionModal({
               alignItems: 'center',
               justifyContent: 'center',
               padding: '16px 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
             }}
           >
             {/* Backdrop oscuro con desenfoque */}
@@ -1675,6 +1706,7 @@ export default function TransactionModal({
 
             {/* Contenedor del Modal Liquid Glass */}
             <motion.div
+              className="modal-scroll-area"
               initial={{ opacity: 0, scale: 0.94, y: 25 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 25 }}
@@ -1693,10 +1725,14 @@ export default function TransactionModal({
                 flexDirection: 'column',
                 padding: '16px 16px 20px 16px',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
-                maxHeight: '90vh',
+                maxHeight: 'min(92vh, 92dvh, 760px)',
+                minHeight: 0,
+                margin: 'auto',
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                touchAction: 'pan-y',
               }}
             >
               {view === 'main' && renderMainView()}

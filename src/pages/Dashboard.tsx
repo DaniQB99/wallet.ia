@@ -9,6 +9,7 @@ import { useAccounts } from '../entities/accounts/model/useAccounts';
 import { useEffect, useState, useMemo } from 'react';
 import TransactionModal from '../features/transactions/ui/TransactionModal';
 import AccountsSettings from '../features/settings/ui/AccountsSettings';
+import CreateAccountWizardModal from '../features/settings/ui/CreateAccountWizardModal';
 import BankCardCarousel from '../entities/accounts/ui/BankCardCarousel';
 import type { Transaction } from '../shared/types/database';
 
@@ -29,13 +30,14 @@ export default function Dashboard() {
   const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [showAccounts, setShowAccounts] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
   // Estado del carrusel de tarjetas bancarias
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
   // Obtención de datos
-  const { accounts } = useAccounts();
+  const { accounts, addAccount } = useAccounts();
   const { transactions, loading: txLoading } = useTransactions('all');
 
   // Tarjeta activa en el carrusel
@@ -78,10 +80,9 @@ export default function Dashboard() {
     setShowAccounts(true);
   };
 
-  // Manejador para añadir una nueva tarjeta
+  // Manejador para añadir una nueva tarjeta (abre el asistente guiado directamente)
   const handleAddAccount = () => {
-    setEditingAccountId(null);
-    setShowAccounts(true);
+    setShowWizard(true);
   };
 
   return (
@@ -272,6 +273,13 @@ export default function Dashboard() {
           initialEditingAccountId={editingAccountId}
         />
       )}
+
+      {/* Asistente interactivo paso a paso para crear tarjeta desde el carrusel */}
+      <CreateAccountWizardModal
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onSave={addAccount}
+      />
 
       <style>{`
         @keyframes spin {

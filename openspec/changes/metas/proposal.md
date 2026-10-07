@@ -109,4 +109,45 @@ Las tablas en Supabase ya reflejan:
   - **Eliminación de Archivos Huérfanos y Temporales**: Purga de componentes obsoletos (`AccountSelector.tsx`, `CategorySelector.tsx`, `TotalBalance.tsx`), hooks descontinuados (`useDashboardStats.ts`, `useRealtimeTransactions.ts`), clientes de caché no utilizados (`ratesCache.ts`), módulos desacoplados (`NotificationsModal.tsx`, `useNotifications.ts`) y scripts temporales `.cjs`.
   - **Auditoría y Purgado de Claves i18n Huérfanas**: Identificación y eliminación de 48 claves en desuso en los 6 diccionarios de idiomas, manteniendo 415 claves activas con 100% de paridad e integridad.
   - **Script de Auditoría Automatizado (`npm run audit`)**: Creación de `scripts/audit-project.mjs` que valida simultáneamente la ausencia de archivos huérfanos, la salud de las carpetas de scripts y la paridad y uso de las claves i18n, registrado como protocolo obligatorio en `.agents/AGENTS.md` antes de cualquier commit.
+- **Suite de Pruebas Automatizadas con Vitest & JSDOM (Calidad y Prevención de Regresiones)**:
+  - **Integración de Vitest**: Configuración nativa con Vite 8 (`vitest.config.ts`) y entorno `jsdom` para pruebas de utilidades con acceso a Web APIs (`localStorage`, `document.cookie`).
+  - **Scripts de Comandos**: Añadidos `npm run test` (ejecución única CI/CD) y `npm run test:watch` (desarrollo interactivo) en `package.json`.
+  - **Pruebas de Utilidades y Lógica Crítica (30 tests automatizados)**:
+    - `src/shared/lib/financialMath.test.ts`: Validación de aritmética financiera (parseo de comas/puntos, balance neto sin desvíos de coma flotante, porcentaje de metas de ahorro/presupuesto e invariante de conservación de saldos en transferencias).
+    - `src/features/analytics/model/useAnalyticsStats.test.ts`: Desplazamiento de rangos temporales en analíticas (semana, mes, año, inmutabilidad de fecha base).
+    - `src/shared/config/locales/locales.test.ts`: Contrato de internacionalización, carga dinámica (`loadLocaleMessages`), paridad estricta al 100% y ausencia de claves vacías en los 6 idiomas.
+    - `src/shared/lib/supabaseErrors.test.ts`: Validación de mapeo determinista de códigos de error de invitación hacia claves i18n.
+    - `src/shared/lib/cookieConsent.test.ts`: Pruebas de compatibilidad retroactiva, persistencia en `localStorage`, cookies y flags de cumplimiento legal RGPD.
+  - **Quality Gate Integrado**: Inclusión de la ejecución automática de Vitest en el paso 4 de `npm run audit`, asegurando que ningún cambio defectuoso pueda comitearse.
+- **Soporte de Tarjetas y Cuentas Multi-Divisa (Migración 012 & Suite de Tests de Divisas)**:
+  - **Migración PostgreSQL (`012_multi_currency_accounts.sql`)**: Incorporación de columna `currency public.supported_currency NOT NULL DEFAULT 'EUR'` en la tabla `accounts` con backfill automático según el perfil de usuario e índice `idx_accounts_user_currency`.
+  - **Suite de Pruebas de Cambio de Divisa (`currencyExchange.test.ts`)**: 11 pruebas unitarias cubriendo actualización diaria con tipos históricos, fluctuación drástica con preservación de transacciones pasadas, precisión matemática (IEEE 754 y JPY sin centavos) y resiliencia ante caídas del proveedor (HTTP 500).
+  - **Contexto y Formateo Contextual**: Ampliación de `formatMoney` y `getCurrencySymbol` en `LocaleCurrencyContext` con `currencyOverride` para permitir a cada tarjeta renderizar su saldo en su divisa nativa.
+  - **Configuración de Cuentas y Creación de Transacciones**: Selector de divisa en `AccountsSettings.tsx`, badges de divisa en la lista de cuentas y herencia automática de la divisa de la cuenta seleccionada al registrar transacciones en `TransactionModal.tsx`.
+- **Inmutabilidad Estricta de Divisa por Cuenta (Migración 013 & Triggers)**:
+  - **Migración PostgreSQL (`013_account_currency_immutability.sql`)**: Trigger `trg_prevent_account_currency_change` que impide modificaciones a la divisa de una tarjeta una vez creada, y trigger `trg_sync_transaction_account_currency` que sincroniza de forma determinista `currency = account.currency`, `exchange_rate_used = 1.0` y `base_amount = amount`.
+  - **Saneamiento Histórico**: Corrección de transacciones de prueba con divisas desalineadas en la base de datos de producción de Supabase.
+- **Asistente Progresivo de Creación de Tarjetas (`CreateAccountWizardModal.tsx`)**:
+  - Wizard guiado en 3 pasos interactivos: Identidad Visual -> Elección de Divisa Inmutable -> Saldo Inicial y Ámbito (Personal/Compartido).
+  - Previsualización 3D en tiempo real con efecto Liquid Glass que muta instantáneamente con el icono, color, divisa, saldo y alcance seleccionados.
+- **Interacción Swipe-to-Action y Experiencia Táctil Pura (Cuentas y Categorías)**:
+  - **Edición Directa por Toque**: Apertura inmediata del modal de edición pulsando directamente sobre la tarjeta, con guardia anti-arrastre (`isDraggingRef`).
+  - **Cajón Deslizable Sobrio Exclusivo para Eliminar**: Implementación con Framer Motion (`drag="x"`, 76px) revelando acción de borrado en fondo sutil (`rgba(239, 68, 68, 0.12)`) e icono en rojo (`#ef4444`), erradicando sangrado cromático y botones duplicados.
+  - **Indicadores en Línea & Supresión de Textos Redundantes**: El icono de ámbito (personal/compartido) se ubica en línea junto al título en `var(--accent-primary)`, acompañado del símbolo sutil de divisa.
+  - **Botón Compacto de Reordenación de Tarjetas**: Botón cuadrado compacto de 44x44px con icono `ArrowUpDown` sin etiquetas de texto, maximizando el espacio horizontal para el botón principal de creación.
+- **Contrato Universal de Cabeceras de Ventanas/Modales (Window Header Contract)**:
+  - Estandarización arquitectónica en `.agents/AGENTS.md`, `index.css` y todos los modales:
+    1. Botón de cierre (`X`): Arriba a la izquierda (`left: 0`).
+    2. Título de la ventana: Centrado horizontalmente y alineado exactamente a la altura del botón `X`.
+    3. Descripción/Subtítulo: Centrado horizontalmente justo debajo del título, con ancho máximo relativo y diseño 100% adaptativo en mobile.
+- **Arquitectura Universal de Desplazamiento Vertical y Responsividad en Ventanas Modales (Scroll & 100dvh)**:
+  - Soporte universal de `100dvh` (Dynamic Viewport Height) y `min(92vh, 92dvh, 760px)` con contención de sobredesplazamiento (`overscroll-behavior: contain`) y gestos táctiles (`touch-action: pan-y`).
+  - Erradicación de bloqueos de scroll mediante `margin: auto` en contenedores hijos y `overflow-y: auto` en overlays, previniendo el clipping superior provocado por el centrado de Flexbox en pantallas cortas o con teclado desplegado.
+  - Implementación de `.modal-scroll-area` con barras de desplazamiento sutiles y personalizadas (`::-webkit-scrollbar` translúcido) para affordance visual inmediato en Windows, macOS, Android e iOS.
+  - Media queries adaptativas `@media (max-width: 480px)` y `@media (max-height: 720px)` garantizando un uso ergonómico incluso en pantallas compactas, con teclado en pantalla o en orientación horizontal (landscape).
+- **Rediseño iOS Liquid Glass, Depuración Cromática y Bimodalidad Estricta (Modo Claro & Oscuro)**:
+  - **Color de Acento Predeterminado & Arquitectura Dinámica**: Extracción y fijación del rojo carmesí/fresa del logotipo (`#F71E5D`) como acento base predeterminado de la app, orquestado 100% dinámico a través de `var(--accent-primary)` y `var(--accent-primary-glow)`. La app mantiene total cohesión con cualquier color seleccionado por el usuario en Ajustes.
+  - **Erradicación del Ruido Cromático ("Efecto Arcoíris")**: Sustitución de sombras de neón multicolor en tarjetas por superficies neutras iOS Inset Grouped (`var(--bg-card)` y `var(--bg-tertiary)`), sustituyendo resplandores dispersos por una elegante pastilla vertical de 3.5px que denota el color asignado a la tarjeta y badges de divisa y alcance sin estridencias.
+  - **Soporte Bimodal Integral (Light & Dark Theme)**: Adaptación completa de todas las ventanas modales (`.card-modal`, `CreateAccountWizardModal`, `AccountsSettings`, `CategoriesSettings`, `ReorderCardsModal`, `ColorPickerModal`, `EmojiPickerModal`) a Modo Claro y Modo Oscuro, garantizando contraste óptimo y eliminando cajas de texto blancas desajustadas.
+  - **Ergonomía y Ajuste Móvil iPhone 16**: Optimización milimétrica para pantallas modernas (393 x 852 px), garantizando proporciones armoniosas, botones táctiles de 46px y scroll suave sin cortes ni saturación.
   
