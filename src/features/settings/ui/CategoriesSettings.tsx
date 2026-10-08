@@ -7,6 +7,7 @@ import ColorPickerModal from '../../../shared/ui/ColorPickerModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocaleCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
+import { sanitizeEmoji } from '../../../shared/lib/emoji';
 
 interface SwipeableCategoryCardProps {
   cat: any;
@@ -154,7 +155,7 @@ function SwipeableCategoryCard({
             color: cat.color || 'var(--text-primary)',
           }}
         >
-          {cat.icon}
+          {sanitizeEmoji(cat.icon)}
         </div>
 
         {/* Detalles de la categoría: Nombre e icono de ámbito minimalista al lado (sin texto redundante) */}
@@ -494,7 +495,7 @@ export default function CategoriesSettings({
                   transition: 'transform 0.15s ease',
                 }}
               >
-                {icon}
+                {sanitizeEmoji(icon)}
               </button>
 
               <EmojiPickerModal

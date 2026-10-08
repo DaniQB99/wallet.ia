@@ -42,19 +42,28 @@ export function useCouple() {
   const partner = data?.partner ?? null;
 
   const generateInvite = async () => {
-    const { data, error } = await supabase.rpc('generate_invite_code');
-    if (error) return null;
-    return data;
+    const { data, error } = await supabase.rpc('create_invitation');
+    if (error || !data) return null;
+    const inv = data as { code?: string };
+    return inv.code ?? null;
   };
 
   const acceptInviteMutation = useMutation({
     mutationFn: async (code: string) => {
-      const { data, error } = await supabase.rpc('accept_invite', { invite_code: code });
+      const { data, error } = await supabase.rpc('accept_invitation', { p_code: code.trim().toUpperCase() });
       if (error) throw error;
-      return data;
+      const res = data as { ok?: boolean; error?: string; couple_id?: string } | null;
+      if (res && res.ok === false) {
+        throw new Error(res.error || 'invalid_code');
+      }
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: COUPLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
     },
   });
 
@@ -66,6 +75,10 @@ export function useCouple() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: COUPLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
     },
   });
 
@@ -95,7 +108,7 @@ export function useCouple() {
         await acceptInviteMutation.mutateAsync(code);
         return { error: null };
       } catch (err: any) {
-        return { error: err.message };
+        return { error: err.message || 'invalid_code' };
       }
     },
     unlinkCouple: async () => {

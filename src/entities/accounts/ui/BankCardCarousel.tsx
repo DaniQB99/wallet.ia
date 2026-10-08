@@ -22,6 +22,7 @@ import type { Account } from '../../../shared/types/database';
 import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import { useAccounts } from '../model/useAccounts';
 import ReorderCardsModal from './ReorderCardsModal';
+import { sanitizeEmoji } from '../../../shared/lib/emoji';
 
 interface BankCardCarouselProps {
   accounts: Account[];
@@ -81,7 +82,7 @@ export default function BankCardCarousel({
   // Si no hay cuentas, mostramos la tarjeta vacía para crear
   if (accounts.length === 0) {
     return (
-      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto' }}>
+      <div className="bank-card-carousel" style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto' }}>
         <div
           onClick={onAddAccount}
           style={{
@@ -155,7 +156,7 @@ export default function BankCardCarousel({
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto' }}>
+    <div className="bank-card-carousel" style={{ width: '100%', maxWidth: '480px', margin: '0 auto 20px auto' }}>
       {/* Contenedor relativo enfocado exclusivamente en la tarjeta para centrar las flechas */}
       <div style={{ position: 'relative', width: '100%' }}>
         {/* Contenedor del Carrusel con Swiper */}
@@ -252,7 +253,7 @@ export default function BankCardCarousel({
                   {/* Fila Superior: Nombre de Cuenta y Botón Engranaje (⚙️) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{account.icon || '🏦'}</span>
+                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{sanitizeEmoji(account.icon, '🏦')}</span>
                       <span
                         style={{
                           fontSize: '1rem',

@@ -31,13 +31,14 @@ export default function Dashboard() {
   const [flowType, setFlowType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [showAccounts, setShowAccounts] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [hasDismissedWizard, setHasDismissedWizard] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
   // Estado del carrusel de tarjetas bancarias
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
   // Obtención de datos
-  const { accounts, addAccount } = useAccounts();
+  const { accounts, addAccount, loading: accountsLoading } = useAccounts();
   const { transactions, loading: txLoading } = useTransactions('all');
 
   // Tarjeta activa en el carrusel
@@ -62,6 +63,34 @@ export default function Dashboard() {
     void prefetchRates(transactions.map((tx) => tx.date));
   }, [transactions.length, currency]);
 
+  // Detección de primer uso para abrir el asistente paso a paso de creación de tarjeta si no tiene tarjetas propias
+  useEffect(() => {
+    if (accountsLoading || !user || hasDismissedWizard) return;
+    const ownAccounts = accounts.filter((a) => a.user_id === user.id);
+    if (ownAccounts.length === 0) {
+      const onboardingKey = `walletia_onboarding_${user.id}_completed`;
+      const hasCompletedOnboarding = localStorage.getItem(onboardingKey);
+      const isNewUser = user.created_at
+        ? Date.now() - new Date(user.created_at).getTime() < 86_400_000
+        : false;
+
+      // Si es un usuario nuevo que aún debe ver el tour explicativo, esperamos a que termine
+      if (isNewUser && !hasCompletedOnboarding) {
+        const handleOnboardingDone = () => {
+          setTimeout(() => setShowWizard(true), 350);
+        };
+        window.addEventListener('onboarding-completed', handleOnboardingDone, { once: true });
+        return () => window.removeEventListener('onboarding-completed', handleOnboardingDone);
+      }
+
+      // Si ya vio el tour o no es nuevo pero no tiene tarjetas propias, abrimos el wizard
+      const timer = setTimeout(() => {
+        setShowWizard(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [accounts, accountsLoading, user, hasDismissedWizard]);
+
   // Manejador para abrir modal de transacción vinculado a la tarjeta activa
   const handleQuickAction = (type: 'expense' | 'income' | 'transfer') => {
     setFlowType(type);
@@ -82,6 +111,7 @@ export default function Dashboard() {
 
   // Manejador para añadir una nueva tarjeta (abre el asistente guiado directamente)
   const handleAddAccount = () => {
+    setHasDismissedWizard(false);
     setShowWizard(true);
   };
 
@@ -144,6 +174,7 @@ export default function Dashboard() {
             </div>
           )}
           <button
+            id="dashboard-analytics-btn"
             className="notification-shortcut-btn"
             onClick={() => navigate('/analytics')}
             aria-label={t('viewAnalytics')}
@@ -283,8 +314,14 @@ export default function Dashboard() {
       {/* Asistente interactivo paso a paso para crear tarjeta desde el carrusel */}
       <CreateAccountWizardModal
         isOpen={showWizard}
-        onClose={() => setShowWizard(false)}
-        onSave={addAccount}
+        onClose={() => {
+          setShowWizard(false);
+          setHasDismissedWizard(true);
+        }}
+        onSave={async (accountData) => {
+          await addAccount(accountData);
+          setShowWizard(false);
+        }}
       />
 
       <style>{`

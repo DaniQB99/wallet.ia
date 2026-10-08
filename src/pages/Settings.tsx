@@ -98,6 +98,10 @@ export default function Settings() {
 
 
   const handleLogout = async () => {
+    if (user?.id) {
+      localStorage.removeItem(`walletia_onboarding_${user.id}_completed`);
+    }
+    localStorage.removeItem('walletia_onboarding_completed');
     await signOut();
     navigate('/auth');
   };
@@ -169,8 +173,13 @@ export default function Settings() {
   const handleDeleteAccount = async () => {
     if (!user) return;
     try {
+      const userId = user.id;
       const { error } = await supabase.rpc('delete_user_account');
       if (error) throw error;
+
+      localStorage.removeItem('walletia_onboarding_completed');
+      localStorage.removeItem(`walletia_onboarding_${userId}_completed`);
+      localStorage.removeItem('wallet_hide_card_balance');
 
       alert(t('accountDeletedSuccess'));
       await handleLogout();
@@ -226,7 +235,7 @@ export default function Settings() {
                 desc={t('manageMovements')}
               />
             </div>
-            <div onClick={() => setShowCategories(true)}>
+            <div id="settings-categories-item" onClick={() => setShowCategories(true)}>
               <SettingsItem
                 icon={<Tag size={20} color="var(--accent-primary)" />}
                 label={t('categories')}

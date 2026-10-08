@@ -13,7 +13,7 @@
 - **🧙 Asistente Interactivo de Tarjetas (Liquid Glass 3D):** Proceso guiado en 3 pasos con previsualización tridimensional en tiempo real que muta instantáneamente con el icono, color, divisa, saldo y ámbito de la tarjeta.
 - **✉️ Experiencia Táctil Minimalista Estilo iOS (Cuentas y Categorías):** Edición rápida al pulsar directamente sobre la tarjeta, indicador de ámbito integrado en línea, divisa nativa sobria y eliminación segura mediante deslizamiento suave (`swipe-to-action`) con cajón atenuado sin sangrado cromático.
 - **📱 Ventanas Modales 100% Responsivas y Desplazables (100dvh):** Todas las pantallas emergentes cuentan con cabeceras estandarizadas, soporte de altura dinámica para móviles (`100dvh`), desplazamiento vertical ultra-suave sin bloqueos y botones de acción siempre al alcance en cualquier dispositivo.
-- **✨ Onboarding Premium:** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion) y un diseño *glassmorphism* exquisito.
+- **✨ Onboarding Premium Interactivo (8 Pasos):** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion), foco *spotlight* en elementos reales del DOM, acceso a analíticas y selector inicial para crear categorías esenciales por defecto o empezar la cuenta 100% desde cero.
 - **🖼️ Avatares Personalizables:** Subida de fotos de perfil integradas con Supabase Storage (HTML5 nativo para cámara/galería) y sincronización automática de fotos de Google Auth.
 - **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página.
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.
@@ -37,7 +37,7 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 - **Framer Motion** para micro-interacciones, físicas de rebote y transiciones de UI de gama alta.
 - **Lucide React** para iconografía minimalista.
 - **🔑 Flujo de Recuperación de Contraseña & Notch Móvil:** Pantalla de restablecimiento de contraseña dedicada (`/reset-password`) con validación en tiempo real, soporte adaptativo para cámaras frontales e islas dinámicas (`env(safe-area-inset-top)`) y cobertura robusta ante fallos de OAuth o tokens expirados.
-- **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 447 claves 100% activas (`npm run i18n:check` y `npm run audit`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
+- **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 460 claves 100% activas (`npm run i18n:check` y `npm run audit`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
 
 **Backend & Datos:**
 

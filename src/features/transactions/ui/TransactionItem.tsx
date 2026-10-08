@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Transaction } from '../../../shared/types/database';
 import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { sanitizeEmoji } from '../../../shared/lib/emoji';
 import { useAuthContext } from '../../../app/providers/AuthContext';
 import { useCouple } from '../../auth/model/useCouple';
 
@@ -23,12 +24,16 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
   const foreignAmount = Math.abs(Number(tx.base_amount || tx.amount));
 
   let initial = 'U';
+  let authorLabel = '';
   if (tx.user_id === user?.id) {
     initial = user?.display_name?.[0] || user?.email?.[0] || 'U';
+    authorLabel = user?.display_name || t('me');
   } else if (partner && tx.user_id === partner.id) {
     initial = partner.display_name?.[0] || partner.email?.[0] || 'P';
+    authorLabel = partner.display_name || t('partner');
   } else {
     initial = 'P';
+    authorLabel = t('partner');
   }
   initial = initial.toUpperCase();
 
@@ -46,7 +51,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
             color: tx.category?.color || 'var(--text-primary)'
           }}
         >
-          {tx.category ? tx.category.icon : '🏷️'}
+          {tx.category ? sanitizeEmoji(tx.category.icon, '🏷️') : '🏷️'}
         </div>
         {tx.type === 'shared' && (
           <div style={{
@@ -75,13 +80,23 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ tx, onClick, s
           {tx.category?.name ? translateEntityName(tx.category.name, 'category') : t('others')}
         </div>
 
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           {isCrossCurrency ? (
             <span>
               {foreignAmount.toFixed(2)} {tx.currency} {t('exchangeRateInfo').replace('{rate}', `${tx.exchange_rate_used?.toFixed(4) || 1.0}`)}
             </span>
           ) : (
-            tx.account && (<span>{tx.account.icon} {translateEntityName(tx.account.name, 'account')}</span>)
+            tx.account && (
+              <span>
+                {sanitizeEmoji(tx.account.icon, '💳')} {translateEntityName(tx.account.name, 'account')}
+              </span>
+            )
+          )}
+          {tx.type === 'shared' && authorLabel && (
+            <>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{authorLabel}</span>
+            </>
           )}
         </div>
       </div>

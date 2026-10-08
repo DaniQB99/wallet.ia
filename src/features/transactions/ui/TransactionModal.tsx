@@ -24,7 +24,9 @@ import { useLocaleCurrency, type SupportedCurrency } from '../../../app/provider
 import AccountsSettings from '../../settings/ui/AccountsSettings';
 import CategoriesSettings from '../../settings/ui/CategoriesSettings';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
+import { useCouple } from '../../auth/model/useCouple';
 import { parseCurrencyInput } from '../../../shared/lib/financialMath';
+import { sanitizeEmoji } from '../../../shared/lib/emoji';
 
 // Helpers para manejo de fechas de calendario sin sesgo por zona horaria (UTC vs Local)
 const toLocalDateString = (d: Date = new Date()): string => {
@@ -73,6 +75,7 @@ export default function TransactionModal({
   // Servicios
   const { currency, t, formatMoney, formatDate, getCurrencySymbol, translateEntityName } = useLocaleCurrency();
   const { addTransaction, addRecurringTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { couple } = useCouple();
   const { accounts } = useAccounts();
   const { categories: personalCategories, deleteCategory: deletePersonalCategory } = useCategories('personal');
   const { categories: sharedCategories, deleteCategory: deleteSharedCategory } = useCategories('shared');
@@ -272,6 +275,8 @@ export default function TransactionModal({
     try {
       const selectedAcc = accounts.find(a => a.id === accountId);
       const accCurrency = (selectedAcc?.currency as SupportedCurrency) || currency || 'EUR';
+      const resolvedCoupleId = selectedAcc?.couple_id || (scope === 'shared' && couple?.status === 'active' ? couple.id : null);
+
       if (editTransaction) {
         const err = await updateTransaction(editTransaction.id, {
           amount: finalAmount,
@@ -282,6 +287,7 @@ export default function TransactionModal({
           category_id: categoryId || null,
           account_id: accountId || null,
           type: scope,
+          couple_id: resolvedCoupleId,
           date,
         });
         if (err) throw err;
@@ -294,6 +300,7 @@ export default function TransactionModal({
             account_id: accountId || null,
             destination_account_id: flowType === 'transfer' ? destinationAccountId : null,
             type: scope,
+            couple_id: resolvedCoupleId,
             interval,
             start_date: date,
             end_date: null,
@@ -317,6 +324,7 @@ export default function TransactionModal({
               description: description.trim(),
               account_id: accountId,
               type: scope,
+              couple_id: resolvedCoupleId,
               date,
               currency: accCurrency,
               exchange_rate_used: 1.0,
@@ -328,6 +336,7 @@ export default function TransactionModal({
               description: description.trim(),
               account_id: destinationAccountId,
               type: scope,
+              couple_id: destAcc?.couple_id || resolvedCoupleId,
               date,
               currency: destCurrency,
               exchange_rate_used: 1.0,
@@ -345,6 +354,7 @@ export default function TransactionModal({
             category_id: categoryId || null,
             account_id: accountId || null,
             type: scope,
+            couple_id: resolvedCoupleId,
             date,
           });
           if (err) throw err;
@@ -1006,7 +1016,7 @@ export default function TransactionModal({
                   flexShrink: 0,
                 }}
               >
-                {selectedAccount?.icon || '🏦'}
+                {sanitizeEmoji(selectedAccount?.icon, '🏦')}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1063,7 +1073,7 @@ export default function TransactionModal({
                     flexShrink: 0,
                   }}
                 >
-                  {selectedDestAccount?.icon || '🏦'}
+                  {sanitizeEmoji(selectedDestAccount?.icon, '🏦')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1159,7 +1169,7 @@ export default function TransactionModal({
             <div className="tx-field-card" style={{ padding: '10px 14px' }} onClick={() => setView('category')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: '1.25rem', lineHeight: 1, flexShrink: 0 }}>
-                  {selectedCategory?.icon || '🏷️'}
+                  {sanitizeEmoji(selectedCategory?.icon, '🏷️')}
                 </span>
                 <span style={{ fontSize: '0.92rem', fontWeight: 500, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {selectedCategory
@@ -1388,7 +1398,7 @@ export default function TransactionModal({
                     border: '1px solid rgba(255,255,255,0.1)',
                   }}
                 >
-                  {acc.icon || '🏦'}
+                  {sanitizeEmoji(acc.icon, '🏦')}
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
@@ -1586,7 +1596,7 @@ export default function TransactionModal({
               }}
             >
               <span style={{ fontSize: '1.8rem', filter: categoryId === cat.id ? 'none' : 'grayscale(25%)' }}>
-                {cat.icon}
+                {sanitizeEmoji(cat.icon)}
               </span>
               <span style={{ fontSize: '0.75rem', fontWeight: categoryId === cat.id ? 600 : 400, textAlign: 'center' }}>
                 {translateEntityName(cat.name, 'category')}

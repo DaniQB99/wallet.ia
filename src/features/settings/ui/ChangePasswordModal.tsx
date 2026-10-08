@@ -50,6 +50,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     setSuccess(null);
 
     // Frontend validations
+    if (!currentPassword) {
+      setError(t('currentPasswordRequired'));
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError(t('passwordsDoNotMatch'));
       return;
@@ -145,6 +149,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   type={showCurrent ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder={t('enterCurrentPassword')}
                   required
                   disabled={loading || !!success}
                   style={{ width: '100%', paddingRight: '40px' }}

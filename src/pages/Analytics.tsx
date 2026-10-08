@@ -327,15 +327,17 @@ export default function Analytics() {
         </div>
 
         {/* 4. Gráfica Circular Moderna Donut */}
-        <ModernDonutChart
-          categories={currentCategories}
-          total={currentTotal}
-          viewType={viewType}
-          onCategoryClick={handleCategoryClick}
-          activeCategoryId={hoveredCategoryId}
-          onHoverCategory={setHoveredCategoryId}
-          loading={txLoading || accLoading}
-        />
+        <div className="analytics-donut-section">
+          <ModernDonutChart
+            categories={currentCategories}
+            total={currentTotal}
+            viewType={viewType}
+            onCategoryClick={handleCategoryClick}
+            activeCategoryId={hoveredCategoryId}
+            onHoverCategory={setHoveredCategoryId}
+            loading={txLoading || accLoading}
+          />
+        </div>
 
         {/* 5. Listado de categorías */}
         <div>

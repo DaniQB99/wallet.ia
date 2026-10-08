@@ -18,7 +18,7 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
       // First, find if there is a couple linked
       const { data: coupleLink } = await supabase
         .from('couple_links')
-        .select('user_a_id, user_b_id')
+        .select('id, user_a_id, user_b_id')
         .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
         .eq('status', 'active')
         .maybeSingle();
@@ -54,10 +54,26 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
   const addMutation = useMutation({
     mutationFn: async (tx: Partial<Transaction> | Partial<Transaction>[]) => {
       if (!userId) throw new Error('Not authenticated');
+
+      // Buscar si existe un vínculo activo para asociar automáticamente couple_id
+      const { data: activeLink } = await supabase
+        .from('couple_links')
+        .select('id')
+        .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
+        .eq('status', 'active')
+        .maybeSingle();
       
       const insertData = Array.isArray(tx) 
-        ? tx.map(t => ({ ...t, user_id: userId }))
-        : { ...tx, user_id: userId };
+        ? tx.map(t => ({
+            ...t,
+            user_id: userId,
+            couple_id: t.couple_id || (t.type === 'shared' ? activeLink?.id : null),
+          }))
+        : {
+            ...tx,
+            user_id: userId,
+            couple_id: tx.couple_id || (tx.type === 'shared' ? activeLink?.id : null),
+          };
         
       const { data, error } = await supabase.from('transactions').insert(insertData as any).select();
       if (error) throw error;

@@ -10,6 +10,7 @@ import type { Transaction, TransactionType } from '../shared/types/database';
 import TransactionModal from '../features/transactions/ui/TransactionModal';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
 import { TransactionItem } from '@/features/transactions/ui/TransactionItem';
+import { sanitizeEmoji } from '../shared/lib/emoji';
 
 /**
  * Vista central de Movimientos Financieros (Transacciones).
@@ -270,7 +271,7 @@ export default function Transactions() {
             style={isDesktop ? { flex: 1, justifyContent: 'center' } : {}}
           >
             <Tag size={14} />
-            {selectedCatFilter ? `${selectedCatFilter.icon} ${translateEntityName(selectedCatFilter.name, 'category')}` : t('category')}
+            {selectedCatFilter ? `${sanitizeEmoji(selectedCatFilter.icon)} ${translateEntityName(selectedCatFilter.name, 'category')}` : t('category')}
           </button>
 
           <button
@@ -293,7 +294,7 @@ export default function Transactions() {
                 {accounts.map(acc => (
                   <button key={acc.id} className={`kebo-filter-option ${filterAccount === acc.id ? 'active' : ''}`}
                     onClick={() => { setFilterAccount(acc.id); setShowFilterAccount(false); }}>
-                    {acc.icon} {translateEntityName(acc.name, 'account')}
+                    {sanitizeEmoji(acc.icon)} {translateEntityName(acc.name, 'account')}
                     <span style={{ marginLeft: 'auto', color: 'var(--accent-primary-hover)', fontSize: '0.8rem' }}>
                       {formatMoney(acc.balance)}
                     </span>
@@ -324,7 +325,7 @@ export default function Transactions() {
                 {allCategories.map(cat => (
                   <button key={cat.id} className={`kebo-filter-option ${filterCategory === cat.id ? 'active' : ''}`}
                     onClick={() => { setFilterCategory(cat.id); setShowFilterCategory(false); }}>
-                    {cat.icon} {translateEntityName(cat.name, 'category')}
+                    {sanitizeEmoji(cat.icon)} {translateEntityName(cat.name, 'category')}
                   </button>
                 ))}
               </div>

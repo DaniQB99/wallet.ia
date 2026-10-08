@@ -11,6 +11,7 @@ import type { Account } from '../../../shared/types/database';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
 import ReorderCardsModal from '../../../entities/accounts/ui/ReorderCardsModal';
 import CreateAccountWizardModal from './CreateAccountWizardModal';
+import { sanitizeEmoji } from '../../../shared/lib/emoji';
 
 interface AccountsSettingsProps {
   onClose: () => void;
@@ -175,7 +176,7 @@ function SwipeableAccountCard({
             color: acc.color || 'var(--text-primary)',
           }}
         >
-          {acc.icon || <CreditCard size={20} />}
+          {sanitizeEmoji(acc.icon) || <CreditCard size={20} />}
         </div>
 
         {/* Contenido principal: Nombre arriba con emoticonos e indicadores minimalistas, Saldo nativo abajo */}
@@ -643,7 +644,7 @@ export default function AccountsSettings({ onClose, initialEditingAccountId, zIn
                             cursor: 'pointer',
                           }}
                         >
-                          {editIcon}
+                          {sanitizeEmoji(editIcon)}
                         </button>
                       </div>
 

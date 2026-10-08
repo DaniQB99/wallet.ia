@@ -158,4 +158,18 @@ Las tablas en Supabase ya reflejan:
   - **Desacoplamiento de Divisa Global**: Eliminación de selectores y modales de conversión de divisa global en `Settings.tsx`, consolidando el modelo de cuentas y tarjetas con divisas independientes e inmutables.
   - **Navegación Intuitiva de Cuentas en Dashboard**: El botón rápido de "Cuentas" en el Dashboard abre directamente el panel de gestión `AccountsSettings` ("Cuentas y Tarjetas"), desde donde el usuario puede consultar su balance o lanzar el asistente guiado "+ Nueva tarjeta".
   - **Integridad y Limpieza i18n (447 claves activas)**: Corrección de etiquetas tipográficas (`Gestión de categorías`, `Color`) y purga de 8 claves de conversión obsoletas en los 6 idiomas.
+- **Tour Guiado de Bienvenida Interactivo (8 Pasos) & Selección Inicial de Categorías**:
+  - **Recorrido Real y Secuencial de la Aplicación**:
+    1. *Bienvenida*: Introducción al centro financiero para finanzas individuales y en pareja.
+    2. *Tarjetas 3D y Saldos*: Carrusel Liquid Glass interactivo (`.bank-card-carousel`).
+    3. *Acciones Rápidas & Botón Central (+)*: Explicación de los 4 botones de acceso rápido (Gasto, Ingreso, Transferencia, Cuentas) y affordance del botón circular `(+)` central de la barra inferior para registrar transacciones desde cualquier pantalla (`.dashboard-actions-grid`).
+    4. *Acceso a Analíticas*: Foco en el icono de gráfico circular de la esquina superior del Dashboard (`#dashboard-analytics-btn`) indicando cómo entrar a las métricas.
+    5. *Analíticas & Gráfica Donut*: Transición guiada a `/analytics` con foco en la gráfica interactiva Donut (`.analytics-donut-section`) e icono circular representativo.
+    6. *Categorías en Ajustes con Pregunta Interactiva*: Transición a `/settings` focalizando la sección de Categorías (`#settings-categories-item`) con elección inicial en 2 opciones:
+       - *Categorías por defecto (Recomendado)*: Siembra de las 9 categorías iniciales esenciales con emojis limpios, editables en cualquier momento.
+       - *Empezar desde cero*: Limpieza de categorías para configuración personalizada por el usuario desde cero.
+    7. *Finanzas en Pareja*: Vinculación mediante código compartido y permisos en Ajustes (`#settings-partner-card`).
+    8. *Barra de Navegación Completa*: Vista general de navegación global con gota deslizante (`.bottom-nav-container`).
+  - **Regla Pre-Commit de Consistencia de Onboarding**: Inclusión obligatoria en `.agents/AGENTS.md` y memoria Engram de mantener sincronizado `OnboardingOverlay.tsx` antes de cada commit.
+  - **Paridad i18n Estricta (460 claves)**: Sincronización al 100% en los 6 idiomas oficiales (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`).
   

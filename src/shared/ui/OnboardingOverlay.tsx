@@ -2,11 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 import { useAuthContext } from '../../app/providers/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../api/supabase';
+import { DEFAULT_CATEGORIES } from '../config/defaultCategories';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet,
   PlusCircle,
-  BarChart2,
+  PieChart,
+  Tag,
   Compass,
   ChevronRight,
   ChevronLeft,
@@ -23,12 +27,14 @@ import {
 
 /** CSS selectors for target elements highlighted in each step.        */
 const STEP_SELECTORS: (string | null)[] = [
-  null,                    // 0 — Welcome (no highlight)
-  '.stats-grid',           // 1 — Balance cards
-  '.quick-actions-mobile', // 2 — Quick actions
-  '.dashboard-grid',       // 3 — Transactions
-  '#settings-partner-card', // 4 — Partner Settings
-  '.bottom-nav-container', // 5 — Navigation bar
+  null,                       // 0 — Welcome (no highlight)
+  '.bank-card-carousel',      // 1 — Balance cards / Carrusel 3D
+  '.dashboard-actions-grid',  // 2 — Quick actions & center (+)
+  '#dashboard-analytics-btn', // 3 — Analytics shortcut button in header
+  '.analytics-donut-section', // 4 — Analytics Donut chart
+  '#settings-categories-item',// 5 — Categories item in Settings
+  '#settings-partner-card',   // 6 — Partner Settings
+  '.bottom-nav-container',    // 7 — Navigation bar
 ];
 
 const TOTAL_STEPS = STEP_SELECTORS.length;
@@ -52,6 +58,7 @@ interface HighlightRect {
 export default function OnboardingOverlay() {
   const { t } = useLocaleCurrency();
   const { user } = useAuthContext();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -59,6 +66,7 @@ export default function OnboardingOverlay() {
   const [currentStep, setCurrentStep] = useState(0);
   const [highlightRect, setHighlightRect] = useState<HighlightRect | null>(null);
   const [direction, setDirection] = useState(1);
+  const [categoryChoice, setCategoryChoice] = useState<'default' | 'clean'>('default');
 
   /* ---- Step definitions (rebuilt every render for i18n) ---- */
 
@@ -98,14 +106,36 @@ export default function OnboardingOverlay() {
     },
     {
       path: '/',
-      cardPosition: 'top' as const,
-      pointerDirection: 'down' as const,
-      icon: <BarChart2 size={28} strokeWidth={1.5} />,
+      cardPosition: 'bottom' as const,
+      pointerDirection: 'up' as const,
+      icon: <PieChart size={28} strokeWidth={1.5} />,
       iconBg: 'rgba(245, 158, 11, 0.15)',
       iconColor: '#f59e0b',
+      subtitle: t('onboardingSubAnalyticsShortcut'),
+      title: t('onboardingAnalyticsShortcutTitle'),
+      desc: t('onboardingAnalyticsShortcutDesc'),
+    },
+    {
+      path: '/analytics',
+      cardPosition: 'top' as const,
+      pointerDirection: 'down' as const,
+      icon: <PieChart size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(236, 72, 153, 0.15)',
+      iconColor: '#ec4899',
       subtitle: t('onboardingSub4'),
       title: t('onboardingStep4Title'),
       desc: t('onboardingStep4Desc'),
+    },
+    {
+      path: '/settings',
+      cardPosition: 'bottom' as const,
+      pointerDirection: 'up' as const,
+      icon: <Tag size={28} strokeWidth={1.5} />,
+      iconBg: 'rgba(239, 68, 68, 0.15)',
+      iconColor: '#ef4444',
+      subtitle: t('onboardingSubCategories'),
+      title: t('onboardingCategoriesTitle'),
+      desc: t('onboardingCategoriesDesc'),
     },
     {
       path: '/settings',
@@ -146,7 +176,8 @@ export default function OnboardingOverlay() {
     };
     window.addEventListener('show-onboarding', handleShowOnboarding);
 
-    const hasSeenOnboarding = localStorage.getItem('walletia_onboarding_completed');
+    const onboardingKey = user ? `walletia_onboarding_${user.id}_completed` : null;
+    const hasSeenOnboarding = onboardingKey ? localStorage.getItem(onboardingKey) : null;
     const isNewUser = user?.created_at
       ? Date.now() - new Date(user.created_at).getTime() < 86_400_000
       : false;
@@ -206,7 +237,13 @@ export default function OnboardingOverlay() {
 
     // Scroll target into view, then measure
     const el = document.querySelector(selector);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el) {
+      const cardPos = steps[currentStep]?.cardPosition;
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: cardPos === 'bottom' ? 'start' : 'center',
+      });
+    }
 
     // Immediate measurement + continuous tracking
     updateRect();
@@ -228,17 +265,54 @@ export default function OnboardingOverlay() {
       window.removeEventListener('resize', throttledUpdate);
       window.removeEventListener('scroll', throttledUpdate, true);
     };
-  }, [currentStep, isVisible]);
+  }, [currentStep, isVisible, steps]);
 
   /* ---- Handlers ---- */
 
-  const handleFinish = useCallback(() => {
+  const applyCategoryChoice = useCallback(
+    async (choice: 'default' | 'clean') => {
+      if (!user?.id) return;
+      try {
+        if (choice === 'clean') {
+          await supabase.from('categories').delete().eq('user_id', user.id);
+        } else {
+          const { data: existing } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1);
+          if (!existing || existing.length === 0) {
+            const toInsert = DEFAULT_CATEGORIES.map((cat) => ({
+              ...cat,
+              user_id: user.id,
+            }));
+            await supabase.from('categories').insert(toInsert);
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      } catch (err) {
+        console.error('Error applying category choice:', err);
+      }
+    },
+    [user?.id, queryClient]
+  );
+
+  const handleFinish = useCallback(async () => {
+    if (user?.id) {
+      localStorage.setItem(`walletia_onboarding_${user.id}_completed`, 'true');
+    }
     localStorage.setItem('walletia_onboarding_completed', 'true');
+    await applyCategoryChoice(categoryChoice);
     setIsVisible(false);
     setHighlightRect(null);
-  }, []);
+    window.dispatchEvent(new Event('onboarding-completed'));
+  }, [user?.id, applyCategoryChoice, categoryChoice]);
 
   const nextStep = useCallback(() => {
+    if (currentStep === 5) {
+      void applyCategoryChoice(categoryChoice);
+    }
+
     if (currentStep < TOTAL_STEPS - 1) {
       setDirection(1);
       const next = currentStep + 1;
@@ -252,9 +326,9 @@ export default function OnboardingOverlay() {
       if (!STEP_SELECTORS[next]) setHighlightRect(null);
       setCurrentStep(next);
     } else {
-      handleFinish();
+      void handleFinish();
     }
-  }, [currentStep, handleFinish, navigate, location.pathname, steps]);
+  }, [currentStep, handleFinish, navigate, location.pathname, steps, applyCategoryChoice, categoryChoice]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 0) {
@@ -394,6 +468,50 @@ export default function OnboardingOverlay() {
                     </div>
                   </div>
                   <p className="onboarding-desc">{step.desc}</p>
+                  {currentStep === 5 && (
+                    <div className="onboarding-choices-container">
+                      <button
+                        type="button"
+                        className={`onboarding-choice-card ${
+                          categoryChoice === 'default'
+                            ? 'onboarding-choice-card--active'
+                            : ''
+                        }`}
+                        onClick={() => setCategoryChoice('default')}
+                      >
+                        <div className="onboarding-choice-header">
+                          <span className="onboarding-choice-title">
+                            {t('onboardingCatOptionDefault')}
+                          </span>
+                          <span className="onboarding-choice-badge">
+                            {t('onboardingCatRecommended')}
+                          </span>
+                        </div>
+                        <p className="onboarding-choice-desc">
+                          {t('onboardingCatOptionDefaultDesc')}
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`onboarding-choice-card ${
+                          categoryChoice === 'clean'
+                            ? 'onboarding-choice-card--active'
+                            : ''
+                        }`}
+                        onClick={() => setCategoryChoice('clean')}
+                      >
+                        <div className="onboarding-choice-header">
+                          <span className="onboarding-choice-title">
+                            {t('onboardingCatOptionClean')}
+                          </span>
+                        </div>
+                        <p className="onboarding-choice-desc">
+                          {t('onboardingCatOptionCleanDesc')}
+                        </p>
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               </AnimatePresence>
 
