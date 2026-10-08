@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { AuthProvider } from './providers/AuthContext';
 import { AppearanceProvider } from './providers/AppearanceContext';
 import { LocaleCurrencyProvider } from './providers/LocaleCurrencyContext';
@@ -39,6 +40,7 @@ export default function App() {
       <QueryProvider>
         <BrowserRouter>
           <SpeedInsights />
+          <VercelAnalytics />
           <AppearanceProvider>
             <AuthProvider>
               <LocaleCurrencyProvider>
