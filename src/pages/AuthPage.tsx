@@ -1,9 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle, X } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useLocaleCurrency } from '../app/providers/LocaleCurrencyContext';
+import { getAuthErrorI18nKey } from '../shared/lib/supabaseErrors';
 
 type AuthMode = 'login' | 'register';
 
@@ -13,14 +14,14 @@ type AuthMode = 'login' | 'register';
  * Integra recuperación de contraseñas y retroalimentación interactiva de estado mediante notificaciones visuales (toasts).
  */
 export default function AuthPage() {
-  const { user, loading, error, signIn, signUp, signInWithOAuth, resetPassword, clearError } = useAuthContext();
+  const { user, loading, error, signIn, signUp, signInWithOAuth, clearError } = useAuthContext();
   const { t } = useLocaleCurrency();
   const [mode, setMode] = useState<AuthMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
 
     const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,7 +58,6 @@ export default function AuthPage() {
     clearError();
     setLocalError(null);
     setRegistrationSuccess(false);
-    setResetSent(false);
 
     if (mode === 'register' && !validateEmail(email)) {
       setLocalError('El correo electrónico no tiene un formato válido.');
@@ -81,19 +81,6 @@ export default function AuthPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleResetPassword = async () => {
-    clearError();
-    setLocalError(null);
-    setResetSent(false);
-
-    if (!validateEmail(email)) {
-      setLocalError('Introduce un email válido para recuperar la contraseña.');
-      return;
-    }
-    const success = await resetPassword(email);
-    setResetSent(success);
   };
 
   return (
@@ -166,13 +153,7 @@ export default function AuthPage() {
           {(error || localError) && (
             <div className="auth-error">
               <span>⚠️</span>
-              <span>{error || localError}</span>
-            </div>
-          )}
-          {resetSent && (
-            <div className="auth-error" style={{ background: 'var(--success-bg)', borderColor: 'rgba(16,185,129,0.25)', color: 'var(--success)' }}>
-              <span>✅</span>
-              <span>Revisa tu correo. Te hemos enviado el enlace de recuperación.</span>
+              <span>{error ? t(getAuthErrorI18nKey(error)) : localError}</span>
             </div>
           )}
 
@@ -211,14 +192,14 @@ export default function AuthPage() {
             </div>
 
             {mode === 'login' && (
-              <button
-                type="button"
+              <Link
+                to="/reset-password"
+                state={{ email }}
                 className="auth-link"
-                onClick={handleResetPassword}
                 style={{ alignSelf: 'flex-end', marginTop: '-10px' }}
               >
                 {t('forgotPassword')}
-              </button>
+              </Link>
             )}
 
             <div className="auth-field">

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../app/providers/AuthContext';
 import { useAppearance } from '../app/providers/AppearanceContext';
-import { useLocaleCurrency, type SupportedCurrency, type SupportedLocale } from '../app/providers/LocaleCurrencyContext';
+import { useLocaleCurrency, type SupportedLocale } from '../app/providers/LocaleCurrencyContext';
 import { Wallet, Tag } from 'lucide-react';
 import { openCookieSettings } from '../shared/lib/cookieConsent';
 import AccountsSettings from '../features/settings/ui/AccountsSettings';
@@ -71,9 +71,8 @@ export default function Settings() {
   const { theme, resolvedTheme, setTheme, accentColor, setAccentColor } = useAppearance();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { locale, setLocale, currency, setCurrency, t } = useLocaleCurrency();
+  const { locale, setLocale, t } = useLocaleCurrency();
   const [showAccounts, setShowAccounts] = useState(false);
-  const [isConvertingCurrency, setIsConvertingCurrency] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showPartner, setShowPartner] = useState(false);
@@ -111,20 +110,10 @@ export default function Settings() {
 
   const [showAccentPicker, setShowAccentPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-  const [pendingCurrencyChange, setPendingCurrencyChange] = useState<SupportedCurrency | null>(null);
 
   const regionNames = useMemo(() => {
     try {
       return new Intl.DisplayNames([locale], { type: 'region' });
-    } catch {
-      return null;
-    }
-  }, [locale]);
-
-  const currencyNames = useMemo(() => {
-    try {
-      return new Intl.DisplayNames([locale], { type: 'currency' });
     } catch {
       return null;
     }
@@ -139,18 +128,6 @@ export default function Settings() {
     { value: 'pt-PT', regionCode: 'PT', flag: '🇵🇹', native: 'Português' },
   ];
 
-  const currencyOptions: { value: SupportedCurrency; flag: string; regionCode: string; symbol: string }[] = [
-    { value: 'EUR', flag: '🇪🇺', regionCode: 'EU', symbol: '€' },
-    { value: 'USD', flag: '🇺🇸', regionCode: 'US', symbol: '$' },
-    { value: 'GBP', flag: '🇬🇧', regionCode: 'GB', symbol: '£' },
-    { value: 'JPY', flag: '🇯🇵', regionCode: 'JP', symbol: '¥' },
-    { value: 'MXN', flag: '🇲🇽', regionCode: 'MX', symbol: '$' },
-    { value: 'BRL', flag: '🇧🇷', regionCode: 'BR', symbol: 'R$' },
-    { value: 'ARS', flag: '🇦🇷', regionCode: 'AR', symbol: '$' },
-    { value: 'COP', flag: '🇨🇴', regionCode: 'CO', symbol: '$' },
-    { value: 'CLP', flag: '🇨🇱', regionCode: 'CL', symbol: '$' },
-  ];
-
   // Prompt de instalación PWA
   const [deferredPrompt, setDeferredPrompt] = useState<unknown>(null);
 
@@ -162,51 +139,6 @@ export default function Settings() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
   }, []);
-
-  const handleChangeCurrency = (newCurrency: SupportedCurrency) => {
-    if (newCurrency === currency) {
-      setShowCurrencyPicker(false);
-      return;
-    }
-    setPendingCurrencyChange(newCurrency);
-  };
-
-  const confirmCurrencyChange = async () => {
-    if (!pendingCurrencyChange) return;
-    const newCurrency = pendingCurrencyChange;
-    setIsConvertingCurrency(true);
-    try {
-      // Fetch exchange rate from current to new
-      let rate = 1;
-      if (currency !== newCurrency) {
-        const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=${currency}&to=${newCurrency}`);
-        if (!res.ok) throw new Error(t('networkErrorExchangeRate'));
-        const data = await res.json();
-        rate = Number(data?.rates?.[newCurrency]);
-
-        if (!Number.isFinite(rate) || rate <= 0) {
-          throw new Error(t('invalidExchangeRate'));
-        }
-      }
-
-      const { error } = await supabase.rpc('convert_user_currency', {
-        p_user_id: user!.id,
-        p_exchange_rate: rate,
-        p_new_currency: newCurrency
-      });
-
-      if (error) throw error;
-
-      setCurrency(newCurrency);
-      setShowCurrencyPicker(false);
-    } catch (err: unknown) {
-      console.error('Error al cambiar la divisa:', err);
-      alert(t('errorChangingCurrency') + (err as Error).message);
-    } finally {
-      setIsConvertingCurrency(false);
-      setPendingCurrencyChange(null);
-    }
-  };
 
   // Gestión de Datos
   const handleExportData = async () => {
@@ -376,14 +308,6 @@ export default function Settings() {
                 icon={<Globe size={20} />}
                 label={t('language')}
                 desc={`${localeOptions.find(l => l.value === locale)?.flag} ${localeOptions.find(l => l.value === locale)?.native}`}
-              />
-            </div>
-
-            <div onClick={() => setShowCurrencyPicker(true)}>
-              <SettingsItem
-                icon={<Wallet size={20} />}
-                label={t('currency')}
-                desc={`${currencyOptions.find(c => c.value === currency)?.flag} ${currencyNames?.of(currency) || currency} (${currencyOptions.find(c => c.value === currency)?.symbol} ${currency})`}
               />
             </div>
           </div>
@@ -581,67 +505,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ─── Currency Picker Modal ─── */}
-      {showCurrencyPicker && (
-        <div className="modal-overlay" onClick={() => setShowCurrencyPicker(false)}>
-          <div className="modal animate-in" style={{ maxWidth: '420px', padding: 0 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setShowCurrencyPicker(false)}
-                style={{ left: '20px' }}
-                aria-label={t('close')}
-              >
-                <X size={20} />
-              </button>
-              <h2 className="modal-title">{t('currency')}</h2>
-            </div>
-            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              {currencyOptions.map(item => (
-                <div
-                  key={item.value}
-                  onClick={() => handleChangeCurrency(item.value)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px',
-                    cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                    background: currency === item.value ? 'rgba(var(--accent-primary-rgb, 99, 102, 241), 0.06)' : 'transparent',
-                    transition: 'var(--transition-fast)',
-                  }}
-                >
-                  <span style={{ fontSize: '2rem', lineHeight: 1 }}>{item.flag}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.regionCode && regionNames ? regionNames.of(item.regionCode) : item.value}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{(currencyNames?.of(item.value) || item.value)} ({item.symbol} {item.value})</div>
-                  </div>
-                  {currency === item.value && (
-                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white' }} />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            {isConvertingCurrency && (
-              <div style={{ padding: '12px 20px', fontSize: '0.85rem', color: 'var(--accent-primary)', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
-                {t('convertingDataMessage')}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <DoubleConfirmModal
-        isOpen={!!pendingCurrencyChange}
-        onClose={() => setPendingCurrencyChange(null)}
-        onConfirm={confirmCurrencyChange}
-        titleStep1={t('changeCurrencyStep1Title')}
-        descStep1={t('changeCurrencyStep1Desc').replace('{old}', currency || '').replace('{new}', pendingCurrencyChange || '')}
-        titleStep2={t('changeCurrencyStep2Title')}
-        descStep2={t('changeCurrencyStep2Desc')}
-        loading={isConvertingCurrency}
-      />
-
+      {/* ─── Color Picker Modal ─── */}
       <ColorPickerModal
         isOpen={showAccentPicker}
         onClose={() => setShowAccentPicker(false)}

@@ -150,4 +150,12 @@ Las tablas en Supabase ya reflejan:
   - **Erradicación del Ruido Cromático ("Efecto Arcoíris")**: Sustitución de sombras de neón multicolor en tarjetas por superficies neutras iOS Inset Grouped (`var(--bg-card)` y `var(--bg-tertiary)`), sustituyendo resplandores dispersos por una elegante pastilla vertical de 3.5px que denota el color asignado a la tarjeta y badges de divisa y alcance sin estridencias.
   - **Soporte Bimodal Integral (Light & Dark Theme)**: Adaptación completa de todas las ventanas modales (`.card-modal`, `CreateAccountWizardModal`, `AccountsSettings`, `CategoriesSettings`, `ReorderCardsModal`, `ColorPickerModal`, `EmojiPickerModal`) a Modo Claro y Modo Oscuro, garantizando contraste óptimo y eliminando cajas de texto blancas desajustadas.
   - **Ergonomía y Ajuste Móvil iPhone 16**: Optimización milimétrica para pantallas modernas (393 x 852 px), garantizando proporciones armoniosas, botones táctiles de 46px y scroll suave sin cortes ni saturación.
+- **Flujo de Recuperación de Contraseña & Resiliencia Móvil (Notch & Safe Areas)**:
+  - **Página de Recuperación (`ResetPasswordPage.tsx`)**: Nueva vista dedicada con validación segura de contraseña, retroalimentación en tiempo real y centrado vertical equilibrado (`margin: auto 0`).
+  - **Soporte Dinámico de Notch e Isla Dinámica**: Protección ergonómica en cabeceras de autenticación con `max(80px, calc(env(safe-area-inset-top, 0px) + 28px))`, impidiendo solapamientos visuales con cámaras frontales o muescas en iOS y Android.
+  - **Mapeo Robusto de Errores de Autenticación**: Cobertura ampliada en `supabaseErrors.ts` para flujos OAuth (GitHub/Google) y expiración de tokens OTP.
+- **Arquitectura de Divisas Nativas y Flujo de Gestión de Cuentas**:
+  - **Desacoplamiento de Divisa Global**: Eliminación de selectores y modales de conversión de divisa global en `Settings.tsx`, consolidando el modelo de cuentas y tarjetas con divisas independientes e inmutables.
+  - **Navegación Intuitiva de Cuentas en Dashboard**: El botón rápido de "Cuentas" en el Dashboard abre directamente el panel de gestión `AccountsSettings` ("Cuentas y Tarjetas"), desde donde el usuario puede consultar su balance o lanzar el asistente guiado "+ Nueva tarjeta".
+  - **Integridad y Limpieza i18n (447 claves activas)**: Corrección de etiquetas tipográficas (`Gestión de categorías`, `Color`) y purga de 8 claves de conversión obsoletas en los 6 idiomas.
   

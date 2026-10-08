@@ -1806,7 +1806,8 @@ input::placeholder {
   }
 
   .modal,
-  .modal-content {
+  .modal-content,
+  .card-modal {
     margin: 8px auto;
     max-height: calc(100dvh - 16px);
   }
@@ -1859,14 +1860,53 @@ input::placeholder {
 
 .auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   background: var(--bg-primary);
   position: relative;
-  overflow: hidden;
-  padding: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* Safe clearance: accounting for Apple Dynamic Island (59px), iPhone Notch (47px) and Android punch hole (48px) */
+  padding: max(64px, calc(env(safe-area-inset-top, 0px) + 24px)) max(16px, env(safe-area-inset-right, 16px)) max(36px, calc(env(safe-area-inset-bottom, 0px) + 20px)) max(16px, env(safe-area-inset-left, 16px));
+  box-sizing: border-box;
 }
+
+@media (max-width: 640px) {
+  .auth-page {
+    justify-content: flex-start;
+    /* Official HIG / Material notch clearance: minimum 80px fallback, or dynamic island (59px) + 28px buffer */
+    padding-top: max(80px, calc(env(safe-area-inset-top, 0px) + 28px));
+    padding-bottom: max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  }
+
+  .auth-logo {
+    margin-top: 4px;
+    margin-bottom: 24px;
+  }
+
+  .auth-card {
+    padding: 24px 18px;
+  }
+}
+
+/* Centered layout for auth pages without trailing value-props (e.g., reset-password) */
+.auth-page--centered {
+  justify-content: safe center;
+}
+
+@media (max-width: 640px) {
+  .auth-page--centered {
+    justify-content: safe center;
+  }
+
+  .auth-page--centered .auth-container {
+    margin: auto 0;
+  }
+}
+
 
 /* Esferas de fondo animadas */
 .auth-bg-orb {

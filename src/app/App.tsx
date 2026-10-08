@@ -18,6 +18,7 @@ const Transactions = lazy(() => import('../pages/Transactions'));
 const Goals = lazy(() => import('../pages/Goals'));
 const Settings = lazy(() => import('../pages/Settings'));
 const AuthPage = lazy(() => import('../pages/AuthPage'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
 const CookiePolicyPage = lazy(() => import('../pages/CookiePolicyPage'));
 
 const PageLoader = () => (
@@ -46,6 +47,7 @@ export default function App() {
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/cookies" element={<CookiePolicyPage />} />
                     <Route
                       path="/*"

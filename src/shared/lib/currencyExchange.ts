@@ -5,10 +5,21 @@
  */
 
 import type { SupportedCurrency } from '../../app/providers/LocaleCurrencyContext';
+import { fetchPairRate } from '../api/frankfurter';
 
 export interface ExchangeRateProvider {
   getRate(from: SupportedCurrency, to: SupportedCurrency, date?: string): Promise<number>;
 }
+
+export const defaultExchangeRateProvider: ExchangeRateProvider = {
+  async getRate(from: SupportedCurrency, to: SupportedCurrency, date?: string): Promise<number> {
+    const rate = await fetchPairRate(from, to, date);
+    if (!rate || rate <= 0) {
+      throw new Error(`Failed to retrieve valid exchange rate from ${from} to ${to}${date ? ` for ${date}` : ''}`);
+    }
+    return rate;
+  },
+};
 
 export interface CrossCurrencyResult {
   originalAmount: number;

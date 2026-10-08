@@ -36,7 +36,8 @@ El proyecto sigue los principios de **Feature-Sliced Design (FSD)**, garantizand
 - **Vitest & JSDOM** para pruebas unitarias de alta velocidad y blindaje de lógica de dominio.
 - **Framer Motion** para micro-interacciones, físicas de rebote y transiciones de UI de gama alta.
 - **Lucide React** para iconografía minimalista.
-- **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 415 claves 100% activas (`npm run i18n:check` y `npm run audit`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
+- **🔑 Flujo de Recuperación de Contraseña & Notch Móvil:** Pantalla de restablecimiento de contraseña dedicada (`/reset-password`) con validación en tiempo real, soporte adaptativo para cámaras frontales e islas dinámicas (`env(safe-area-inset-top)`) y cobertura robusta ante fallos de OAuth o tokens expirados.
+- **Internacionalización Completa (i18n):** 6 idiomas nativos (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`) con carga dinámica bajo demanda, paridad estricta y sincronizada de 447 claves 100% activas (`npm run i18n:check` y `npm run audit`) y soporte de `Intl.DisplayNames` para formatos y nombres regionales automáticos.
 
 **Backend & Datos:**
 

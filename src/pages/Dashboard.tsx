@@ -85,6 +85,12 @@ export default function Dashboard() {
     setShowWizard(true);
   };
 
+  // Manejador para abrir la lista de Cuentas y Tarjetas desde las acciones rápidas
+  const handleOpenAccounts = () => {
+    setEditingAccountId(null);
+    setShowAccounts(true);
+  };
+
   return (
     <>
       <Helmet>
@@ -181,7 +187,7 @@ export default function Dashboard() {
             <span className="dashboard-action-label">{t('transferFlow')}</span>
           </div>
 
-          <div className="dashboard-action-item" onClick={() => handleAddAccount()}>
+          <div className="dashboard-action-item" onClick={handleOpenAccounts}>
             <button className="dashboard-action-btn" aria-label={t('accounts')}>
               <Landmark size={24} style={{ color: '#f59e0b' }} />
             </button>

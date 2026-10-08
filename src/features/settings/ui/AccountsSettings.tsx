@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
 import { X, Trash2, CreditCard, Users, User, ArrowUpDown, Plus, Lock, ChevronLeft } from 'lucide-react';
 import { useCouple } from '../../auth/model/useCouple';
@@ -497,288 +498,327 @@ export default function AccountsSettings({ onClose, initialEditingAccountId, zIn
           )}
         </div>
 
-        {/* 🎨 MODAL DE EDICIÓN DE TARJETA CON DIVISA INMUTABLE */}
-        <AnimatePresence>
-          {editingAccount && (
-            <div
-              style={{
-                position: 'fixed',
-                inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                backdropFilter: 'blur(8px)',
-                zIndex: zIndex + 50,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '16px',
-                overflowY: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehavior: 'contain',
-              }}
-              onClick={() => setEditingAccount(null)}
-            >
-              <motion.div
-                className="card card-modal modal-scroll-area"
-                initial={{ opacity: 0, scale: 0.94, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.94, y: 20 }}
+        {/* 🎨 MODAL DE EDICIÓN DE TARJETA CON DIVISA INMUTABLE (Portal a document.body) */}
+        {createPortal(
+          <AnimatePresence>
+            {editingAccount && (
+              <div
+                className="modal-overlay"
                 style={{
-                  width: '100%',
-                  maxWidth: '440px',
-                  maxHeight: 'min(90vh, 90dvh, 700px)',
+                  position: 'fixed',
+                  inset: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  zIndex: zIndex + 200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px',
                   overflowY: 'auto',
-                  margin: 'auto',
-                  padding: '22px',
                   WebkitOverflowScrolling: 'touch',
-                  overscrollBehavior: 'contain',
-                  touchAction: 'pan-y',
                 }}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setEditingAccount(null);
+                }}
               >
-                {/* Cabecera modal de edición estandarizada */}
-                <div style={{ position: 'relative', marginBottom: '18px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      minHeight: '36px',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      onClick={() => setEditingAccount(null)}
-                      aria-label={t('close')}
+                <motion.div
+                  className="card card-modal"
+                  initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  style={{
+                    width: '100%',
+                    maxWidth: '440px',
+                    maxHeight: 'min(92vh, 92dvh, 680px)',
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    margin: 'auto',
+                    padding: '24px 20px',
+                    position: 'relative',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Cabecera modal de edición estandarizada */}
+                  <div style={{ flexShrink: 0, position: 'relative', marginBottom: '18px' }}>
+                    <div
                       style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '50%',
-                        width: '36px',
-                        height: '36px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
+                        position: 'relative',
+                        minHeight: '36px',
                       }}
                     >
-                      <X size={18} />
-                    </button>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, textAlign: 'center', padding: '0 40px' }}>
-                      {t('editAccountModalTitle')}
-                    </h3>
-                  </div>
-                </div>
-
-                <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* Nombre */}
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block' }}>
-                      {t('accountName')}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="form-input"
-                      style={{ width: '100%', height: '44px', borderRadius: '12px', fontWeight: 600 }}
-                    />
-                  </div>
-
-                  {/* Icono y Color */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px', alignItems: 'center' }}>
-                    <div>
-                      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block', textAlign: 'center' }}>
-                        {t('icon')}
-                      </label>
                       <button
                         type="button"
-                        onClick={() => setShowEmojiPicker(true)}
+                        className="btn-icon"
+                        onClick={() => setEditingAccount(null)}
+                        aria-label={t('close')}
                         style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '12px',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
                           background: 'var(--bg-tertiary)',
                           border: '1px solid var(--border)',
-                          fontSize: '1.35rem',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-secondary)',
                           cursor: 'pointer',
                         }}
                       >
-                        {editIcon}
+                        <X size={18} />
                       </button>
+                      <h3
+                        style={{
+                          fontSize: '1.2rem',
+                          fontWeight: 800,
+                          color: 'var(--text-primary)',
+                          margin: 0,
+                          textAlign: 'center',
+                          padding: '0 40px',
+                        }}
+                      >
+                        {t('editAccountModalTitle')}
+                      </h3>
                     </div>
+                  </div>
 
+                  <form
+                    onSubmit={handleUpdate}
+                    className="modal-scroll-area"
+                    style={{
+                      flex: '1 1 auto',
+                      overflowY: 'auto',
+                      minHeight: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      paddingRight: '4px',
+                      paddingBottom: '4px',
+                      WebkitOverflowScrolling: 'touch',
+                      overscrollBehavior: 'contain',
+                      touchAction: 'pan-y',
+                    }}
+                  >
+                    {/* Nombre */}
                     <div>
                       <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block' }}>
-                        {t('color')}
+                        {t('accountName')}
                       </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        {PRESET_COLORS.map((c) => (
+                      <input
+                        type="text"
+                        required
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="form-input"
+                        style={{ width: '100%', height: '44px', borderRadius: '12px', fontWeight: 600 }}
+                      />
+                    </div>
+
+                    {/* Icono y Color */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px', alignItems: 'center' }}>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block', textAlign: 'center' }}>
+                          {t('icon')}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowEmojiPicker(true)}
+                          style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '12px',
+                            background: 'var(--bg-tertiary)',
+                            border: '1px solid var(--border)',
+                            fontSize: '1.35rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {editIcon}
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block' }}>
+                          {t('color')}
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {PRESET_COLORS.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setEditColor(c)}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                background: c,
+                                border: editColor === c ? '2px solid var(--text-primary)' : '2px solid var(--border)',
+                                cursor: 'pointer',
+                                transform: editColor === c ? 'scale(1.15)' : 'scale(1)',
+                                transition: 'all 0.15s ease',
+                                padding: 0,
+                              }}
+                            />
+                          ))}
                           <button
-                            key={c}
                             type="button"
-                            onClick={() => setEditColor(c)}
+                            onClick={() => setShowColorPicker(true)}
                             style={{
                               width: '26px',
                               height: '26px',
                               borderRadius: '50%',
-                              background: c,
-                              border: editColor === c ? '2px solid var(--text-primary)' : '2px solid var(--border)',
+                              background: 'linear-gradient(135deg, #f43f5e, #8b5cf6, #06b6d4)',
+                              border: '2px solid var(--border)',
                               cursor: 'pointer',
-                              transform: editColor === c ? 'scale(1.15)' : 'scale(1)',
-                              transition: 'all 0.15s ease',
                               padding: 0,
                             }}
                           />
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setShowColorPicker(true)}
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #f43f5e, #8b5cf6, #06b6d4)',
-                            border: '2px solid var(--border)',
-                            cursor: 'pointer',
-                            padding: 0,
-                          }}
-                        />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Divisa Bloqueada (Inmutable) */}
-                  <div
-                    style={{
-                      padding: '10px 14px',
-                      borderRadius: '14px',
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        {t('currency')}
+                    {/* Divisa Bloqueada (Inmutable) */}
+                    <div
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '14px',
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {t('currency')}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 700 }}>
+                          <Lock size={12} style={{ color: 'var(--accent-primary)' }} />
+                          <span>{editingAccount.currency || currency} ({t('immutableCurrencyBadge')})</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                        {t('currencyCannotBeChanged')}
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 700 }}>
-                        <Lock size={12} style={{ color: 'var(--accent-primary)' }} />
-                        <span>{editingAccount.currency || currency} ({t('immutableCurrencyBadge')})</span>
-                      </div>
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
-                      {t('currencyCannotBeChanged')}
-                    </span>
-                  </div>
 
-                  {/* Ámbito */}
-                  {couple?.status === 'active' && (
-                    <div>
-                      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block' }}>
-                        {t('accountType')}
-                      </label>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '8px',
-                          background: 'var(--bg-tertiary)',
-                          padding: '4px',
-                          borderRadius: '12px',
-                          border: '1px solid var(--border)',
-                        }}
+                    {/* Ámbito */}
+                    {couple?.status === 'active' && (
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', display: 'block' }}>
+                          {t('accountType')}
+                        </label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            background: 'var(--bg-tertiary)',
+                            padding: '4px',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setEditScope('personal')}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              cursor: 'pointer',
+                              background: editScope === 'personal' ? 'var(--accent-primary)' : 'transparent',
+                              color: editScope === 'personal' ? '#ffffff' : 'var(--text-secondary)',
+                            }}
+                          >
+                            {t('personalLabel')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditScope('shared')}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              cursor: 'pointer',
+                              background: editScope === 'shared' ? 'var(--accent-primary)' : 'transparent',
+                              color: editScope === 'shared' ? '#ffffff' : 'var(--text-secondary)',
+                            }}
+                          >
+                            {t('sharedLabel')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Botones de acción */}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setEditingAccount(null)}
+                        style={{ flex: 1, height: '42px', borderRadius: '12px' }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => setEditScope('personal')}
-                          style={{
-                            flex: 1,
-                            padding: '8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            background: editScope === 'personal' ? 'var(--accent-primary)' : 'transparent',
-                            color: editScope === 'personal' ? '#ffffff' : 'var(--text-secondary)',
-                          }}
-                        >
-                          {t('personalLabel')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditScope('shared')}
-                          style={{
-                            flex: 1,
-                            padding: '8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            fontWeight: 600,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            background: editScope === 'shared' ? 'var(--accent-primary)' : 'transparent',
-                            color: editScope === 'shared' ? '#ffffff' : 'var(--text-secondary)',
-                          }}
-                        >
-                          {t('sharedLabel')}
-                        </button>
-                      </div>
+                        {t('cancel')}
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        disabled={updating || !editName.trim()}
+                        style={{ flex: 2, height: '42px', borderRadius: '12px', fontWeight: 700 }}
+                      >
+                        {updating ? t('saving') : t('updateAccount')}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Botones de acción */}
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setEditingAccount(null)}
-                      style={{ flex: 1, height: '42px', borderRadius: '12px' }}
-                    >
-                      {t('cancel')}
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={updating || !editName.trim()}
-                      style={{ flex: 2, height: '42px', borderRadius: '12px', fontWeight: 700 }}
-                    >
-                      {updating ? t('saving') : t('updateAccount')}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+                  </form>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
 
         {/* Wizard para Creación Paso a Paso */}
-        <CreateAccountWizardModal
-          isOpen={showWizard}
-          onClose={() => setShowWizard(false)}
-          onSave={addAccount}
-          zIndex={zIndex + 100}
-        />
+        {createPortal(
+          <CreateAccountWizardModal
+            isOpen={showWizard}
+            onClose={() => setShowWizard(false)}
+            onSave={addAccount}
+            zIndex={zIndex + 100}
+          />,
+          document.body
+        )}
 
         {/* Double Confirm para Borrado Seguro */}
-        <DoubleConfirmModal
-          isOpen={!!accountToDelete}
-          onClose={() => setAccountToDelete(null)}
-          onConfirm={confirmDelete}
-          titleStep1={t('deleteAccountTitle')}
-          descStep1={t('deleteAccountDesc')}
-          titleStep2={t('finalConfirmation')}
-          descStep2={t('finalConfirmationDesc')}
-          loading={deleting}
-        />
+        {createPortal(
+          <DoubleConfirmModal
+            isOpen={!!accountToDelete}
+            onClose={() => setAccountToDelete(null)}
+            onConfirm={confirmDelete}
+            titleStep1={t('deleteAccountTitle')}
+            descStep1={t('deleteAccountDesc')}
+            titleStep2={t('finalConfirmation')}
+            descStep2={t('finalConfirmationDesc')}
+            loading={deleting}
+          />,
+          document.body
+        )}
 
         {/* Reordenar tarjetas */}
         {showReorder && (
