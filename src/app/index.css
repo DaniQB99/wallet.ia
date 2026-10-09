@@ -1756,7 +1756,7 @@ input::placeholder {
   }
 
   .page-header {
-    padding: 20px 20px 16px;
+    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 10px)) 20px 16px;
   }
 
   .page-content {
@@ -2797,11 +2797,28 @@ input::placeholder {
    Onboarding — Coach Mark / Spotlight Tour
    ========================================== */
 
+html.onboarding-open,
+body.onboarding-open {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
 .onboarding-root {
   position: fixed;
   inset: 0;
   z-index: 99997;
   overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Full-screen dim — welcome step (no target) */
@@ -2850,21 +2867,23 @@ input::placeholder {
 /* Floating card — glass morphism */
 .onboarding-card {
   position: fixed;
-  left: 0;
-  right: 0;
   z-index: 2;
   background: rgba(12, 13, 18, 0.97);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 1.25rem 1.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
 }
 
 .onboarding-card--bottom {
   bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   border-radius: 24px 24px 0 0;
   border-bottom: none;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding: 0.95rem 1.25rem 0.85rem;
+  padding-bottom: max(1.15rem, calc(env(safe-area-inset-bottom, 0px) + 12px));
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -2879,12 +2898,18 @@ input::placeholder {
   border-radius: 24px 24px 0 0;
 }
 
+/* Ventana superior despegada del notch / Dynamic Island */
 .onboarding-card--top {
-  top: 0;
-  border-radius: 0 0 24px 24px;
-  border-top: none;
-  padding-top: max(1.25rem, env(safe-area-inset-top));
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  top: max(58px, calc(env(safe-area-inset-top, 0px) + 16px));
+  left: 12px;
+  right: 12px;
+  width: calc(100% - 24px);
+  max-width: 540px;
+  margin: 0 auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.85rem 1.15rem 0.8rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .onboarding-card--top::after {
@@ -2893,9 +2918,30 @@ input::placeholder {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: var(--accent-gradient);
-  border-radius: 0 0 24px 24px;
+  border-radius: 0 0 22px 22px;
+}
+
+@media (min-width: 768px) {
+  .onboarding-card--top {
+    top: 24px;
+    left: 12px;
+    right: 12px;
+    margin: 0 auto;
+    max-width: 520px;
+  }
+
+  .onboarding-card--bottom {
+    bottom: 24px;
+    left: 12px;
+    right: 12px;
+    margin: 0 auto;
+    max-width: 520px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.95rem;
+  }
 }
 
 /* Header */
@@ -2903,17 +2949,17 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.65rem;
 }
 
 .onboarding-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.65rem;
   border-radius: var(--radius-full);
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   white-space: nowrap;
@@ -2957,21 +3003,21 @@ input::placeholder {
 
 /* Body */
 .onboarding-card-body {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
 }
 
 .onboarding-content-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
-  margin-bottom: 0.875rem;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
 .onboarding-icon-wrap {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2983,27 +3029,27 @@ input::placeholder {
 }
 
 .onboarding-subtitle {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #8b92a8;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.15rem;
   text-transform: uppercase;
 }
 
 .onboarding-title {
-  font-size: 1.2rem;
+  font-size: 1.08rem;
   font-weight: 700;
   color: #f1f3f9;
   margin: 0;
   letter-spacing: -0.02em;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 .onboarding-desc {
   color: #a1a1aa;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  font-size: 0.82rem;
+  line-height: 1.4;
   margin: 0;
 }
 
@@ -3012,9 +3058,9 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.875rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
-  margin-top: 0.5rem;
+  margin-top: 0.45rem;
 }
 
 .onboarding-dots {
@@ -3050,8 +3096,8 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
@@ -3072,13 +3118,13 @@ input::placeholder {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.65rem 1.4rem;
+  padding: 0.6rem 1.3rem;
   border-radius: var(--radius-full);
   border: none;
   background: var(--accent-primary);
   color: #ffffff;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
@@ -3099,8 +3145,8 @@ input::placeholder {
 .onboarding-choices-container {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  margin-top: 0.875rem;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
 }
 
 .onboarding-choice-card {
@@ -3110,11 +3156,11 @@ input::placeholder {
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  padding: 0.45rem 0.75rem;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   color: inherit;
   font-family: inherit;
 }
@@ -3122,7 +3168,6 @@ input::placeholder {
 .onboarding-choice-card:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
 }
 
 .onboarding-choice-card--active {
@@ -3136,31 +3181,31 @@ input::placeholder {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.1rem;
 }
 
 .onboarding-choice-title {
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: #f1f3f9;
 }
 
 .onboarding-choice-badge {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   background: rgba(16, 185, 129, 0.18);
   color: #10b981;
-  padding: 0.15rem 0.5rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 99px;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .onboarding-choice-desc {
-  font-size: 0.8rem;
-  color: #a1a1aa;
-  line-height: 1.4;
+  font-size: 0.74rem;
+  color: #8b92a8;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -3922,6 +3967,16 @@ input::placeholder {
 .tx-field-card:hover {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-theme="light"] .tx-field-card {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .tx-field-card:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 /* ==========================================

@@ -3,6 +3,7 @@ import { supabase } from '../../../shared/api/supabase';
 import type { Transaction, TransactionType } from '../../../shared/types/database';
 import { useAuthContext } from '../../../app/providers/AuthContext';
 import { useMemo } from 'react';
+import { broadcastTabSync } from '../../../shared/lib/useRealtimeSync';
 
 export const TRANSACTIONS_QUERY_KEY = ['transactions'];
 
@@ -82,6 +83,8 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: TRANSACTIONS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ['accounts'] });
     },
   });
 
@@ -91,6 +94,10 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
       const { data, error } = await supabase.from('recurring_transactions').insert({ ...tx, user_id: userId }).select();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurring_transactions'] });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ['recurring_transactions'] });
     },
   });
 
@@ -103,6 +110,8 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: TRANSACTIONS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ['accounts'] });
     },
   });
 
@@ -114,6 +123,8 @@ export function useTransactions(type: TransactionType | 'all' = 'personal') {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: TRANSACTIONS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ['accounts'] });
     },
   });
 

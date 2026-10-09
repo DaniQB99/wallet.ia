@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../shared/api/supabase';
 import type { Account } from '../../../shared/types/database';
+import { broadcastTabSync } from '../../../shared/lib/useRealtimeSync';
 
 export const ACCOUNTS_QUERY_KEY = ['accounts'];
 
@@ -45,6 +46,7 @@ export function useAccounts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ACCOUNTS_QUERY_KEY });
     },
   });
 
@@ -62,6 +64,7 @@ export function useAccounts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ACCOUNTS_QUERY_KEY });
     },
   });
 
@@ -101,6 +104,7 @@ export function useAccounts() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ACCOUNTS_QUERY_KEY });
     },
   });
 
@@ -115,6 +119,7 @@ export function useAccounts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: ACCOUNTS_QUERY_KEY });
     },
   });
 

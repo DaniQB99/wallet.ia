@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../shared/api/supabase';
 import type { Goal, GoalCategory } from '../../../shared/types/database';
 import { useTransactions } from '../../transactions/model/useTransactions';
+import { broadcastTabSync } from '../../../shared/lib/useRealtimeSync';
 
 export const GOALS_QUERY_KEY = ['goals'];
 
@@ -49,6 +50,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 
@@ -66,6 +68,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 
@@ -80,6 +83,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 
@@ -90,6 +94,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 
@@ -100,6 +105,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 
@@ -110,6 +116,7 @@ export function useGoals(scope: 'personal' | 'shared') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GOALS_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: GOALS_QUERY_KEY });
     },
   });
 

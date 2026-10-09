@@ -11,7 +11,6 @@ import {
   ArrowLeftRight,
   ChevronDown,
   Tag,
-  Mic,
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
@@ -21,6 +20,7 @@ import { useTransactions } from '../../../entities/transactions/model/useTransac
 import { useCategories } from '../../../entities/categories/model/useCategories';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
 import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
+import { useAppearance } from '../../../app/providers/AppearanceContext';
 import AccountsSettings from '../../settings/ui/AccountsSettings';
 import CategoriesSettings from '../../settings/ui/CategoriesSettings';
 import DoubleConfirmModal from '../../../shared/ui/DoubleConfirmModal';
@@ -74,6 +74,8 @@ export default function TransactionModal({
 }: TransactionModalProps) {
   // Servicios
   const { currency, t, formatMoney, formatDate, getCurrencySymbol, translateEntityName } = useLocaleCurrency();
+  const { resolvedTheme } = useAppearance();
+  const isLight = resolvedTheme === 'light';
   const { addTransaction, addRecurringTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { couple } = useCouple();
   const { accounts } = useAccounts();
@@ -104,7 +106,7 @@ export default function TransactionModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isListening, setIsListening] = useState(false);
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   const activeCategories = scope === 'shared' ? sharedCategories : personalCategories;
   const descriptionRef = useRef<HTMLInputElement>(null);
@@ -146,10 +148,10 @@ export default function TransactionModal({
       }
       setView('main');
 
-      // Auto-focus para activar inmediatamente el teclado nativo del móvil
+      // Auto-focus para activar inmediatamente el teclado numérico nativo del móvil
       const timer = setTimeout(() => {
         amountInputRef.current?.focus();
-      }, 150);
+      }, 120);
       return () => clearTimeout(timer);
     } else {
       setView('main');
@@ -160,19 +162,9 @@ export default function TransactionModal({
       setShowAddAccount(false);
       setShakeField(null);
       setSubmitting(false);
-      setIsListening(false);
+      setIsAmountFocused(false);
     }
   }, [editTransaction, open, accounts.length, initialFlowType, initialAccountId]);
-
-  // Si volvemos a la vista principal, asegurar foco en el importe
-  useEffect(() => {
-    if (open && view === 'main') {
-      const timer = setTimeout(() => {
-        amountInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [open, view]);
 
   useEffect(() => {
     if (activeCategories.length > 0) {
@@ -379,37 +371,6 @@ export default function TransactionModal({
     setView('main');
   };
 
-  // Reconocimiento de voz para descripción
-  const handleVoiceInput = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition ||
-      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) return;
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'es-ES';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          setDescription(prev => (prev ? `${prev} ${transcript}` : transcript));
-        }
-      };
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognition.start();
-    } catch (err) {
-      console.error('Speech recognition error:', err);
-      setIsListening(false);
-    }
-  };
-
   const formatDateDisplay = (d: string) => {
     try {
       const localDate = parseLocalDateString(d);
@@ -424,6 +385,27 @@ export default function TransactionModal({
   const selectedDestAccount = accounts.find(a => a.id === destinationAccountId);
 
   const selectedCategory = activeCategories.find(c => c.id === categoryId);
+
+  // Símbolo de moneda simplificado (sin códigos ISO largos)
+  const rawCurrencySymbol = getCurrencySymbol((selectedAccount?.currency as SupportedCurrency) || currency);
+  const cleanCurrencySymbol = (() => {
+    const raw = rawCurrencySymbol?.trim() || '€';
+    if (raw === 'EUR' || raw.includes('EUR')) return '€';
+    if (raw === 'USD' || raw.includes('USD')) return '$';
+    if (raw === 'GBP' || raw.includes('GBP')) return '£';
+    if (raw === 'JPY' || raw.includes('JPY')) return '¥';
+    return raw;
+  })();
+
+  // Ocultar teclado virtual al pulsar fuera de campos de edición
+  const handleDismissKeyboards = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.tx-amount-section') || target.tagName === 'INPUT' || target.closest('[data-keep-keyboard="true"]')) {
+      return;
+    }
+    amountInputRef.current?.blur();
+    descriptionRef.current?.blur();
+  };
 
   // Título modal centrado según flujo
   const getModalTitle = () => {
@@ -513,9 +495,10 @@ export default function TransactionModal({
 
     return (
       <motion.div
-        initial={{ x: 40, opacity: 0 }}
+        initial={{ x: 30, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 40, opacity: 0 }}
+        exit={{ x: 30, opacity: 0 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
         style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
       >
         <div className="modal-header" style={{ marginBottom: '12px' }}>
@@ -735,6 +718,7 @@ export default function TransactionModal({
       initial={{ x: 0 }}
       animate={{ x: 0 }}
       exit={{ x: -40, opacity: 0 }}
+      onPointerDown={handleDismissKeyboards}
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', position: 'relative' }}
     >
       {/* Píldora sutil superior tipo tirador/handle */}
@@ -743,7 +727,7 @@ export default function TransactionModal({
           width: '38px',
           height: '4px',
           borderRadius: '2px',
-          background: 'rgba(255, 255, 255, 0.2)',
+          background: isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.2)',
           margin: '0 auto 10px auto',
           flexShrink: 0,
         }}
@@ -759,7 +743,7 @@ export default function TransactionModal({
         >
           <X size={20} />
         </button>
-        <h2 className="modal-title" style={{ margin: '0 auto', fontSize: '1.05rem', fontWeight: 600 }}>
+        <h2 className="modal-title" style={{ margin: '0 auto', fontSize: '1.05rem', fontWeight: 600, color: isLight ? 'var(--text-primary)' : '#ffffff' }}>
           {getModalTitle()}
         </h2>
         {editTransaction && (
@@ -803,6 +787,7 @@ export default function TransactionModal({
         {/* Pestaña Gasto */}
         <button
           type="button"
+          data-keep-keyboard="true"
           onClick={() => {
             setFlowType('expense');
             amountInputRef.current?.focus();
@@ -815,8 +800,8 @@ export default function TransactionModal({
             padding: '8px 4px',
             borderRadius: '20px',
             border: flowType === 'expense' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
-            background: flowType === 'expense' ? 'rgba(239, 68, 68, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: flowType === 'expense' ? '#f87171' : 'rgba(255, 255, 255, 0.6)',
+            background: flowType === 'expense' ? 'rgba(239, 68, 68, 0.14)' : isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.03)',
+            color: flowType === 'expense' ? '#ef4444' : isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.6)',
             fontSize: '0.82rem',
             fontWeight: flowType === 'expense' ? 600 : 500,
             cursor: 'pointer',
@@ -834,6 +819,7 @@ export default function TransactionModal({
         {/* Pestaña Ingreso */}
         <button
           type="button"
+          data-keep-keyboard="true"
           onClick={() => {
             setFlowType('income');
             amountInputRef.current?.focus();
@@ -846,8 +832,8 @@ export default function TransactionModal({
             padding: '8px 4px',
             borderRadius: '20px',
             border: flowType === 'income' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
-            background: flowType === 'income' ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: flowType === 'income' ? '#34d399' : 'rgba(255, 255, 255, 0.6)',
+            background: flowType === 'income' ? 'rgba(16, 185, 129, 0.14)' : isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.03)',
+            color: flowType === 'income' ? '#10b981' : isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.6)',
             fontSize: '0.82rem',
             fontWeight: flowType === 'income' ? 600 : 500,
             cursor: 'pointer',
@@ -865,6 +851,7 @@ export default function TransactionModal({
         {/* Pestaña Transferencia */}
         <button
           type="button"
+          data-keep-keyboard="true"
           onClick={() => {
             setFlowType('transfer');
             amountInputRef.current?.focus();
@@ -877,8 +864,8 @@ export default function TransactionModal({
             padding: '8px 4px',
             borderRadius: '20px',
             border: flowType === 'transfer' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-            background: flowType === 'transfer' ? 'rgba(99, 102, 241, 0.14)' : 'rgba(255, 255, 255, 0.03)',
-            color: flowType === 'transfer' ? '#a5b4fc' : 'rgba(255, 255, 255, 0.6)',
+            background: flowType === 'transfer' ? 'rgba(99, 102, 241, 0.14)' : isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.03)',
+            color: flowType === 'transfer' ? '#6366f1' : isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.6)',
             fontSize: '0.82rem',
             fontWeight: flowType === 'transfer' ? 600 : 500,
             cursor: 'pointer',
@@ -894,73 +881,98 @@ export default function TransactionModal({
         </button>
       </div>
 
-      {/* Visualización del Importe con Input Decimal Nativo */}
+      {/* Visualización del Importe Centrado con Input Decimal Nativo y Símbolo Limpio */}
       <motion.div
         animate={shakeField === 'amount' ? { x: [-10, 10, -10, 10, 0] } : {}}
         transition={{ duration: 0.4 }}
+        className="tx-amount-section"
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '8px 0 16px 0',
+          margin: '10px 0 16px 0',
           position: 'relative',
           cursor: 'text',
           flexShrink: 0,
         }}
         onClick={() => amountInputRef.current?.focus()}
       >
-        <input
-          ref={amountInputRef}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={amountStr}
-          onChange={handleAmountChange}
-          onKeyDown={handleAmountKeyDown}
-          onFocus={(e) => {
-            if (amountStr === '0') {
-              e.target.select();
-            }
-          }}
+        <div
           style={{
-            fontSize: '3.4rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            lineHeight: 1,
-            letterSpacing: '-0.02em',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            textAlign: 'right',
-            width: `${Math.max(amountStr.length * 2.1, 2.4)}rem`,
-            maxWidth: '280px',
-            padding: 0,
-            fontFamily: 'inherit',
-            caretColor:
-              flowType === 'expense' ? '#ef4444' : flowType === 'income' ? '#10b981' : '#6366f1',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            maxWidth: '100%',
           }}
-        />
-        <div style={{ marginLeft: '10px', display: 'flex', alignItems: 'center' }}>
-          <div
-            title={`Divisa fija de la cuenta: ${selectedAccount?.currency || currency}`}
+        >
+          <input
+            ref={amountInputRef}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            autoFocus
+            value={amountStr}
+            onChange={handleAmountChange}
+            onKeyDown={handleAmountKeyDown}
+            onFocus={(e) => {
+              setIsAmountFocused(true);
+              const len = e.currentTarget.value.length;
+              e.currentTarget.setSelectionRange(len, len);
+            }}
+            onBlur={() => setIsAmountFocused(false)}
+            onSelect={(e) => {
+              // Prevenir que WebKit/iOS cree barras/tiradores de selección en el aire
+              const target = e.currentTarget;
+              if (target.selectionStart !== target.selectionEnd) {
+                target.setSelectionRange(target.selectionEnd, target.selectionEnd);
+              }
+            }}
             style={{
-              fontSize: '1.25rem',
+              fontSize: '3.4rem',
               fontWeight: 700,
-              color: 'var(--accent-primary)',
-              background: 'rgba(99, 102, 241, 0.14)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: '12px',
-              padding: '6px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
+              color: isLight ? '#0f172a' : '#ffffff',
+              lineHeight: 1,
+              letterSpacing: '-0.02em',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              textAlign: 'right',
+              width: `${Math.max(amountStr.length * 2.1, 2.3)}rem`,
+              maxWidth: '280px',
+              padding: 0,
+              fontFamily: 'inherit',
+              fontVariantNumeric: 'tabular-nums',
+              caretColor: isLight ? '#0f172a' : '#ffffff',
+            }}
+          />
+          <span
+            style={{
+              fontSize: '2.2rem',
+              fontWeight: 600,
+              color: isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.65)',
+              lineHeight: 1,
               userSelect: 'none',
+              pointerEvents: 'none',
             }}
           >
-            <span>{getCurrencySymbol((selectedAccount?.currency as SupportedCurrency) || currency)}</span>
-            <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>{(selectedAccount?.currency as SupportedCurrency) || currency}</span>
-          </div>
+            {cleanCurrencySymbol}
+          </span>
         </div>
+
+        {/* Barra sutil de enfoque limpio que informa al usuario que el importe está activo */}
+        <div
+          style={{
+            height: '2px',
+            width: isAmountFocused ? '80px' : '0px',
+            background: 'var(--accent-primary)',
+            borderRadius: '2px',
+            transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease',
+            opacity: isAmountFocused ? 0.9 : 0,
+            marginTop: '6px',
+          }}
+        />
       </motion.div>
 
       {/* Campos de Transacción con encabezados en mayúsculas estilo Imagen 2 */}
@@ -980,7 +992,7 @@ export default function TransactionModal({
               fontSize: '0.7rem',
               fontWeight: 600,
               letterSpacing: '0.08em',
-              color: 'rgba(255, 255, 255, 0.45)',
+              color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.45)',
               textTransform: 'uppercase',
               marginBottom: '5px',
             }}
@@ -993,7 +1005,11 @@ export default function TransactionModal({
           <motion.div
             className="tx-field-card"
             style={{ padding: '10px 14px' }}
-            onClick={() => setView('account')}
+            onClick={() => {
+              amountInputRef.current?.blur();
+              descriptionRef.current?.blur();
+              setView('account');
+            }}
             animate={
               shakeField === 'account'
                 ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.08)', '#ef4444', 'rgba(255,255,255,0.08)'] }
@@ -1008,7 +1024,7 @@ export default function TransactionModal({
                   height: '36px',
                   borderRadius: '10px',
                   background: selectedAccount?.color ? `${selectedAccount.color}25` : 'rgba(99, 102, 241, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1019,15 +1035,15 @@ export default function TransactionModal({
                 {sanitizeEmoji(selectedAccount?.icon, '🏦')}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 600, color: isLight ? 'var(--text-primary)' : '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {selectedAccount ? translateEntityName(selectedAccount.name, 'account') : t('selectAccount')}
                 </span>
-                <span style={{ fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                <span style={{ fontSize: '0.76rem', color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.5)' }}>
                   {t('balanceStr')}: {formatMoney(selectedAccount?.balance || 0, undefined, selectedAccount?.currency as SupportedCurrency)}
                 </span>
               </div>
             </div>
-            <ChevronDown size={18} color="rgba(255, 255, 255, 0.4)" style={{ flexShrink: 0 }} />
+            <ChevronDown size={18} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.4)'} style={{ flexShrink: 0 }} />
           </motion.div>
         </div>
 
@@ -1039,7 +1055,7 @@ export default function TransactionModal({
                 fontSize: '0.7rem',
                 fontWeight: 600,
                 letterSpacing: '0.08em',
-                color: 'rgba(255, 255, 255, 0.45)',
+                color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.45)',
                 textTransform: 'uppercase',
                 marginBottom: '5px',
               }}
@@ -1050,7 +1066,11 @@ export default function TransactionModal({
             <motion.div
               className="tx-field-card"
               style={{ padding: '10px 14px' }}
-              onClick={() => setView('destination')}
+              onClick={() => {
+                amountInputRef.current?.blur();
+                descriptionRef.current?.blur();
+                setView('destination');
+              }}
               animate={
                 shakeField === 'destination'
                   ? { x: [-10, 10, -10, 10, 0], borderColor: ['rgba(255,255,255,0.08)', '#ef4444', 'rgba(255,255,255,0.08)'] }
@@ -1065,7 +1085,7 @@ export default function TransactionModal({
                     height: '36px',
                     borderRadius: '10px',
                     background: selectedDestAccount?.color ? `${selectedDestAccount.color}25` : 'rgba(99, 102, 241, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.12)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1076,29 +1096,29 @@ export default function TransactionModal({
                   {sanitizeEmoji(selectedDestAccount?.icon, '🏦')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 600, color: isLight ? 'var(--text-primary)' : '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedDestAccount
                       ? translateEntityName(selectedDestAccount.name, 'account')
                       : t('selectAccount')}
                   </span>
-                  <span style={{ fontSize: '0.76rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                  <span style={{ fontSize: '0.76rem', color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.5)' }}>
                     {t('balanceStr')}: {formatMoney(selectedDestAccount?.balance || 0, undefined, selectedDestAccount?.currency as SupportedCurrency)}
                   </span>
                 </div>
               </div>
-              <ChevronDown size={18} color="rgba(255, 255, 255, 0.4)" style={{ flexShrink: 0 }} />
+              <ChevronDown size={18} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.4)'} style={{ flexShrink: 0 }} />
             </motion.div>
           </div>
         )}
 
-        {/* SECCIÓN: DESCRIPCIÓN con soporte de voz */}
+        {/* SECCIÓN: DESCRIPCIÓN */}
         <div>
           <div
             style={{
               fontSize: '0.7rem',
               fontWeight: 600,
               letterSpacing: '0.08em',
-              color: 'rgba(255, 255, 255, 0.45)',
+              color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.45)',
               textTransform: 'uppercase',
               marginBottom: '5px',
             }}
@@ -1111,7 +1131,7 @@ export default function TransactionModal({
             style={{ padding: '10px 14px', cursor: 'text' }}
             onClick={() => descriptionRef.current?.focus()}
           >
-            <Tag size={17} color="rgba(255, 255, 255, 0.45)" style={{ marginRight: '10px', flexShrink: 0 }} />
+            <Tag size={17} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.45)'} style={{ marginRight: '10px', flexShrink: 0 }} />
             <input
               ref={descriptionRef}
               type="text"
@@ -1121,32 +1141,12 @@ export default function TransactionModal({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#ffffff',
+                color: isLight ? 'var(--text-primary)' : '#ffffff',
                 fontSize: '0.92rem',
                 width: '100%',
                 outline: 'none',
               }}
             />
-            <button
-              type="button"
-              onClick={handleVoiceInput}
-              style={{
-                background: isListening ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#10b981',
-                flexShrink: 0,
-              }}
-              title={t('dictateDescription')}
-              aria-label={t('dictateDescription')}
-            >
-              <Mic size={17} />
-            </button>
           </div>
         </div>
 
@@ -1158,7 +1158,7 @@ export default function TransactionModal({
                 fontSize: '0.7rem',
                 fontWeight: 600,
                 letterSpacing: '0.08em',
-                color: 'rgba(255, 255, 255, 0.45)',
+                color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.45)',
                 textTransform: 'uppercase',
                 marginBottom: '5px',
               }}
@@ -1166,18 +1166,26 @@ export default function TransactionModal({
               {t('categoryUpper')}
             </div>
 
-            <div className="tx-field-card" style={{ padding: '10px 14px' }} onClick={() => setView('category')}>
+            <div
+              className="tx-field-card"
+              style={{ padding: '10px 14px' }}
+              onClick={() => {
+                amountInputRef.current?.blur();
+                descriptionRef.current?.blur();
+                setView('category');
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: '1.25rem', lineHeight: 1, flexShrink: 0 }}>
                   {sanitizeEmoji(selectedCategory?.icon, '🏷️')}
                 </span>
-                <span style={{ fontSize: '0.92rem', fontWeight: 500, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 500, color: isLight ? 'var(--text-primary)' : '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {selectedCategory
                     ? translateEntityName(selectedCategory.name, 'category')
                     : t('noCategory')}
                 </span>
               </div>
-              <ChevronDown size={18} color="rgba(255, 255, 255, 0.4)" style={{ flexShrink: 0 }} />
+              <ChevronDown size={18} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.4)'} style={{ flexShrink: 0 }} />
             </div>
           </div>
         )}
@@ -1189,7 +1197,7 @@ export default function TransactionModal({
               fontSize: '0.7rem',
               fontWeight: 600,
               letterSpacing: '0.08em',
-              color: 'rgba(255, 255, 255, 0.45)',
+              color: isLight ? 'var(--text-secondary)' : 'rgba(255, 255, 255, 0.45)',
               textTransform: 'uppercase',
               marginBottom: '5px',
             }}
@@ -1209,15 +1217,17 @@ export default function TransactionModal({
               className="tx-field-card"
               style={{ padding: '10px 12px' }}
               onClick={() => {
+                amountInputRef.current?.blur();
+                descriptionRef.current?.blur();
                 setCalendarViewDate(parseLocalDateString(date));
                 setView('date');
               }}
             >
-              <Calendar size={17} color="rgba(255, 255, 255, 0.5)" style={{ marginRight: '8px', flexShrink: 0 }} />
+              <Calendar size={17} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.5)'} style={{ marginRight: '8px', flexShrink: 0 }} />
               <span
                 style={{
                   fontSize: '0.88rem',
-                  color: '#ffffff',
+                  color: isLight ? 'var(--text-primary)' : '#ffffff',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -1226,21 +1236,29 @@ export default function TransactionModal({
               >
                 {formatDateDisplay(date)}
               </span>
-              <ChevronRight size={15} color="rgba(255, 255, 255, 0.35)" style={{ flexShrink: 0 }} />
+              <ChevronRight size={15} color={isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.35)'} style={{ flexShrink: 0 }} />
             </div>
 
             {/* Tarjeta de Frecuencia / Recurrencia */}
             {flowType !== 'transfer' && (
-              <div className="tx-field-card" style={{ padding: '10px 12px' }} onClick={() => setView('recurring')}>
+              <div
+                className="tx-field-card"
+                style={{ padding: '10px 12px' }}
+                onClick={() => {
+                  amountInputRef.current?.blur();
+                  descriptionRef.current?.blur();
+                  setView('recurring');
+                }}
+              >
                 <RefreshCw
                   size={15}
-                  color={isRecurring ? '#6366f1' : 'rgba(255, 255, 255, 0.5)'}
+                  color={isRecurring ? '#6366f1' : isLight ? 'var(--text-tertiary)' : 'rgba(255, 255, 255, 0.5)'}
                   style={{ marginRight: '8px', flexShrink: 0 }}
                 />
                 <span
                   style={{
                     fontSize: '0.88rem',
-                    color: isRecurring ? '#a5b4fc' : '#ffffff',
+                    color: isRecurring ? '#6366f1' : isLight ? 'var(--text-primary)' : '#ffffff',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -1342,9 +1360,10 @@ export default function TransactionModal({
   // Sub-vista de Selección de Cuenta
   const renderAccountList = (isDestination: boolean) => (
     <motion.div
-      initial={{ x: 40, opacity: 0 }}
+      initial={{ x: 30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 40, opacity: 0 }}
+      exit={{ x: 30, opacity: 0 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
       <div className="modal-header">
@@ -1450,9 +1469,10 @@ export default function TransactionModal({
   // Sub-vista de Selección de Categoría
   const renderCategoryList = () => (
     <motion.div
-      initial={{ x: 40, opacity: 0 }}
+      initial={{ x: 30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 40, opacity: 0 }}
+      exit={{ x: 30, opacity: 0 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
       <div className="modal-header">
@@ -1611,9 +1631,10 @@ export default function TransactionModal({
   // Sub-vista de Frecuencia / Recurrencia
   const renderRecurringList = () => (
     <motion.div
-      initial={{ x: 40, opacity: 0 }}
+      initial={{ x: 30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 40, opacity: 0 }}
+      exit={{ x: 30, opacity: 0 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
     >
       <div className="modal-header">
@@ -1705,6 +1726,7 @@ export default function TransactionModal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
               onClick={onClose}
               style={{
                 position: 'absolute',
@@ -1717,24 +1739,26 @@ export default function TransactionModal({
             {/* Contenedor del Modal Liquid Glass */}
             <motion.div
               className="modal-scroll-area"
-              initial={{ opacity: 0, scale: 0.94, y: 25 }}
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 25 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'relative',
                 width: '100%',
                 maxWidth: '430px',
-                background: 'rgba(15, 20, 28, 0.94)',
+                background: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 20, 28, 0.94)',
                 backdropFilter: 'blur(24px)',
                 WebkitBackdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '28px',
-                color: '#ffffff',
+                color: isLight ? 'var(--text-primary)' : '#ffffff',
                 display: 'flex',
                 flexDirection: 'column',
                 padding: '16px 16px 20px 16px',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
+                boxShadow: isLight
+                  ? '0 25px 50px -12px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9)'
+                  : '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
                 maxHeight: 'min(92vh, 92dvh, 760px)',
                 minHeight: 0,
                 margin: 'auto',

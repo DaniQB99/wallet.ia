@@ -60,8 +60,10 @@ Las tablas en Supabase ya reflejan:
 - **Rediseño Modal de Transacciones Estilo Banca Moderna (Liquid Glass & Teclado iOS)**:
   - Header con tirador superior, botón de cierre a la izquierda y título centrado dinámico (`Nuevo gasto`, `Nuevo ingreso`, `Nueva transferencia`).
   - Selector de pestañas horizontales 100% responsivo en cuadrícula de 3 columnas (`Transfer.` adaptativo para evitar desbordamientos en móviles estrechos).
-  - Display de importe centrado con cursor vertical parpadeante y símbolo de divisa a la derecha.
-  - Tarjetas de campos estructuradas con micro-etiquetas en mayúsculas (`CUENTA`, `DESCRIPCIÓN`, `CATEGORÍA`, `FECHA`): tarjeta de cuenta con icono y saldo en tiempo real, input de descripción con botón de dictado por voz y tarjeta de fecha con selector integrado.
+  - Display de importe perfectamente centrado con tipografía de alto impacto, color adaptativo al tema visual (blanco en modo oscuro y negro/carbón en modo claro) y símbolo de divisa simplificado y limpio integrado al número (sin recuadros independientes ni códigos de letras ISO).
+  - Eliminación de controladores y tiradores de selección de texto flotantes en iOS, incorporando una barra sutil y elegante indicadora de foco activo.
+  - Cierre automático del teclado numérico nativo al tocar fuera del importe o sobre las tarjetas de selección (cuenta, categoría, fecha) para una interacción táctil despejada y fluida.
+  - Tarjetas de campos estructuradas con micro-etiquetas en mayúsculas (`CUENTA`, `DESCRIPCIÓN`, `CATEGORÍA`, `FECHA`): tarjeta de cuenta con icono y saldo en tiempo real, input de descripción manual limpio (sin bloqueos por dictado de voz) y tarjeta de fecha con selector integrado.
   - Sub-vista de Calendario Liquid Glass Personalizado: selección fluida de fechas con atajos rápidos ("Ayer", "Hoy", "Mañana"), navegación mensual con flechas, cuadrícula de días con resaltado del día activo y botón de confirmación.
   - Integración nativa del teclado numérico del móvil: uso de input con `inputMode="decimal"` y foco automático para levantar directamente el teclado del sistema operativo (iOS / Android) con háptica y sonidos nativos.
   - Eliminación del teclado HTML redundante dentro de la ventana: libera más de 200px de altura vertical, garantizando que el modal encaje completo y sin scroll apretado en pantallas compactas como iPhone SE (375x667).
@@ -170,6 +172,17 @@ Las tablas en Supabase ya reflejan:
        - *Empezar desde cero*: Limpieza de categorías para configuración personalizada por el usuario desde cero.
     7. *Finanzas en Pareja*: Vinculación mediante código compartido y permisos en Ajustes (`#settings-partner-card`).
     8. *Barra de Navegación Completa*: Vista general de navegación global con gota deslizante (`.bottom-nav-container`).
-  - **Regla Pre-Commit de Consistencia de Onboarding**: Inclusión obligatoria en `.agents/AGENTS.md` y memoria Engram de mantener sincronizado `OnboardingOverlay.tsx` antes de cada commit.
-  - **Paridad i18n Estricta (460 claves)**: Sincronización al 100% en los 6 idiomas oficiales (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`).
+- **Sincronización Reactiva en Tiempo Real Multi-Dispositivo & Multi-Ventana (Realtime Cloud Sync)**:
+  - **Suscripciones WebSocket Supabase Realtime**: Implementación de escucha bidireccional automática en `transactions`, `accounts`, `categories`, `goals`, `couple_links` y `profiles` mediante `useRealtimeSync.ts`. Los cambios realizados en un móvil, tablet o PC se reflejan en menos de 100ms en los demás dispositivos sin tener que recargar la web ni cerrar sesión.
+  - **Canal Local BroadcastChannel (0ms Latency)**: Comunicación entre pestañas y ventanas del mismo navegador (`wallet_ia_tab_sync`). Al insertar, editar o borrar transacciones, tarjetas o metas en una ventana, las demás pestañas se invalidan y actualizan al instante de forma reactiva.
+  - **Persistencia Cloud de Preferencias de Usuario (`public.profiles`)**: Migración de preferencias previamente atrapadas en `localStorage` a la base de datos Supabase:
+    - `theme` (`light`, `dark`, `system`) sincronizado entre dispositivos.
+    - `accent_color` (código `#HEX`) replicado al instante en móvil, tablet y escritorio.
+    - `locale` (idioma de la interfaz) y `currency` persistidos a nivel de perfil.
+    - `hide_card_balance` (modo privacidad de saldo) sincronizado en la nube.
+    - `onboarding_completed` (estado del tour de bienvenida) unificado en el perfil para no repetir el tour al abrir la app desde otro dispositivo.
+  - **Optimización Integral de Tiempos de Ejecución y Rendimiento de Animaciones**:
+    - Sustitución de físicas pesadas de resorte (`spring`) con alto cálculo de CPU/GPU y desenfoque por transiciones aceleradas por hardware de 160ms (`ease: [0.16, 1, 0.3, 1]` / `easeOut`).
+    - Apertura y navegación instantánea en modales (`TransactionModal`, `AccountsSettings`, `CategoriesSettings`, `DoubleConfirmModal`, `ColorPickerModal`, `EmojiPickerModal`, `GoalDetailModal`, `CreateAccountWizardModal`, `ReorderCardsModal`).
+    - Ajuste de frescura de caché en React Query (`staleTime: 30s`) y refresco reactivo automático al recuperar foco o visibilidad (`visibilitychange`) en PWAs y móviles.
   

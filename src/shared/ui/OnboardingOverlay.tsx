@@ -177,7 +177,7 @@ export default function OnboardingOverlay() {
     window.addEventListener('show-onboarding', handleShowOnboarding);
 
     const onboardingKey = user ? `walletia_onboarding_${user.id}_completed` : null;
-    const hasSeenOnboarding = onboardingKey ? localStorage.getItem(onboardingKey) : null;
+    const hasSeenOnboarding = user?.onboarding_completed || (onboardingKey ? localStorage.getItem(onboardingKey) : null);
     const isNewUser = user?.created_at
       ? Date.now() - new Date(user.created_at).getTime() < 86_400_000
       : false;
@@ -196,6 +196,63 @@ export default function OnboardingOverlay() {
     return () => window.removeEventListener('show-onboarding', handleShowOnboarding);
   }, [navigate, user]);
 
+  /* ---- Bloqueo absoluto de scroll de fondo para evitar desplazamientos, tirones y lags ---- */
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyLeft = document.body.style.left;
+    const originalBodyWidth = document.body.style.width;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+    const originalDocOverflow = document.documentElement.style.overflow;
+    const originalDocOverscroll = document.documentElement.style.overscrollBehavior;
+
+    // Fijar la pantalla en la parte superior absoluta
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    // Inmovilizar completamente el documento de fondo
+    document.body.style.position = 'fixed';
+    document.body.style.top = '0px';
+    document.body.style.left = '0px';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    document.body.classList.add('onboarding-open');
+    document.documentElement.classList.add('onboarding-open');
+
+    const preventScroll = (e: TouchEvent | WheelEvent) => {
+      if (e.cancelable) e.preventDefault();
+    };
+
+    window.addEventListener('touchmove', preventScroll, { passive: false });
+    window.addEventListener('wheel', preventScroll, { passive: false });
+
+    return () => {
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.left = originalBodyLeft;
+      document.body.style.width = originalBodyWidth;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      document.documentElement.style.overflow = originalDocOverflow;
+      document.documentElement.style.overscrollBehavior = originalDocOverscroll;
+
+      document.body.classList.remove('onboarding-open');
+      document.documentElement.classList.remove('onboarding-open');
+
+      window.removeEventListener('touchmove', preventScroll);
+      window.removeEventListener('wheel', preventScroll);
+    };
+  }, [isVisible]);
+
   /* ---- Highlight rect tracking ---- */
 
   useEffect(() => {
@@ -209,6 +266,11 @@ export default function OnboardingOverlay() {
       setHighlightRect(null);
       return;
     }
+
+    // Mantener la pantalla anclada en el origen
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
 
     let rafId: number;
 
@@ -224,7 +286,7 @@ export default function OnboardingOverlay() {
           Math.abs(prev.width - r.width) < 0.5 &&
           Math.abs(prev.height - r.height) < 0.5
         ) {
-          return prev; // skip re-render if nothing changed
+          return prev;
         }
         return { top: r.top, left: r.left, width: r.width, height: r.height };
       });
@@ -235,37 +297,25 @@ export default function OnboardingOverlay() {
       rafId = requestAnimationFrame(updateRect);
     };
 
-    // Scroll target into view, then measure
-    const el = document.querySelector(selector);
-    if (el) {
-      const cardPos = steps[currentStep]?.cardPosition;
-      el.scrollIntoView({
-        behavior: 'smooth',
-        block: cardPos === 'bottom' ? 'start' : 'center',
-      });
-    }
-
-    // Immediate measurement + continuous tracking
+    // Medición inmediata
     updateRect();
-    
-    // Poll aggressively for the first 600ms to catch DOM render after page transition
+
+    // Muestreo rápido de precisión para renderizados dinámicos
     let pollCount = 0;
     const pollInterval = setInterval(() => {
       updateRect();
       pollCount++;
-      if (pollCount > 12) clearInterval(pollInterval); // Stops after ~600ms
-    }, 50);
+      if (pollCount > 8) clearInterval(pollInterval);
+    }, 30);
 
     window.addEventListener('resize', throttledUpdate);
-    window.addEventListener('scroll', throttledUpdate, true);
 
     return () => {
       clearInterval(pollInterval);
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', throttledUpdate);
-      window.removeEventListener('scroll', throttledUpdate, true);
     };
-  }, [currentStep, isVisible, steps]);
+  }, [currentStep, isVisible, location.pathname]);
 
   /* ---- Handlers ---- */
 
@@ -300,6 +350,7 @@ export default function OnboardingOverlay() {
   const handleFinish = useCallback(async () => {
     if (user?.id) {
       localStorage.setItem(`walletia_onboarding_${user.id}_completed`, 'true');
+      void supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
     }
     localStorage.setItem('walletia_onboarding_completed', 'true');
     await applyCategoryChoice(categoryChoice);
@@ -323,6 +374,9 @@ export default function OnboardingOverlay() {
         navigate(nextPath);
       }
 
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       if (!STEP_SELECTORS[next]) setHighlightRect(null);
       setCurrentStep(next);
     } else {
@@ -341,6 +395,9 @@ export default function OnboardingOverlay() {
         navigate(prevPath);
       }
 
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       if (!STEP_SELECTORS[prev]) setHighlightRect(null);
       setCurrentStep(prev);
     }
@@ -374,7 +431,7 @@ export default function OnboardingOverlay() {
                   height: highlightRect.height + HIGHLIGHT_PAD * 2,
                 }}
                 exit={{ opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
               />
             ) : (
               <motion.div
@@ -383,7 +440,7 @@ export default function OnboardingOverlay() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
               />
             )}
           </AnimatePresence>
@@ -395,14 +452,14 @@ export default function OnboardingOverlay() {
               className={`onboarding-card onboarding-card--${step.cardPosition}`}
               initial={{
                 opacity: 0,
-                y: step.cardPosition === 'bottom' ? 80 : -80,
+                y: step.cardPosition === 'bottom' ? 30 : -30,
               }}
               animate={{ opacity: 1, y: 0 }}
               exit={{
                 opacity: 0,
-                y: step.cardPosition === 'bottom' ? 80 : -80,
+                y: step.cardPosition === 'bottom' ? 30 : -30,
               }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               {/* Header */}
               <div className="onboarding-card-header">
@@ -416,7 +473,7 @@ export default function OnboardingOverlay() {
                       className="onboarding-pointer"
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {step.pointerDirection === 'up' ? (
                         <ArrowUp size={14} strokeWidth={2.5} />
@@ -445,10 +502,10 @@ export default function OnboardingOverlay() {
                 <motion.div
                   key={currentStep}
                   className="onboarding-card-body"
-                  initial={{ opacity: 0, x: direction * 30 }}
+                  initial={{ opacity: 0, x: direction * 15 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: direction * -30 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  exit={{ opacity: 0, x: direction * -15 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
                 >
                   <div className="onboarding-content-row">
                     <div

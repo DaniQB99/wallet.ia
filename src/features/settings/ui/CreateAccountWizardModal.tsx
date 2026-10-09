@@ -111,10 +111,10 @@ export default function CreateAccountWizardModal({
     >
       <motion.div
         className="card-modal"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
         style={{
           width: '100%',
           maxWidth: '460px',

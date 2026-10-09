@@ -75,7 +75,7 @@ export default function ReorderCardsModal({
           initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
+          transition={{ duration: 0.16, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
           style={{
             maxWidth: '440px',

@@ -69,7 +69,7 @@ export default function Dashboard() {
     const ownAccounts = accounts.filter((a) => a.user_id === user.id);
     if (ownAccounts.length === 0) {
       const onboardingKey = `walletia_onboarding_${user.id}_completed`;
-      const hasCompletedOnboarding = localStorage.getItem(onboardingKey);
+      const hasCompletedOnboarding = user.onboarding_completed || localStorage.getItem(onboardingKey);
       const isNewUser = user.created_at
         ? Date.now() - new Date(user.created_at).getTime() < 86_400_000
         : false;
@@ -129,17 +129,33 @@ export default function Dashboard() {
       </Helmet>
 
       {/* Cabecera del Dashboard */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }} />
-
-        <div style={{ flex: '0 1 auto', textAlign: 'center' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>
             {t('helloUser').replace('{name}', userName)}
           </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>{t('financialSummary')} —</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+            {t('financialSummary')}
+          </p>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <div
+          style={{
+            position: 'absolute',
+            right: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
           {currency !== 'EUR' && (
             <div
               style={{

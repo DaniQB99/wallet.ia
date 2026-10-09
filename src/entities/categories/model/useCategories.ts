@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../shared/api/supabase';
 import type { Category, CategoryScope } from '../../../shared/types/database';
+import { broadcastTabSync } from '../../../shared/lib/useRealtimeSync';
 
 export const CATEGORIES_QUERY_KEY = ['categories'];
 
@@ -38,6 +39,7 @@ export function useCategories(scope?: CategoryScope) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: CATEGORIES_QUERY_KEY });
     },
   });
 
@@ -55,6 +57,7 @@ export function useCategories(scope?: CategoryScope) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: CATEGORIES_QUERY_KEY });
     },
   });
 
@@ -69,6 +72,7 @@ export function useCategories(scope?: CategoryScope) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      broadcastTabSync({ type: 'INVALIDATE_QUERY', queryKey: CATEGORIES_QUERY_KEY });
     },
   });
 

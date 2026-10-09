@@ -425,7 +425,7 @@ export default function Settings() {
           fontSize: '0.75rem',
           color: 'var(--text-tertiary)',
         }}>
-          wallet.ia v1.0.0 • Made with ❤️
+          wallet.ia v0.9.0 (Beta) • Made by DaniQB99
         </div>
       </div>
 

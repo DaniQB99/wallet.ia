@@ -21,6 +21,9 @@ import {
 import type { Account } from '../../../shared/types/database';
 import { useLocaleCurrency, type SupportedCurrency } from '../../../app/providers/LocaleCurrencyContext';
 import { useAccounts } from '../model/useAccounts';
+import { useAuthContext } from '../../../app/providers/AuthContext';
+import { supabase } from '../../../shared/api/supabase';
+import { broadcastTabSync, TAB_SYNC_CHANNEL } from '../../../shared/lib/useRealtimeSync';
 import ReorderCardsModal from './ReorderCardsModal';
 import { sanitizeEmoji } from '../../../shared/lib/emoji';
 
@@ -51,7 +54,12 @@ export default function BankCardCarousel({
   const { reorderAccounts } = useAccounts();
   const [showReorderModal, setShowReorderModal] = useState(false);
 
+  const { user } = useAuthContext();
+
   const [isBalanceHidden, setIsBalanceHidden] = useState<boolean>(() => {
+    if (typeof user?.hide_card_balance === 'boolean') {
+      return user.hide_card_balance;
+    }
     try {
       return localStorage.getItem('wallet_hide_card_balance') === 'true';
     } catch {
@@ -59,17 +67,46 @@ export default function BankCardCarousel({
     }
   });
 
+  // Sincronizar cuando el perfil del usuario cambie desde Supabase Realtime
+  useEffect(() => {
+    if (typeof user?.hide_card_balance === 'boolean') {
+      setIsBalanceHidden(user.hide_card_balance);
+    }
+  }, [user?.hide_card_balance]);
+
+  // Escuchar sincronización inmediata entre pestañas/ventanas locales
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    try {
+      const channel = new BroadcastChannel(TAB_SYNC_CHANNEL);
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'HIDE_CARD_BALANCE_CHANGED' && typeof event.data.payload === 'boolean') {
+          setIsBalanceHidden(event.data.payload);
+        }
+      };
+      return () => channel.close();
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const toggleHideBalance = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsBalanceHidden(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem('wallet_hide_card_balance', String(next));
-      } catch {
-        // ignore storage errors
-      }
-      return next;
-    });
+    const next = !isBalanceHidden;
+    setIsBalanceHidden(next);
+    try {
+      localStorage.setItem('wallet_hide_card_balance', String(next));
+    } catch {
+      // ignore storage errors
+    }
+    broadcastTabSync({ type: 'HIDE_CARD_BALANCE_CHANGED', payload: next });
+
+    if (user?.id) {
+      void supabase
+        .from('profiles')
+        .update({ hide_card_balance: next })
+        .eq('id', user.id);
+    }
   };
 
   // Sincronizar posición de Swiper cuando selectedIndex cambie externamente

@@ -77,10 +77,10 @@ export default function GoalDetailModal({ goal, onClose, onEdit, onDelete }: Goa
             overflowY: 'auto',
             margin: 'auto'
           }}
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ duration: 0.16, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

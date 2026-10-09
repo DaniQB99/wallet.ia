@@ -6,6 +6,7 @@ import { AppearanceProvider } from './providers/AppearanceContext';
 import { LocaleCurrencyProvider } from './providers/LocaleCurrencyContext';
 import { useLocaleCurrency } from './providers/LocaleCurrencyContext';
 import { QueryProvider } from './providers/QueryProvider';
+import { RealtimeSyncBridge } from '../shared/lib/useRealtimeSync';
 import ProtectedRoute from '../shared/ui/ProtectedRoute';
 import Sidebar from '../widgets/layout/Sidebar';
 import BottomNav from '../widgets/layout/BottomNav';
@@ -40,8 +41,9 @@ export default function App() {
       <QueryProvider>
         <BrowserRouter>
           <SpeedInsights />
-          <AppearanceProvider>
-            <AuthProvider>
+          <AuthProvider>
+            <AppearanceProvider>
+              <RealtimeSyncBridge />
               <LocaleCurrencyProvider>
                 <CookieConsent />
                 <Suspense fallback={<PageLoader />}>
@@ -75,8 +77,8 @@ export default function App() {
                   </Routes>
                 </Suspense>
               </LocaleCurrencyProvider>
-            </AuthProvider>
-          </AppearanceProvider>
+            </AppearanceProvider>
+          </AuthProvider>
         </BrowserRouter>
       </QueryProvider>
     </HelmetProvider>

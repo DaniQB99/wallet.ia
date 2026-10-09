@@ -330,9 +330,10 @@ export default function AccountsSettings({ onClose, initialEditingAccountId, zIn
     >
       <motion.div
         className="card card-modal"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
         style={{
           width: '100%',
           maxWidth: '520px',

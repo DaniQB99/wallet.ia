@@ -396,27 +396,42 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accent_color: string | null
           avatar_url: string | null
           created_at: string
           currency: string
           display_name: string
+          hide_card_balance: boolean | null
           id: string
+          locale: string | null
+          onboarding_completed: boolean | null
+          theme: string | null
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           avatar_url?: string | null
           created_at?: string
           currency?: string
           display_name?: string
+          hide_card_balance?: boolean | null
           id: string
+          locale?: string | null
+          onboarding_completed?: boolean | null
+          theme?: string | null
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           avatar_url?: string | null
           created_at?: string
           currency?: string
           display_name?: string
+          hide_card_balance?: boolean | null
           id?: string
+          locale?: string | null
+          onboarding_completed?: boolean | null
+          theme?: string | null
           updated_at?: string
         }
         Relationships: []

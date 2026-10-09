@@ -68,6 +68,11 @@ interface AuthContextType {
    * Actualiza la URL del avatar localmente tras subir una nueva foto.
    */
   updateAvatarUrl: (url: string) => void;
+
+  /**
+   * Refresca los datos del perfil desde Supabase (útil en eventos Realtime).
+   */
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -244,9 +249,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    await fetchProfile(user.id, user.email);
+  }, [user?.id, user?.email]);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, resetPassword, clearError, updateProfile, updateAvatarUrl }}
+      value={{ user, loading, error, signUp, signIn, signInWithOAuth, signOut, resetPassword, clearError, updateProfile, updateAvatarUrl, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

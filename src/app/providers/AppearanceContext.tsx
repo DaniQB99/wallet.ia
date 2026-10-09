@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuthContext } from './AuthContext';
+import { supabase } from '../../shared/api/supabase';
+import { broadcastTabSync, TAB_SYNC_CHANNEL, type TabSyncMessage } from '../../shared/lib/useRealtimeSync';
 
 /**
  * Contexto de Apariencia de Wallet.ia.
@@ -116,6 +119,9 @@ const getInitialAccent = (): AccentColor => {
  * Proveedor que inyecta la lógica de diseño en el árbol de componentes.
  */
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthContext();
+  const userId = user?.id;
+
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => getInitialResolvedTheme(getInitialTheme()));
   const [accentColor, setAccentColorState] = useState<AccentColor>(getInitialAccent);
@@ -134,14 +140,84 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
+  // Sincronizar desde la nube (perfil del usuario en Supabase)
+  useEffect(() => {
+    if (!user) return;
+    if (user.theme && ['light', 'dark', 'system'].includes(user.theme)) {
+      setThemeState(user.theme as Theme);
+      try {
+        localStorage.setItem(THEME_KEY, user.theme);
+      } catch {
+        // ignore
+      }
+    }
+    if (user.accent_color) {
+      const resolved = LEGACY_ACCENTS[user.accent_color] || (user.accent_color.startsWith('#') ? user.accent_color : null);
+      if (resolved) {
+        setAccentColorState(resolved);
+        try {
+          localStorage.setItem(ACCENT_KEY, resolved);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [user?.theme, user?.accent_color]);
+
+  // Sincronizar cambios entre pestañas/ventanas abiertas en el mismo navegador (0ms)
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    try {
+      const bc = new BroadcastChannel(TAB_SYNC_CHANNEL);
+      bc.onmessage = (event: MessageEvent<TabSyncMessage>) => {
+        if (event.data?.type === 'APPEARANCE_CHANGE') {
+          if (event.data.theme && ['light', 'dark', 'system'].includes(event.data.theme)) {
+            setThemeState(event.data.theme as Theme);
+          }
+          if (event.data.accentColor) {
+            const resolved = LEGACY_ACCENTS[event.data.accentColor] || (event.data.accentColor.startsWith('#') ? event.data.accentColor : null);
+            if (resolved) setAccentColorState(resolved);
+          }
+        }
+      };
+      return () => bc.close();
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem(THEME_KEY, newTheme);
+    try {
+      localStorage.setItem(THEME_KEY, newTheme);
+    } catch {
+      // ignore
+    }
+    broadcastTabSync({ type: 'APPEARANCE_CHANGE', theme: newTheme });
+
+    if (userId) {
+      void supabase
+        .from('profiles')
+        .update({ theme: newTheme, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    }
   };
 
   const setAccentColor = (newColor: AccentColor) => {
     setAccentColorState(newColor);
-    localStorage.setItem(ACCENT_KEY, newColor);
+    try {
+      localStorage.setItem(ACCENT_KEY, newColor);
+    } catch {
+      // ignore
+    }
+    broadcastTabSync({ type: 'APPEARANCE_CHANGE', accentColor: newColor });
+
+    if (userId) {
+      void supabase
+        .from('profiles')
+        .update({ accent_color: newColor, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    }
   };
 
   /**

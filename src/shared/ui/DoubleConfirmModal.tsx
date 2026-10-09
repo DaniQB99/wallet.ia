@@ -40,9 +40,10 @@ export default function DoubleConfirmModal({
         <div className="modal-overlay" style={{ zIndex: 1400 }} onClick={onClose}>
           <motion.div
             className="modal animate-in"
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
             style={{ maxWidth: '340px', width: '90%', textAlign: 'center', padding: '24px', position: 'relative' }}
             onClick={e => e.stopPropagation()}
           >

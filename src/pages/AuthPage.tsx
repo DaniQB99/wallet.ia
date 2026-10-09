@@ -295,8 +295,8 @@ export default function AuthPage() {
         {/* Value Proposition Section */}
         <div className="auth-value-props">
           <div className="auth-tagline">
-            <span>Finanzas en pareja, </span>
-            <span className="auth-tagline-highlight">simplificadas ✨</span>
+            <span>{t('authTaglinePrefix')}</span>
+            <span className="auth-tagline-highlight">{t('authTaglineHighlight')}</span>
           </div>
 
           <div className="value-props-grid">
