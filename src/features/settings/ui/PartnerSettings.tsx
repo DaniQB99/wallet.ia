@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Heart, Copy, Check, UserPlus, Unlink, Loader2, CreditCard } from 'lucide-react';
+import { X, UserCheck, Copy, Check, UserPlus, Unlink, Loader2, CreditCard } from 'lucide-react';
 import { useCouple } from '../../auth/model/useCouple';
 import { useAccounts } from '../../../entities/accounts/model/useAccounts';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -315,7 +315,7 @@ export default function PartnerSettings({ onClose }: PartnerSettingsProps) {
                   style={{ flexDirection: 'column', height: 'auto', padding: '22px 14px', gap: '10px' }}
                   onClick={() => setShowAcceptModal(true)}
                 >
-                  <Heart size={24} color="#EC4899" />
+                  <UserCheck size={24} color="var(--accent-primary)" />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'center' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>{t('join')}</span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>{t('iHaveCode')}</span>

@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Heart,
+  Users,
   Shield,
   Palette,
   Globe,
@@ -251,7 +251,7 @@ export default function Settings() {
           <div className="card" style={{ padding: 0 }} id="settings-partner-card">
             <div onClick={() => setShowPartner(true)}>
               <SettingsItem
-                icon={<Heart size={20} color="#EC4899" />}
+                icon={<Users size={20} color="var(--accent-primary)" />}
                 label={t('partnerStatus')}
                 desc={t('invitePartnerDesc')}
               />

@@ -1,19 +1,19 @@
 # 💸 Wallet.ia
 
-**Wallet.ia** es una Aplicación Web Progresiva (PWA) moderna y de alto rendimiento diseñada para ayudar a las parejas a gestionar sus finanzas compartidas y personales sin esfuerzo. Está construida con un enfoque estricto en la experiencia del usuario (UX), seguridad en la base de datos y una arquitectura web altamente escalable.
+**Wallet.ia** es una Aplicación Web Progresiva (PWA) moderna y de alto rendimiento diseñada para ayudar a parejas, compañeros de piso, familias o amigos a gestionar sus finanzas compartidas y personales sin esfuerzo. Está construida con un enfoque estricto en la experiencia del usuario (UX), estética *Liquid Glass*, seguridad blindada en base de datos y una arquitectura web altamente escalable.
 
-![Wallet.ia Preview](https://via.placeholder.com/1200x600?text=Wallet.ia+-+Gestor+Financiero+para+Parejas)
+![Wallet.ia Preview](https://via.placeholder.com/1200x600?text=Wallet.ia+-+Gestor+Financiero+Compartido+y+Personal)
 
 ## ✨ Características Principales (Actualizado)
 
-- **🔐 Autenticación Segura (Supabase Auth):** Sistema de inicio de sesión completo. Protección de rutas en el frontend para evitar que usuarios no autenticados accedan a la app.
-- **👥 Gestión Financiera Dual:** Rastrea tanto los gastos personales como los conjuntos en tiempo real. Vincula cuentas con tu pareja mediante códigos de invitación seguros.
-- **🎯 Metas de Ahorro Inteligentes:** Crea y visualiza el progreso de metas compartidas (ej. "Vacaciones", "Casa Nueva") o personales. Las transacciones y categorías se pueden vincular para calcular el progreso de forma automática.
+- **🔐 Autenticación Segura (Supabase Auth):** Sistema de inicio de sesión completo y protección estricta de rutas en el frontend.
+- **👥 Finanzas Compartidas & Duales (Para Todos los Públicos):** Rastrea gastos personales y compartidos en tiempo real. Vincula cuentas con tu pareja, compañero/a de piso, hermano/a, familiar o amigo/a mediante códigos de invitación seguros de 6 caracteres con permisos de solo lectura o lectura/escritura.
+- **🎯 Metas de Ahorro Inteligentes:** Crea y visualiza el progreso de metas compartidas (ej. "Viaje", "Piso", "Fondo de emergencia") o individuales con cálculo automatizado en tiempo real.
 - **🌍 Soporte Multi-moneda con Divisa Inmutable por Cuenta:** Cuentas y tarjetas independientes con sus propias divisas nativas (EUR, USD, GBP, JPY, etc.), inmutabilidad estricta blindada por triggers PostgreSQL en Supabase y suite de pruebas de precisión matemática.
 - **🧙 Asistente Interactivo de Tarjetas (Liquid Glass 3D):** Proceso guiado en 3 pasos con previsualización tridimensional en tiempo real que muta instantáneamente con el icono, color, divisa, saldo y ámbito de la tarjeta.
 - **✉️ Experiencia Táctil Minimalista Estilo iOS (Cuentas y Categorías):** Edición rápida al pulsar directamente sobre la tarjeta, indicador de ámbito integrado en línea, divisa nativa sobria y eliminación segura mediante deslizamiento suave (`swipe-to-action`) con cajón atenuado sin sangrado cromático.
 - **📱 Ventanas Modales 100% Responsivas y Desplazables (100dvh):** Todas las pantallas emergentes cuentan con cabeceras estandarizadas, soporte de altura dinámica para móviles (`100dvh`), desplazamiento vertical ultra-suave sin bloqueos y botones de acción siempre al alcance en cualquier dispositivo.
-- **✨ Onboarding Premium Interactivo (8 Pasos):** Los nuevos usuarios reciben un tour guiado con animaciones fluidas (Framer Motion), foco *spotlight* en elementos reales del DOM, acceso a analíticas y selector inicial para crear categorías esenciales por defecto o empezar la cuenta 100% desde cero.
+- **✨ Onboarding Flotante Liquid Glass (8 Pasos):** Tour interactivo ultra-compacto y flotante (*coach-mark*) con estética *Liquid Glass*, foco *spotlight* animado en elementos reales del DOM, resiliencia total ante barras de búsqueda móviles (`visualViewport`), consejos sutiles de instalación PWA (iOS, Android, PC) y selector de categorías iniciales sin saltos ni desalineaciones.
 - **🖼️ Avatares Personalizables:** Subida de fotos de perfil integradas con Supabase Storage (HTML5 nativo para cámara/galería) y sincronización automática de fotos de Google Auth.
 - **⚡ Estado Reactivo:** Eliminaciones en cascada y sincronización instantánea de saldos sin refrescar la página.
 - **🚀 SEO & Open Graph:** Totalmente optimizada para buscadores y redes sociales. Al compartir tu perfil o la app, se generan tarjetas visuales dinámicas. Los títulos de página se adaptan dinámicamente usando `react-helmet-async`.

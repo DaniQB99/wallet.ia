@@ -57,6 +57,20 @@ Las tablas en Supabase ya reflejan:
   - **Acceso a Analíticas Actualizado**: actualización del icono de acceso rápido a Analíticas en la cabecera superior derecha del Dashboard a un gráfico circular (`PieChart`).
   - Estandarización de modales flotantes (botón de cierre con X superior izquierda y títulos centrados consistentes).
   - Modal explicativo interactivo para instalación de PWA ("Instalar como App") con detección automática del navegador.
+- **Rediseño Completo del Tour de Bienvenida (Onboarding Resiliente & Tooltips Flotantes Liquid Glass)**:
+  - Transformación del antiguo panel gigante estático en un sistema de **tooltips flotantes compactos** (max 335px) y contextuales con estética *Liquid Glass* (reflejos especulares, gradiente translúcido 145deg, desenfoque de 28px, indicador de progreso en puntos/cápsula y flechas direccionales hacia el objetivo).
+  - Resiliencia total ante barras de búsqueda dinámicas en navegadores móviles (iOS Safari / Android Chrome) usando medición de `visualViewport` y scroll asistido automático (`scrollIntoView`) sin congelamiento destructivo del scroll.
+  - Inclusión de guía sutil y contextual de instalación de PWA en el primer paso (adaptada a Safari iOS, Chrome Android y escritorio) para disfrutar la experiencia en pantalla completa sin bloquear la navegación.
+  - Selección visual interactiva de categorías iniciales con vista previa de chips (`🛒 Alimentación`, `🏠 Vivienda`, etc.) directamente en el tour sin saltos de página ni elementos desalineados.
+  - Adaptabilidad para escritorio y móvil (señalando la barra lateral `sidebar-nav` en pantallas grandes o la barra inferior `bottom-nav-container` en móviles).
+- **Transición a Finanzas Compartidas Universales («Compañero/a» para Todos los Públicos)**:
+  - Adaptación holística de toda la terminología y semántica de la aplicación: abandono del enfoque exclusivamente romántico ("pareja", "media naranja", corazones) en favor de colaboración financiera abierta y universal ("Compañero/a" / "Finanzas Compartidas") apta para compañeros de piso, familias, parejas, hermanos, hijos o amigos.
+  - Reemplazo sistemático de iconos de corazón (`Heart`) por iconografía de colaboración universal (`Users`, `UserCheck`, `UserPlus`) manteniendo la coherencia cromática y el tono premium.
+  - Sincronización y actualización de 22 claves de internacionalización con paridad exacta al 100% en los 6 idiomas del sistema (`es-ES`, `en-US`, `de-DE`, `fr-FR`, `it-IT`, `pt-PT`).
+  - Preservación estricta del esquema de base de datos (`couples`, `partner_id`) para salvaguardar la integridad de las relaciones y políticas RLS existentes en Supabase.
+- **Evolución del Sistema de Diseño Liquid Glass en Toda la App**:
+  - Incorporación de reflejos especulares (`inset 0 1.5px 1px rgba(255, 255, 255, 0.18)`), sombras multi-capa con profundidad ambiental y saturación incrementada (`backdrop-filter: blur(28px) saturate(180%)`) en modales, tarjetas, barra de navegación móvil (`bottom-nav`) y tooltips de bienvenida.
+  - Modo claro y oscuro completamente equilibrados con translucidez nítida, sin sangrado de color y con alta legibilidad en pantallas AMOLED, OLED y Retina.
 - **Rediseño Modal de Transacciones Estilo Banca Moderna (Liquid Glass & Teclado iOS)**:
   - Header con tirador superior, botón de cierre a la izquierda y título centrado dinámico (`Nuevo gasto`, `Nuevo ingreso`, `Nueva transferencia`).
   - Selector de pestañas horizontales 100% responsivo en cuadrícula de 3 columnas (`Transfer.` adaptativo para evitar desbordamientos en móviles estrechos).

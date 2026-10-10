@@ -87,7 +87,7 @@ export default function AuthPage() {
     <>
       <Helmet>
         <title>{t('authLogin')} - Wallet.ia</title>
-        <meta name="description" content="Inicia sesión en Wallet.ia para gestionar tus finanzas en pareja de forma segura." />
+        <meta name="description" content="Inicia sesión en Wallet.ia para gestionar tus finanzas personales y compartidas de forma segura." />
       </Helmet>
       <div className="auth-page">
       {/* Success toast */}

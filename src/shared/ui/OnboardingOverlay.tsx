@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocaleCurrency } from '../../app/providers/LocaleCurrencyContext';
 import { useAuthContext } from '../../app/providers/AuthContext';
@@ -7,38 +7,22 @@ import { supabase } from '../api/supabase';
 import { DEFAULT_CATEGORIES } from '../config/defaultCategories';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Smartphone,
   Wallet,
   PlusCircle,
   PieChart,
   Tag,
   Compass,
-  ChevronRight,
-  ChevronLeft,
-  X,
+  Users,
   Sparkles,
-  ArrowUp,
-  ArrowDown,
-  Heart,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                          */
+/*  Types & Interfaces                                                */
 /* ------------------------------------------------------------------ */
-
-/** CSS selectors for target elements highlighted in each step.        */
-const STEP_SELECTORS: (string | null)[] = [
-  null,                       // 0 — Welcome (no highlight)
-  '.bank-card-carousel',      // 1 — Balance cards / Carrusel 3D
-  '.dashboard-actions-grid',  // 2 — Quick actions & center (+)
-  '#dashboard-analytics-btn', // 3 — Analytics shortcut button in header
-  '.analytics-donut-section', // 4 — Analytics Donut chart
-  '#settings-categories-item',// 5 — Categories item in Settings
-  '#settings-partner-card',   // 6 — Partner Settings
-  '.bottom-nav-container',    // 7 — Navigation bar
-];
-
-const TOTAL_STEPS = STEP_SELECTORS.length;
-const HIGHLIGHT_PAD = 8;
 
 interface HighlightRect {
   top: number;
@@ -47,129 +31,137 @@ interface HighlightRect {
   height: number;
 }
 
+interface TooltipPosition {
+  top: number;
+  left: number;
+  placement: 'top' | 'bottom' | 'center' | 'right';
+  arrowOffset: number;
+}
+
+const HIGHLIGHT_PAD = 8;
+
 /* ------------------------------------------------------------------ */
 /*  OnboardingOverlay                                                  */
 /*                                                                     */
-/*  Coach-mark / spotlight tour for first-time users.                  */
-/*  Shows the real Dashboard UI in the background with highlighted     */
-/*  elements and a floating explanation card.                          */
+/*  Compact, viewport-resilient floating coach-mark tour.              */
+/*  Supports mobile browser bars, iOS Safari, Android, and Desktop.     */
 /* ------------------------------------------------------------------ */
 
 export default function OnboardingOverlay() {
-  const { t } = useLocaleCurrency();
+  const { t, translateEntityName } = useLocaleCurrency();
   const { user } = useAuthContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [highlightRect, setHighlightRect] = useState<HighlightRect | null>(null);
-  const [direction, setDirection] = useState(1);
   const [categoryChoice, setCategoryChoice] = useState<'default' | 'clean'>('default');
 
-  /* ---- Step definitions (rebuilt every render for i18n) ---- */
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
 
+  const [tooltipPos, setTooltipPos] = useState<TooltipPosition>({
+    top: 0,
+    left: 0,
+    placement: 'center',
+    arrowOffset: 0,
+  });
+
+  // Detect platform & PWA standalone status
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    setIsStandalone(Boolean(standalone));
+
+    const ua = navigator.userAgent || '';
+    setIsIOS(/iPhone|iPad|iPod/i.test(ua));
+    setIsAndroid(/Android/i.test(ua));
+  }, []);
+
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+
+  /* ---- Step definitions ---- */
   const steps = [
     {
+      id: 'welcome',
       path: '/',
-      cardPosition: 'bottom' as const,
-      pointerDirection: null as 'up' | 'down' | null,
-      icon: <Sparkles size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(99, 102, 241, 0.15)',
-      iconColor: '#818cf8',
+      selector: null,
       subtitle: t('onboardingSub1'),
       title: t('onboardingWelcome'),
       desc: t('onboardingWelcomeDesc'),
+      icon: <Sparkles size={20} className="text-accent" />,
     },
     {
+      id: 'balances',
       path: '/',
-      cardPosition: 'bottom' as const,
-      pointerDirection: 'up' as const,
-      icon: <Wallet size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(16, 185, 129, 0.15)',
-      iconColor: '#10b981',
+      selector: '.bank-card-carousel',
       subtitle: t('onboardingSub2'),
       title: t('onboardingStep1Title'),
       desc: t('onboardingStep1Desc'),
+      icon: <Wallet size={20} className="text-accent" />,
     },
     {
+      id: 'quick-entry',
       path: '/',
-      cardPosition: 'top' as const,
-      pointerDirection: 'down' as const,
-      icon: <PlusCircle size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(59, 130, 246, 0.15)',
-      iconColor: '#3b82f6',
+      selector: '.dashboard-actions-grid',
       subtitle: t('onboardingSub3'),
       title: t('onboardingStep5Title'),
       desc: t('onboardingStep5Desc'),
+      icon: <PlusCircle size={20} className="text-accent" />,
     },
     {
+      id: 'analytics',
       path: '/',
-      cardPosition: 'bottom' as const,
-      pointerDirection: 'up' as const,
-      icon: <PieChart size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(245, 158, 11, 0.15)',
-      iconColor: '#f59e0b',
-      subtitle: t('onboardingSubAnalyticsShortcut'),
-      title: t('onboardingAnalyticsShortcutTitle'),
-      desc: t('onboardingAnalyticsShortcutDesc'),
+      selector: '#dashboard-analytics-btn',
+      subtitle: t('onboardingSubAnalyticsShortcut') || t('onboardingSub4'),
+      title: t('onboardingAnalyticsShortcutTitle') || t('onboardingStep4Title'),
+      desc: `${t('onboardingAnalyticsShortcutDesc')} ${t('onboardingStep4Desc')}`,
+      icon: <PieChart size={20} className="text-accent" />,
     },
     {
-      path: '/analytics',
-      cardPosition: 'top' as const,
-      pointerDirection: 'down' as const,
-      icon: <PieChart size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(236, 72, 153, 0.15)',
-      iconColor: '#ec4899',
-      subtitle: t('onboardingSub4'),
-      title: t('onboardingStep4Title'),
-      desc: t('onboardingStep4Desc'),
-    },
-    {
+      id: 'partner',
       path: '/settings',
-      cardPosition: 'bottom' as const,
-      pointerDirection: 'up' as const,
-      icon: <Tag size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(239, 68, 68, 0.15)',
-      iconColor: '#ef4444',
-      subtitle: t('onboardingSubCategories'),
-      title: t('onboardingCategoriesTitle'),
-      desc: t('onboardingCategoriesDesc'),
-    },
-    {
-      path: '/settings',
-      cardPosition: 'top' as const,
-      pointerDirection: 'down' as const,
-      icon: <Heart size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(236, 72, 153, 0.15)',
-      iconColor: '#ec4899',
+      selector: '#settings-partner-card',
       subtitle: t('onboardingSubPartner'),
       title: t('onboardingStepPartnerTitle'),
       desc: t('onboardingStepPartnerDesc'),
+      icon: <Users size={20} className="text-accent" />,
     },
     {
+      id: 'categories',
+      path: '/settings',
+      selector: '#settings-categories-item',
+      subtitle: t('onboardingSubCategories'),
+      title: t('onboardingCategoriesTitle'),
+      desc: t('onboardingCategoriesDesc'),
+      icon: <Tag size={20} className="text-accent" />,
+    },
+    {
+      id: 'navigation',
       path: '/',
-      cardPosition: 'top' as const,
-      pointerDirection: 'down' as const,
-      icon: <Compass size={28} strokeWidth={1.5} />,
-      iconBg: 'rgba(139, 92, 246, 0.15)',
-      iconColor: '#8b5cf6',
+      selector: isDesktop ? '.sidebar-nav' : '.bottom-nav-container',
       subtitle: t('onboardingSub5'),
       title: t('onboardingNavTitle'),
       desc: t('onboardingNavDesc'),
+      icon: <Compass size={20} className="text-accent" />,
     },
   ];
 
+  const TOTAL_STEPS = steps.length;
   const step = steps[currentStep];
   const isLastStep = currentStep === TOTAL_STEPS - 1;
 
-  /* ---- Show / mount logic ---- */
-
+  /* ---- Show / mount triggers ---- */
   useEffect(() => {
     const handleShowOnboarding = () => {
       setCurrentStep(0);
-      setDirection(1);
       setHighlightRect(null);
       setIsVisible(true);
       if (location.pathname !== '/') navigate('/');
@@ -186,7 +178,7 @@ export default function OnboardingOverlay() {
       const timer = setTimeout(() => {
         setIsVisible(true);
         if (location.pathname !== '/') navigate('/');
-      }, 800);
+      }, 700);
       return () => {
         clearTimeout(timer);
         window.removeEventListener('show-onboarding', handleShowOnboarding);
@@ -194,131 +186,149 @@ export default function OnboardingOverlay() {
     }
 
     return () => window.removeEventListener('show-onboarding', handleShowOnboarding);
-  }, [navigate, user]);
+  }, [navigate, user, location.pathname]);
 
-  /* ---- Bloqueo absoluto de scroll de fondo para evitar desplazamientos, tirones y lags ---- */
-
-  useEffect(() => {
+  /* ---- Viewport & position calculation ---- */
+  const updatePosition = useCallback(() => {
     if (!isVisible) return;
 
-    const originalBodyPosition = document.body.style.position;
-    const originalBodyTop = document.body.style.top;
-    const originalBodyLeft = document.body.style.left;
-    const originalBodyWidth = document.body.style.width;
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalBodyTouchAction = document.body.style.touchAction;
-    const originalDocOverflow = document.documentElement.style.overflow;
-    const originalDocOverscroll = document.documentElement.style.overscrollBehavior;
+    const currentStepData = steps[currentStep];
+    if (!currentStepData || !currentStepData.selector) {
+      setHighlightRect(null);
+      setTooltipPos({
+        top: 0,
+        left: 0,
+        placement: 'center',
+        arrowOffset: 0,
+      });
+      return;
+    }
 
-    // Fijar la pantalla en la parte superior absoluta
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    // Ensure we are on the expected route
+    if (currentStepData.path && location.pathname !== currentStepData.path) {
+      setHighlightRect(null);
+      navigate(currentStepData.path);
+      return;
+    }
 
-    // Inmovilizar completamente el documento de fondo
-    document.body.style.position = 'fixed';
-    document.body.style.top = '0px';
-    document.body.style.left = '0px';
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.overscrollBehavior = 'none';
+    const el = document.querySelector(currentStepData.selector) as HTMLElement | null;
+    if (!el) {
+      // Element not yet rendered in DOM
+      return;
+    }
 
-    document.body.classList.add('onboarding-open');
-    document.documentElement.classList.add('onboarding-open');
+    // Center element in viewport smoothly
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    } catch {
+      // Fallback
+    }
 
-    const preventScroll = (e: TouchEvent | WheelEvent) => {
-      if (e.cancelable) e.preventDefault();
-    };
+    const r = el.getBoundingClientRect();
+    setHighlightRect({
+      top: r.top,
+      left: r.left,
+      width: r.width,
+      height: r.height,
+    });
 
-    window.addEventListener('touchmove', preventScroll, { passive: false });
-    window.addEventListener('wheel', preventScroll, { passive: false });
+    const vv = window.visualViewport;
+    const vpWidth = vv ? vv.width : window.innerWidth;
+    const vpHeight = vv ? vv.height : window.innerHeight;
+    const vpTop = vv ? vv.offsetTop : 0;
+    const vpLeft = vv ? vv.offsetLeft : 0;
 
-    return () => {
-      document.body.style.position = originalBodyPosition;
-      document.body.style.top = originalBodyTop;
-      document.body.style.left = originalBodyLeft;
-      document.body.style.width = originalBodyWidth;
-      document.body.style.overflow = originalBodyOverflow;
-      document.body.style.touchAction = originalBodyTouchAction;
-      document.documentElement.style.overflow = originalDocOverflow;
-      document.documentElement.style.overscrollBehavior = originalDocOverscroll;
+    const cardWidth = Math.min(340, vpWidth - 28);
+    const cardHeight = cardRef.current?.offsetHeight || 210;
 
-      document.body.classList.remove('onboarding-open');
-      document.documentElement.classList.remove('onboarding-open');
+    // Desktop sidebar special alignment
+    if (window.innerWidth >= 768 && currentStepData.selector.includes('sidebar')) {
+      const top = Math.max(
+        vpTop + 20,
+        Math.min(r.top + 30, vpTop + vpHeight - cardHeight - 20)
+      );
+      const left = r.right + 16;
+      setTooltipPos({
+        top,
+        left,
+        placement: 'right',
+        arrowOffset: 24,
+      });
+      return;
+    }
 
-      window.removeEventListener('touchmove', preventScroll);
-      window.removeEventListener('wheel', preventScroll);
-    };
-  }, [isVisible]);
+    // Vertical placement logic
+    const spaceAbove = r.top - vpTop;
+    const spaceBelow = (vpTop + vpHeight) - r.bottom;
 
-  /* ---- Highlight rect tracking ---- */
+    let placement: 'top' | 'bottom' = 'bottom';
+    let top = 0;
 
+    if (spaceBelow >= cardHeight + 20 || spaceBelow >= spaceAbove) {
+      placement = 'bottom';
+      top = r.bottom + 14;
+    } else {
+      placement = 'top';
+      top = r.top - cardHeight - 14;
+    }
+
+    // Clamp inside viewport
+    top = Math.max(vpTop + 14, Math.min(top, vpTop + vpHeight - cardHeight - 14));
+
+    // Center horizontally relative to target
+    const targetCenterX = r.left + r.width / 2;
+    let left = targetCenterX - cardWidth / 2;
+    left = Math.max(vpLeft + 14, Math.min(left, vpLeft + vpWidth - cardWidth - 14));
+
+    const arrowOffset = Math.max(20, Math.min(targetCenterX - left, cardWidth - 20));
+
+    setTooltipPos({
+      top,
+      left,
+      placement,
+      arrowOffset,
+    });
+  }, [currentStep, isVisible, steps, location.pathname, navigate]);
+
+  // Recalculate on step change, resize, visualViewport change, and element animations
   useEffect(() => {
     if (!isVisible) {
       setHighlightRect(null);
       return;
     }
 
-    const selector = STEP_SELECTORS[currentStep];
-    if (!selector) {
-      setHighlightRect(null);
-      return;
-    }
-
-    // Mantener la pantalla anclada en el origen
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
     let rafId: number;
-
-    const updateRect = () => {
-      const el = document.querySelector(selector);
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      setHighlightRect((prev) => {
-        if (
-          prev &&
-          Math.abs(prev.top - r.top) < 0.5 &&
-          Math.abs(prev.left - r.left) < 0.5 &&
-          Math.abs(prev.width - r.width) < 0.5 &&
-          Math.abs(prev.height - r.height) < 0.5
-        ) {
-          return prev;
-        }
-        return { top: r.top, left: r.left, width: r.width, height: r.height };
-      });
-    };
-
     const throttledUpdate = () => {
       cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateRect);
+      rafId = requestAnimationFrame(updatePosition);
     };
 
-    // Medición inmediata
-    updateRect();
+    updatePosition();
 
-    // Muestreo rápido de precisión para renderizados dinámicos
-    let pollCount = 0;
-    const pollInterval = setInterval(() => {
-      updateRect();
-      pollCount++;
-      if (pollCount > 8) clearInterval(pollInterval);
-    }, 30);
+    // Fast polling for router transitions and dynamic element mounting
+    let count = 0;
+    const interval = setInterval(() => {
+      updatePosition();
+      count++;
+      if (count > 16) clearInterval(interval);
+    }, 40);
 
     window.addEventListener('resize', throttledUpdate);
+    window.addEventListener('scroll', throttledUpdate, { passive: true });
+    window.visualViewport?.addEventListener('resize', throttledUpdate);
+    window.visualViewport?.addEventListener('scroll', throttledUpdate);
 
     return () => {
-      clearInterval(pollInterval);
+      clearInterval(interval);
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', throttledUpdate);
+      window.removeEventListener('scroll', throttledUpdate);
+      window.visualViewport?.removeEventListener('resize', throttledUpdate);
+      window.visualViewport?.removeEventListener('scroll', throttledUpdate);
     };
-  }, [currentStep, isVisible, location.pathname]);
+  }, [isVisible, currentStep, location.pathname, updatePosition]);
 
-  /* ---- Handlers ---- */
-
+  /* ---- Database & Choice Actions ---- */
   const applyCategoryChoice = useCallback(
     async (choice: 'default' | 'clean') => {
       if (!user?.id) return;
@@ -356,8 +366,14 @@ export default function OnboardingOverlay() {
     await applyCategoryChoice(categoryChoice);
     setIsVisible(false);
     setHighlightRect(null);
+
+    // Return to dashboard if finished while in settings
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+
     window.dispatchEvent(new Event('onboarding-completed'));
-  }, [user?.id, applyCategoryChoice, categoryChoice]);
+  }, [user?.id, applyCategoryChoice, categoryChoice, location.pathname, navigate]);
 
   const nextStep = useCallback(() => {
     if (currentStep === 5) {
@@ -365,45 +381,32 @@ export default function OnboardingOverlay() {
     }
 
     if (currentStep < TOTAL_STEPS - 1) {
-      setDirection(1);
-      const next = currentStep + 1;
-      
-      const nextPath = steps[next].path;
-      if (nextPath && nextPath !== location.pathname) {
+      const nextIdx = currentStep + 1;
+      const nextStepData = steps[nextIdx];
+      if (nextStepData.path && nextStepData.path !== location.pathname) {
         setHighlightRect(null);
-        navigate(nextPath);
+        navigate(nextStepData.path);
       }
-
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      if (!STEP_SELECTORS[next]) setHighlightRect(null);
-      setCurrentStep(next);
+      setCurrentStep(nextIdx);
     } else {
       void handleFinish();
     }
-  }, [currentStep, handleFinish, navigate, location.pathname, steps, applyCategoryChoice, categoryChoice]);
+  }, [currentStep, TOTAL_STEPS, steps, location.pathname, navigate, handleFinish, applyCategoryChoice, categoryChoice]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 0) {
-      setDirection(-1);
-      const prev = currentStep - 1;
-
-      const prevPath = steps[prev].path;
-      if (prevPath && prevPath !== location.pathname) {
+      const prevIdx = currentStep - 1;
+      const prevStepData = steps[prevIdx];
+      if (prevStepData.path && prevStepData.path !== location.pathname) {
         setHighlightRect(null);
-        navigate(prevPath);
+        navigate(prevStepData.path);
       }
-
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      if (!STEP_SELECTORS[prev]) setHighlightRect(null);
-      setCurrentStep(prev);
+      setCurrentStep(prevIdx);
     }
-  }, [currentStep, navigate, location.pathname, steps]);
+  }, [currentStep, steps, location.pathname, navigate]);
 
-  /* ---- Render ---- */
+  const pointerDirectionLabel =
+    tooltipPos.placement === 'bottom' ? t('onboardingPointUp') : t('onboardingPointDown');
 
   return (
     <AnimatePresence>
@@ -414,9 +417,9 @@ export default function OnboardingOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.25 }}
         >
-          {/* Visual overlay — spotlight or full dim */}
+          {/* Spotlight highlight or backdrop dim */}
           <AnimatePresence>
             {highlightRect ? (
               <motion.div
@@ -431,7 +434,7 @@ export default function OnboardingOverlay() {
                   height: highlightRect.height + HIGHLIGHT_PAD * 2,
                 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 350 }}
               />
             ) : (
               <motion.div
@@ -440,165 +443,188 @@ export default function OnboardingOverlay() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                transition={{ duration: 0.2 }}
               />
             )}
           </AnimatePresence>
 
-          {/* Floating card */}
+          {/* Floating contextual card */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={`card-${step.cardPosition}`}
-              className={`onboarding-card onboarding-card--${step.cardPosition}`}
+              ref={cardRef}
+              key={`card-${currentStep}`}
+              className={`onboarding-card onboarding-card--${tooltipPos.placement}`}
+              style={
+                tooltipPos.placement === 'center'
+                  ? undefined
+                  : {
+                      top: `${tooltipPos.top}px`,
+                      left: `${tooltipPos.left}px`,
+                    }
+              }
               initial={{
                 opacity: 0,
-                y: step.cardPosition === 'bottom' ? 30 : -30,
+                scale: 0.96,
+                y: tooltipPos.placement === 'bottom' ? -8 : tooltipPos.placement === 'top' ? 8 : 0,
               }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{
-                opacity: 0,
-                y: step.cardPosition === 'bottom' ? 30 : -30,
-              }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
-              {/* Header */}
+              {/* Contextual arrow pointer */}
+              {tooltipPos.placement !== 'center' && (
+                <div
+                  className={`onboarding-arrow onboarding-arrow--${tooltipPos.placement}`}
+                  style={
+                    tooltipPos.placement === 'right'
+                      ? { top: `${tooltipPos.arrowOffset}px` }
+                      : { left: `${tooltipPos.arrowOffset}px` }
+                  }
+                  aria-label={pointerDirectionLabel}
+                />
+              )}
+
+              {/* Header with dots and counter */}
               <div className="onboarding-card-header">
-                <div className="onboarding-badge">
-                  {t('onboardingStepLabel')} {currentStep + 1} {t('onboardingStepOf')}{' '}
-                  {TOTAL_STEPS}
+                <div
+                  className="onboarding-dots"
+                  aria-label={`${t('onboardingStepLabel')} ${currentStep + 1} ${t('onboardingStepOf')} ${TOTAL_STEPS}`}
+                >
+                  {steps.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`onboarding-dot ${
+                        i === currentStep
+                          ? 'onboarding-dot--active'
+                          : i < currentStep
+                          ? 'onboarding-dot--done'
+                          : ''
+                      }`}
+                    />
+                  ))}
                 </div>
-                <div className="onboarding-header-actions">
-                  {step.pointerDirection && (
-                    <motion.div
-                      className="onboarding-pointer"
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {step.pointerDirection === 'up' ? (
-                        <ArrowUp size={14} strokeWidth={2.5} />
-                      ) : (
-                        <ArrowDown size={14} strokeWidth={2.5} />
-                      )}
-                      <span>
-                        {step.pointerDirection === 'up'
-                          ? t('onboardingPointUp')
-                          : t('onboardingPointDown')}
-                      </span>
-                    </motion.div>
-                  )}
+
+                <div className="onboarding-header-right">
+                  <span className="onboarding-step-counter">
+                    {currentStep + 1}/{TOTAL_STEPS}
+                  </span>
                   <button
+                    type="button"
                     className="onboarding-btn-close"
                     onClick={handleFinish}
                     aria-label={t('onboardingSkip')}
                   >
-                    <X size={18} />
+                    <X size={15} />
                   </button>
                 </div>
               </div>
 
-              {/* Body — content animates on step change */}
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={currentStep}
-                  className="onboarding-card-body"
-                  initial={{ opacity: 0, x: direction * 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: direction * -15 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                >
-                  <div className="onboarding-content-row">
-                    <div
-                      className="onboarding-icon-wrap"
-                      style={{
-                        background: step.iconBg,
-                        color: step.iconColor,
-                      }}
-                    >
-                      {step.icon}
+              {/* Body */}
+              <div className="onboarding-card-body">
+                {step.subtitle && (
+                  <div className="onboarding-subtitle">{step.subtitle}</div>
+                )}
+                <h3 className="onboarding-title">{step.title}</h3>
+                <p className="onboarding-desc">{step.desc}</p>
+
+                {/* Sutil Tip de Instalación PWA (Paso 0) */}
+                {currentStep === 0 && !isStandalone && (
+                  <div className="onboarding-pwa-tip">
+                    <div className="onboarding-pwa-tip-header">
+                      <Smartphone size={14} style={{ color: 'var(--accent-primary)' }} />
+                      <span>{t('onboardingPwaTitle')}</span>
                     </div>
-                    <div className="onboarding-content-text">
-                      {step.subtitle && (
-                        <div className="onboarding-subtitle">{step.subtitle}</div>
-                      )}
-                      <h3 className="onboarding-title">{step.title}</h3>
-                    </div>
+                    <p className="onboarding-pwa-tip-text">
+                      {isIOS
+                        ? t('onboardingPwaDescIOS')
+                        : isAndroid
+                        ? t('onboardingPwaDescAndroid')
+                        : t('onboardingPwaDescDesktop')}
+                    </p>
                   </div>
-                  <p className="onboarding-desc">{step.desc}</p>
-                  {currentStep === 5 && (
-                    <div className="onboarding-choices-container">
+                )}
+
+                {/* Configuración visual de Categorías (Paso 5) */}
+                {currentStep === 5 && (
+                  <div className="onboarding-category-section">
+                    <div className="onboarding-category-pills">
                       <button
                         type="button"
-                        className={`onboarding-choice-card ${
-                          categoryChoice === 'default'
-                            ? 'onboarding-choice-card--active'
-                            : ''
-                        }`}
+                        className={`onboarding-cat-pill ${categoryChoice === 'default' ? 'active' : ''}`}
                         onClick={() => setCategoryChoice('default')}
                       >
-                        <div className="onboarding-choice-header">
-                          <span className="onboarding-choice-title">
-                            {t('onboardingCatOptionDefault')}
-                          </span>
-                          <span className="onboarding-choice-badge">
-                            {t('onboardingCatRecommended')}
-                          </span>
-                        </div>
-                        <p className="onboarding-choice-desc">
+                        <span className="onboarding-cat-pill-title">
+                          {t('onboardingCatOptionDefault')}
+                        </span>
+                        <span className="onboarding-cat-badge">
+                          {t('onboardingCatRecommended')}
+                        </span>
+                        <p className="onboarding-cat-pill-desc">
                           {t('onboardingCatOptionDefaultDesc')}
                         </p>
                       </button>
 
                       <button
                         type="button"
-                        className={`onboarding-choice-card ${
-                          categoryChoice === 'clean'
-                            ? 'onboarding-choice-card--active'
-                            : ''
-                        }`}
+                        className={`onboarding-cat-pill ${categoryChoice === 'clean' ? 'active' : ''}`}
                         onClick={() => setCategoryChoice('clean')}
                       >
-                        <div className="onboarding-choice-header">
-                          <span className="onboarding-choice-title">
-                            {t('onboardingCatOptionClean')}
-                          </span>
-                        </div>
-                        <p className="onboarding-choice-desc">
+                        <span className="onboarding-cat-pill-title">
+                          {t('onboardingCatOptionClean')}
+                        </span>
+                        <p className="onboarding-cat-pill-desc">
                           {t('onboardingCatOptionCleanDesc')}
                         </p>
                       </button>
                     </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
+
+                    {categoryChoice === 'default' && (
+                      <div className="onboarding-category-preview-chips">
+                        {DEFAULT_CATEGORIES.slice(0, 8).map((cat) => (
+                          <span key={cat.name} className="onboarding-category-chip">
+                            {cat.icon} {translateEntityName ? translateEntityName(cat.name, 'category') : cat.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Footer */}
               <div className="onboarding-footer">
-                <div className="onboarding-dots">
-                  {steps.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`onboarding-dot${
-                        i === currentStep ? ' onboarding-dot--active' : ''
-                      }${i < currentStep ? ' onboarding-dot--done' : ''}`}
-                    />
-                  ))}
-                </div>
-                <div className="onboarding-nav-buttons">
+                <button
+                  type="button"
+                  className="onboarding-btn-skip"
+                  onClick={handleFinish}
+                >
+                  {t('onboardingSkip')}
+                </button>
+
+                <div className="onboarding-footer-actions">
                   {currentStep > 0 && (
                     <button
+                      type="button"
                       className="onboarding-btn-prev"
                       onClick={prevStep}
                       aria-label={t('onboardingPrev')}
                     >
-                      <ChevronLeft size={20} strokeWidth={2.5} />
+                      <ChevronLeft size={16} />
                     </button>
                   )}
-                  <button className="onboarding-btn-next" onClick={nextStep}>
+                  <button
+                    type="button"
+                    className="onboarding-btn-next"
+                    onClick={nextStep}
+                  >
                     <span>
-                      {isLastStep ? t('onboardingFinish') : t('onboardingNext')}
+                      {isLastStep
+                        ? t('onboardingFinish')
+                        : currentStep === 0
+                        ? t('onboardingNext')
+                        : t('onboardingGotIt')}
                     </span>
-                    {!isLastStep && <ChevronRight size={18} strokeWidth={2.5} />}
+                    {!isLastStep && <ChevronRight size={15} />}
                   </button>
                 </div>
               </div>
